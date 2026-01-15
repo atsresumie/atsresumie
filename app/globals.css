@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* class-based dark mode variant like shadcn recommends */
+@custom-variant dark (&:is(.dark *));
+
+/* ✅ Put your brand tokens here (wrap values in hsl()) */
+:root {
+	--background: hsl(24 28% 12%);
+	--foreground: hsl(36 30% 88%);
+
+	--card: hsl(24 25% 16%);
+	--card-foreground: hsl(36 30% 88%);
+
+	--popover: hsl(24 25% 14%);
+	--popover-foreground: hsl(36 30% 88%);
+
+	--primary: hsl(20 30% 18%);
+	--primary-foreground: hsl(36 30% 90%);
+
+	--secondary: hsl(36 30% 85%);
+	--secondary-foreground: hsl(20 30% 15%);
+
+	--accent: hsl(32 28% 66%);
+	--accent-foreground: hsl(20 30% 15%);
+
+	--muted: hsl(24 20% 22%);
+	--muted-foreground: hsl(36 15% 60%);
+
+	--destructive: hsl(0 62% 50%);
+	--destructive-foreground: hsl(0 0% 100%);
+
+	--border: hsl(24 20% 25%);
+	--input: hsl(24 20% 20%);
+	--ring: hsl(32 28% 50%);
+
+	--radius: 0.75rem;
+
+	/* Brand extras */
+	--coffee: hsl(20 30% 18%);
+	--coffee-light: hsl(24 25% 25%);
+	--beige: hsl(36 30% 88%);
+	--beige-dark: hsl(36 25% 75%);
+	--sand: hsl(32 28% 66%);
+	--cream: hsl(40 35% 92%);
+}
+
+.dark {
+	/* you can keep the same or adjust */
+	--background: hsl(24 28% 12%);
+	--foreground: hsl(36 30% 88%);
+}
+
+/* ✅ This is the key that makes classes like bg-background, border-border work */
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	/* Radius scale (keeps your old v3 behavior) */
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Base styles (shadcn style) */
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground antialiased;
+		font-family: Inter, system-ui, sans-serif;
+	}
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: Fraunces, Georgia, serif;
+	}
+}
