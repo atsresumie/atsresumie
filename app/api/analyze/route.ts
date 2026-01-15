@@ -17,3 +17,7 @@ export async function POST(req: Request) {
 	});
 	return NextResponse.json(result);
 }
+
+export async function GET(req: Request) {
+	return NextResponse.json({ status: "ok" });
+}
