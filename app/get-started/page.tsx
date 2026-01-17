@@ -78,8 +78,8 @@ export default function GetStartedPage() {
 								<Step1InputForm
 									jobDescription={form.jobDescription}
 									onJobDescriptionChange={form.setJobDescription}
-									resumeText={form.resumeText}
-									onResumeTextChange={form.setResumeText}
+									resumeFile={form.resumeFile}
+							onResumeFileChange={form.setResumeFile}		
 									focusPrompt={form.focusPrompt}
 									onFocusPromptChange={form.setFocusPrompt}
 									canAnalyze={form.canAnalyze}

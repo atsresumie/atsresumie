@@ -10,7 +10,7 @@ export function useResumeForm() {
 	const [mode, setMode] = useState<ResumeMode>("QUICK");
 
 	const [jobDescription, setJobDescription] = useState("");
-	const [resumeText, setResumeText] = useState("");
+	const [resumeFile, setResumeFile] = useState<File | null>(null);
 	const [focusPrompt, setFocusPrompt] = useState("");
 
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -21,12 +21,12 @@ export function useResumeForm() {
 	const [exportResult, setExportResult] = useState<ExportResult | null>(null);
 
 	// Draft persistence (anonymous-friendly)
+	// Note: We don't persist the file itself, only metadata
 	useEffect(() => {
 		const d = loadDraft();
 		if (!d) return;
 		setMode(d.mode ?? "QUICK");
 		setJobDescription(d.jobDescription ?? "");
-		setResumeText(d.resumeText ?? "");
 		setFocusPrompt(d.focusPrompt ?? "");
 		if (d.step !== undefined) setStep(d.step);
 	}, []);
@@ -36,31 +36,35 @@ export function useResumeForm() {
 			step,
 			mode,
 			jobDescription,
-			resumeText,
+			// Don't save file to localStorage, only save that a file was present
+			resumeFileName: resumeFile?.name ?? null,
 			focusPrompt,
 			analysis,
 		});
-	}, [step, mode, jobDescription, resumeText, focusPrompt, analysis]);
+	}, [step, mode, jobDescription, resumeFile, focusPrompt, analysis]);
 
 	const canContinueFromStep0 = !!mode;
 	const canAnalyze =
 		jobDescription.trim().length > 50 &&
-		resumeText.trim().length > 50 &&
+		resumeFile !== null &&
 		!isAnalyzing;
 
 	const runAnalyze = useCallback(async () => {
+		if (!resumeFile) return;
+		
 		setIsAnalyzing(true);
 		setExportResult(null);
 		try {
+			// Create FormData to send file
+			const formData = new FormData();
+			formData.append("mode", mode);
+			formData.append("jobDescription", jobDescription);
+			formData.append("resumeFile", resumeFile);
+			formData.append("focusPrompt", focusPrompt);
+
 			const res = await fetch("/api/analyze", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					mode,
-					jobDescription,
-					resumeText,
-					focusPrompt,
-				}),
+				body: formData,
 			});
 			if (!res.ok) throw new Error("Analyze failed");
 			const data = (await res.json()) as AnalyzeResult;
@@ -72,7 +76,7 @@ export function useResumeForm() {
 		} finally {
 			setIsAnalyzing(false);
 		}
-	}, [mode, jobDescription, resumeText, focusPrompt]);
+	}, [mode, jobDescription, resumeFile, focusPrompt]);
 
 	// Stub: replace with your auth state (NextAuth session)
 	const isLoggedIn = false;
@@ -108,7 +112,7 @@ export function useResumeForm() {
 		setStep(0);
 		setMode("QUICK");
 		setJobDescription("");
-		setResumeText("");
+		setResumeFile(null);
 		setFocusPrompt("");
 		setAnalysis(null);
 		setExportResult(null);
@@ -127,8 +131,8 @@ export function useResumeForm() {
 		// Form fields
 		jobDescription,
 		setJobDescription,
-		resumeText,
-		setResumeText,
+		resumeFile,
+		setResumeFile,
 		focusPrompt,
 		setFocusPrompt,
 		

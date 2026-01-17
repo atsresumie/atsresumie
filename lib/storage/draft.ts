@@ -5,6 +5,7 @@ type Draft = {
 	mode?: "QUICK" | "DEEP" | "FROM_SCRATCH";
 	jobDescription?: string;
 	resumeText?: string;
+	resumeFileName?: string | null;
 	focusPrompt?: string;
 	analysis?: any;
 };
