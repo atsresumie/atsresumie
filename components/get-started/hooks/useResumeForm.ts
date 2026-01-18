@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { ResumeMode } from "../ModeCards";
 import { AnalyzeResult, ExportResult, Step } from "../types";
 import { loadDraft, saveDraft, clearDraft } from "@/lib/storage/draft";
@@ -28,6 +29,7 @@ export function useResumeForm() {
 		setMode(d.mode ?? "QUICK");
 		setJobDescription(d.jobDescription ?? "");
 		setFocusPrompt(d.focusPrompt ?? "");
+		if (d.analysis) setAnalysis(d.analysis);
 		if (d.step !== undefined) setStep(d.step);
 	}, []);
 
@@ -49,8 +51,33 @@ export function useResumeForm() {
 		resumeFile !== null &&
 		!isAnalyzing;
 
+	// Log validation errors to console for debugging
+	useEffect(() => {
+		if (!canAnalyze) {
+			const errors: string[] = [];
+			if (jobDescription.trim().length <= 50) {
+				errors.push(`Job description too short: ${jobDescription.trim().length}/50 characters required`);
+			}
+			if (resumeFile === null) {
+				errors.push("No resume file uploaded");
+			}
+			if (isAnalyzing) {
+				errors.push("Analysis already in progress");
+			}
+			if (errors.length > 0) {
+				console.warn("Cannot analyze - validation errors:", errors);
+			}
+		}
+	}, [canAnalyze, jobDescription, resumeFile, isAnalyzing]);
+
 	const runAnalyze = useCallback(async () => {
-		if (!resumeFile) return;
+		if (!resumeFile) {
+			toast.warning("Resume file required", {
+				description: "Please re-upload your resume to regenerate the analysis.",
+			});
+			setStep(1);
+			return;
+		}
 		
 		setIsAnalyzing(true);
 		setExportResult(null);
@@ -72,7 +99,9 @@ export function useResumeForm() {
 			setStep(2);
 		} catch (e) {
 			console.error(e);
-			alert("Analysis failed. Please try again.");
+			toast.error("Analysis failed", {
+				description: "Something went wrong. Please try again.",
+			});
 		} finally {
 			setIsAnalyzing(false);
 		}

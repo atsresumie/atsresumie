@@ -20,7 +20,6 @@ export default function SidePanel() {
 			<div className="text-sm font-medium">What you'll get</div>
 			<ul className="mt-3 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
 				<li>• ATS-friendly structure + keyword alignment</li>
-				<li>• LaTeX source you can keep and edit</li>
 				<li>• Versioned results for each job posting</li>
 				<li>• Export-ready PDF from your dashboard</li>
 			</ul>

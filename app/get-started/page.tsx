@@ -79,7 +79,7 @@ export default function GetStartedPage() {
 									jobDescription={form.jobDescription}
 									onJobDescriptionChange={form.setJobDescription}
 									resumeFile={form.resumeFile}
-							onResumeFileChange={form.setResumeFile}		
+									onResumeFileChange={form.setResumeFile}		
 									focusPrompt={form.focusPrompt}
 									onFocusPromptChange={form.setFocusPrompt}
 									canAnalyze={form.canAnalyze}

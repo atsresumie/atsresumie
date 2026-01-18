@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
-import { FileText, Upload, X, File } from "lucide-react";
+import { FileText } from "lucide-react";
+import { FileDropzone, FilePreview, ActionButtons } from "./components";
 
 interface Step1InputFormProps {
 	jobDescription: string;
@@ -22,12 +23,6 @@ const ACCEPTED_TYPES = [
 ];
 
 const ACCEPTED_EXTENSIONS = [".pdf", ".docx"];
-
-function formatFileSize(bytes: number): string {
-	if (bytes < 1024) return `${bytes} B`;
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default function Step1InputForm({
 	jobDescription,
@@ -128,6 +123,7 @@ export default function Step1InputForm({
 			</div>
 
 			<div className="space-y-3">
+				{/* Job Description Input */}
 				<label className="block">
 					<div className="mb-1 text-sm">Job Description</div>
 					<textarea
@@ -154,92 +150,18 @@ export default function Step1InputForm({
 					/>
 
 					{!resumeFile ? (
-						<div
+						<FileDropzone
+							isDragging={isDragging}
 							onDragOver={handleDragOver}
 							onDragLeave={handleDragLeave}
 							onDrop={handleDrop}
 							onClick={handleBrowseClick}
-							className={`
-								group relative flex h-44 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all duration-200
-								${
-									isDragging
-										? "border-[#E9DDC7] bg-[rgba(233,221,199,0.12)]"
-										: "border-[rgba(233,221,199,0.2)] bg-[rgba(233,221,199,0.03)] hover:border-[rgba(233,221,199,0.35)] hover:bg-[rgba(233,221,199,0.06)]"
-								}
-							`}
-						>
-							<div
-								className={`
-								flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200
-								${
-									isDragging
-										? "bg-[rgba(233,221,199,0.2)]"
-										: "bg-[rgba(233,221,199,0.08)] group-hover:bg-[rgba(233,221,199,0.12)]"
-								}
-							`}
-							>
-								<Upload
-									className={`h-5 w-5 transition-all duration-200 ${
-										isDragging
-											? "text-[#E9DDC7]"
-											: "text-[rgba(233,221,199,0.5)] group-hover:text-[rgba(233,221,199,0.7)]"
-									}`}
-								/>
-							</div>
-							<div className="text-center">
-								<p
-									className={`text-sm transition-colors ${
-										isDragging
-											? "text-[#E9DDC7]"
-											: "text-[rgba(233,221,199,0.75)]"
-									}`}
-								>
-									{isDragging
-										? "Drop your resume here"
-										: "Drag & drop your resume here"}
-								</p>
-								<p className="mt-1 text-xs text-[rgba(233,221,199,0.45)]">
-									or{" "}
-									<span className="text-[rgba(233,221,199,0.7)] underline underline-offset-2">
-										browse files
-									</span>
-								</p>
-							</div>
-							<div className="flex items-center gap-2">
-								<span className="rounded-md bg-[rgba(233,221,199,0.08)] px-2 py-0.5 text-xs text-[rgba(233,221,199,0.5)]">
-									PDF
-								</span>
-								<span className="rounded-md bg-[rgba(233,221,199,0.08)] px-2 py-0.5 text-xs text-[rgba(233,221,199,0.5)]">
-									DOCX
-								</span>
-								<span className="text-xs text-[rgba(233,221,199,0.35)]">
-									• Max 10MB
-								</span>
-							</div>
-						</div>
+						/>
 					) : (
-						<div className="flex h-20 w-full items-center justify-between rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.05)] px-4">
-							<div className="flex items-center gap-3">
-								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[rgba(233,221,199,0.1)]">
-									<File className="h-5 w-5 text-[rgba(233,221,199,0.7)]" />
-								</div>
-								<div>
-									<p className="text-sm font-medium text-[#E9DDC7] truncate max-w-[200px]">
-										{resumeFile.name}
-									</p>
-									<p className="text-xs text-[rgba(233,221,199,0.5)]">
-										{formatFileSize(resumeFile.size)}
-									</p>
-								</div>
-							</div>
-							<button
-								onClick={handleRemoveFile}
-								className="flex h-8 w-8 items-center justify-center rounded-lg text-[rgba(233,221,199,0.5)] transition-colors hover:bg-[rgba(233,221,199,0.1)] hover:text-[#E9DDC7]"
-								type="button"
-							>
-								<X className="h-4 w-4" />
-							</button>
-						</div>
+						<FilePreview
+							file={resumeFile}
+							onRemove={handleRemoveFile}
+						/>
 					)}
 
 					<div className="mt-1 text-xs text-[rgba(233,221,199,0.55)]">
@@ -247,6 +169,7 @@ export default function Step1InputForm({
 					</div>
 				</div>
 
+				{/* Focus Input */}
 				<label className="block">
 					<div className="mb-1 text-sm">Focus (optional)</div>
 					<input
@@ -258,21 +181,12 @@ export default function Step1InputForm({
 				</label>
 			</div>
 
-			<div className="flex flex-col gap-3 pt-2 sm:flex-row">
-				<button
-					onClick={onBack}
-					className="inline-flex w-full items-center justify-center rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-4 py-3 text-sm hover:bg-[rgba(233,221,199,0.10)] sm:w-1/2"
-				>
-					Back
-				</button>
-				<button
-					disabled={!canAnalyze}
-					onClick={onAnalyze}
-					className="inline-flex w-full items-center justify-center rounded-xl bg-[#E9DDC7] px-4 py-3 text-sm font-medium text-[#2a1e18] shadow-[0_10px_30px_rgba(233,221,199,0.12)] hover:-translate-y-px hover:shadow-[0_16px_40px_rgba(233,221,199,0.16)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
-				>
-					{isAnalyzing ? "Analyzing…" : "Analyze & Preview"}
-				</button>
-			</div>
+			<ActionButtons
+				canAnalyze={canAnalyze}
+				isAnalyzing={isAnalyzing}
+				onBack={onBack}
+				onAnalyze={onAnalyze}
+			/>
 
 			<p className="text-xs text-[rgba(233,221,199,0.55)]">
 				Preview is free. Export to PDF uses credits after signup.
