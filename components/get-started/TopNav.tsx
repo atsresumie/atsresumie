@@ -1,6 +1,7 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
+import Link from "next/link";
 
 interface TopNavProps {
 	onReset: () => void;
@@ -11,9 +12,9 @@ export default function TopNav({ onReset }: TopNavProps) {
 		<div className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
 			<div className="flex items-center gap-2">
 				<div className="h-8 w-8 rounded-xl bg-linear-to-br from-[#3B2A21] to-[#C8B08A] shadow-[0_0_0_1px_rgba(233,221,199,0.15)]" />
-				<span className="font-semibold tracking-tight">
+				<Link href="/" className="font-semibold tracking-tight">
 					atsresumie
-				</span>
+				</Link>
 			</div>
 
 			<div className="flex items-center gap-3">
