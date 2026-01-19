@@ -93,10 +93,8 @@ export default function GetStartedPage() {
 								<Step2Preview
 									analysis={form.analysis}
 									exportResult={form.exportResult}
-									isAnalyzing={form.isAnalyzing}
 									isExporting={form.isExporting}
 									onEditInputs={() => form.setStep(1)}
-									onRegenerate={form.runAnalyze}
 									onExport={form.exportPdf}
 								/>
 							)}

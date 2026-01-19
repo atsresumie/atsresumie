@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, RotateCcw } from "lucide-react";
+import { Download } from "lucide-react";
 import AtsRing from "@/components/ats/AtsRing";
 import KeywordBars from "@/components/ats/KeywordBars";
 import { AnalyzeResult, ExportResult } from "../types";
@@ -8,20 +8,16 @@ import { AnalyzeResult, ExportResult } from "../types";
 interface Step2PreviewProps {
 	analysis: AnalyzeResult;
 	exportResult: ExportResult | null;
-	isAnalyzing: boolean;
 	isExporting: boolean;
 	onEditInputs: () => void;
-	onRegenerate: () => void;
 	onExport: () => void;
 }
 
 export default function Step2Preview({
 	analysis,
 	exportResult,
-	isAnalyzing,
 	isExporting,
 	onEditInputs,
-	onRegenerate,
 	onExport,
 }: Step2PreviewProps) {
 	return (
@@ -99,12 +95,10 @@ export default function Step2Preview({
 			{/* Action buttons */}
 			<div className="flex flex-col gap-3 sm:flex-row">
 				<button
-					onClick={onRegenerate}
+					onClick={onEditInputs}
 					className="inline-flex w-full items-center justify-center rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-4 py-3 text-sm hover:bg-[rgba(233,221,199,0.10)] sm:w-1/2"
-					disabled={isAnalyzing}
 				>
-					<RotateCcw className="mr-2 h-4 w-4" />
-					{isAnalyzing ? "Re-running…" : "Regenerate"}
+					← Go Back
 				</button>
 
 				<button
