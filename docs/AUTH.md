@@ -94,3 +94,11 @@ $$;
 2. **Authentication → URL Configuration**:
     - Site URL: `http://localhost:3000`
     - Redirect URL: `http://localhost:3000/auth/callback`
+
+## Next Task
+
+- When user is already logged in, and the user will be on get-started page, on the navbar ,on top right corner, the user will see the user menu.
+
+- Not on authentication part, but temporarily, we will integrate Claude API to generate Latex for the user. We will also use Latex compiler to generate PDF according to the Latex code.
+
+- Fix: Authentication bugs and polish the entire on-boarding workflow in authentication branch.
