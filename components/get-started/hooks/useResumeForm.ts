@@ -197,9 +197,15 @@ export function useResumeForm() {
 	}, [step, mode, jobDescription, resumeFile, focusPrompt, analysis]);
 
 	const canContinueFromStep0 = !!mode;
+	
+	// Allow analysis if we have either:
+	// 1. A fresh file just uploaded (resumeFile !== null)
+	// 2. A previously uploaded resume from restored session (uploadedResume !== null)
+	const hasResumeForAnalysis = resumeFile !== null || uploadedResume !== null;
+	
 	const canAnalyze =
 		jobDescription.trim().length > 50 &&
-		resumeFile !== null &&
+		hasResumeForAnalysis &&
 		!isAnalyzing &&
 		!isUploadingResume;
 
@@ -210,8 +216,8 @@ export function useResumeForm() {
 			if (jobDescription.trim().length <= 50) {
 				errors.push(`Job description too short: ${jobDescription.trim().length}/50 characters required`);
 			}
-			if (resumeFile === null) {
-				errors.push("No resume file uploaded");
+			if (!hasResumeForAnalysis) {
+				errors.push("No resume file (upload one or use restored resume)");
 			}
 			if (isAnalyzing) {
 				errors.push("Analysis already in progress");
@@ -223,7 +229,7 @@ export function useResumeForm() {
 				console.warn("Cannot analyze - validation errors:", errors);
 			}
 		}
-	}, [canAnalyze, jobDescription, resumeFile, isAnalyzing, isUploadingResume]);
+	}, [canAnalyze, jobDescription, hasResumeForAnalysis, isAnalyzing, isUploadingResume]);
 
 	// Handle resume file change - upload to Supabase Storage
 	const handleResumeFileChange = useCallback(async (file: File | null) => {
@@ -260,9 +266,10 @@ export function useResumeForm() {
 	}, []);
 
 	const runAnalyze = useCallback(async () => {
-		if (!resumeFile) {
+		// Check if we have a resume - either fresh upload or from server
+		if (!resumeFile && !uploadedResume) {
 			toast.warning("Resume file required", {
-				description: "Please re-upload your resume to regenerate the analysis.",
+				description: "Please upload your resume to run the analysis.",
 			});
 			setStep(1);
 			return;
@@ -291,12 +298,20 @@ export function useResumeForm() {
 				}
 			}
 
-			// Create FormData to send file
+			// Create FormData to send file or storage reference
 			const formData = new FormData();
 			formData.append("mode", mode);
 			formData.append("jobDescription", jobDescription);
-			formData.append("resumeFile", resumeFile);
 			formData.append("focusPrompt", focusPrompt);
+			
+			if (resumeFile) {
+				// Fresh file upload
+				formData.append("resumeFile", resumeFile);
+			} else if (uploadedResume) {
+				// Use stored resume from server
+				formData.append("resumeBucket", uploadedResume.bucket);
+				formData.append("resumeObjectPath", uploadedResume.objectPath);
+			}
 
 			const res = await fetch("/api/analyze", {
 				method: "POST",
