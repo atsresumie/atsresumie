@@ -117,6 +117,7 @@ Client                          Server                      Database
 | `/api/onboarding/session-status` | GET | Get session + draft data |
 | `/api/onboarding/resume-upload-url` | POST | Get signed upload URL |
 | `/api/onboarding/save-draft` | POST | Save JD + resume metadata |
+| `/api/onboarding/delete-resume` | DELETE | Delete resume from storage |
 | `/api/onboarding/claim` | POST | Claim session after signup |
 | `/api/analyze` | POST | Run ATS analysis on resume |
 | `/api/export` | POST | Generate downloadable PDF |

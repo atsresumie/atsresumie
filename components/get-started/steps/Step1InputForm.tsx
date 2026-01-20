@@ -14,7 +14,9 @@ interface Step1InputFormProps {
 	canAnalyze: boolean;
 	isAnalyzing: boolean;
 	isUploadingResume?: boolean;
+	isDeletingResume?: boolean;
 	previousResumeFilename?: string | null; // From restored session
+	onClearResume?: () => void; // Delete resume from server
 	onBack: () => void;
 	onAnalyze: () => void;
 }
@@ -36,7 +38,9 @@ export default function Step1InputForm({
 	canAnalyze,
 	isAnalyzing,
 	isUploadingResume = false,
+	isDeletingResume = false,
 	previousResumeFilename,
+	onClearResume,
 	onBack,
 	onAnalyze,
 }: Step1InputFormProps) {
@@ -171,7 +175,8 @@ export default function Step1InputForm({
 							file={resumeFile ?? undefined}
 							filename={hasRestoredFile ? previousResumeFilename : undefined}
 							isRestored={hasRestoredFile}
-							onRemove={hasRestoredFile ? handleBrowseClick : handleRemoveFile}
+							isDeleting={isDeletingResume}
+							onRemove={hasRestoredFile && onClearResume ? onClearResume : handleRemoveFile}
 						/>
 					)}
 

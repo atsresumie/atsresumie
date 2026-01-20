@@ -74,7 +74,7 @@ export default function GetStartedPage() {
 								/>
 							)}
 
-								{form.step === 1 && (
+									{form.step === 1 && (
 								<Step1InputForm
 									jobDescription={form.jobDescription}
 									onJobDescriptionChange={form.setJobDescription}
@@ -85,7 +85,9 @@ export default function GetStartedPage() {
 									canAnalyze={form.canAnalyze}
 									isAnalyzing={form.isAnalyzing}
 									isUploadingResume={form.isUploadingResume}
+									isDeletingResume={form.isDeletingResume}
 									previousResumeFilename={form.previousResumeFilename}
+									onClearResume={form.clearUploadedResume}
 									onBack={() => form.setStep(0)}
 									onAnalyze={form.runAnalyze}
 								/>

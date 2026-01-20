@@ -43,6 +43,7 @@ atsresumie/
 │   │       ├── session-status/  # Get session + draft data
 │   │       ├── resume-upload-url/ # Signed URL for upload
 │   │       ├── save-draft/      # Save JD + resume metadata
+│   │       ├── delete-resume/   # Delete resume from storage
 │   │       └── claim/           # Claim session after signup
 │   ├── get-started/       # Main onboarding page
 │   ├── layout.tsx         # Root layout
@@ -188,9 +189,11 @@ Central state management for the onboarding wizard. Handles:
   isSessionLocked,       // Session claimed/expired
   hasPreviousDraft,      // Has restored data
   previousResumeFilename,// Restored filename
+  isDeletingResume,      // Deletion in progress
   canAnalyze,            // Validation passed
   runAnalyze,            // Trigger analysis
   startFreshSession,     // Clear and restart
+  clearUploadedResume,   // Delete resume and allow new upload
 }
 ```
 
@@ -217,6 +220,9 @@ Saves JD text and resume metadata.
 
 ### POST /api/onboarding/claim
 Links session to authenticated user, creates generation job.
+
+### DELETE /api/onboarding/delete-resume
+Deletes resume from Supabase Storage and removes draft record.
 
 ### POST /api/analyze
 Runs ATS analysis on resume against job description.

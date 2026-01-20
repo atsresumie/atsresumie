@@ -10,6 +10,7 @@ import {
 	getSessionStatus,
 	startNewSession,
 	uploadResume,
+	deleteResume,
 	saveDraft as saveOnboardingDraft,
 	SessionStatusResult,
 } from "@/lib/onboarding/client";
@@ -146,7 +147,32 @@ export function useResumeForm() {
 		}
 	}, []);
 
-	// Draft persistence (anonymous-friendly localStorage backup)
+	// Function to delete uploaded resume from server and clear local state
+	const [isDeletingResume, setIsDeletingResume] = useState(false);
+	
+	const clearUploadedResume = useCallback(async () => {
+		// If we have uploaded resume info, delete from server
+		if (uploadedResume) {
+			setIsDeletingResume(true);
+			try {
+				await deleteResume(uploadedResume.bucket, uploadedResume.objectPath);
+				console.log("Resume deleted from server:", uploadedResume.objectPath);
+				toast.success("Resume removed");
+			} catch (err) {
+				console.error("Failed to delete resume:", err);
+				toast.error("Failed to delete resume from server");
+				// Continue anyway to clear local state
+			} finally {
+				setIsDeletingResume(false);
+			}
+		}
+
+		// Clear local state
+		setResumeFile(null);
+		setUploadedResume(null);
+		setHasPreviousDraft(false);
+		setPreviousResumeFilename(null);
+	}, [uploadedResume]);	// Draft persistence (anonymous-friendly localStorage backup)
 	useEffect(() => {
 		const d = loadDraft();
 		if (!d) return;
@@ -365,6 +391,7 @@ export function useResumeForm() {
 		isSessionLocked,
 		hasPreviousDraft,
 		previousResumeFilename,
+		isDeletingResume,
 		
 		// Computed values
 		canContinueFromStep0,
@@ -375,5 +402,6 @@ export function useResumeForm() {
 		exportPdf,
 		resetAll,
 		startFreshSession,
+		clearUploadedResume,
 	};
 }

@@ -114,6 +114,27 @@ export async function startNewSession(): Promise<string> {
 }
 
 /**
+ * Delete a resume file from Supabase Storage.
+ * Also removes the associated draft record.
+ * 
+ * @param bucket - Storage bucket name
+ * @param objectPath - Path to the file in storage
+ */
+export async function deleteResume(bucket: string, objectPath: string): Promise<void> {
+  const response = await fetch("/api/onboarding/delete-resume", {
+    method: "DELETE",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bucket, objectPath }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete resume");
+  }
+}
+
+/**
  * Upload a resume file to Supabase Storage.
  * 
  * Steps:

@@ -51,6 +51,34 @@ This document tracks major features and changes made to the application.
 
 ---
 
+### Resume File Deletion
+
+**Purpose:** Allow users to delete their uploaded resume and upload a new one.
+
+**Changes:**
+- Created `/api/onboarding/delete-resume` endpoint
+  - DELETE method to remove file from Supabase Storage
+  - Also deletes associated draft record
+  - Validates session is active before allowing deletion
+
+- Added `deleteResume()` in `lib/onboarding/client.ts`
+  - Client helper to call the delete API
+
+- Updated `useResumeForm` hook
+  - Added `isDeletingResume` state
+  - Added `clearUploadedResume()` function that deletes from server and clears local state
+
+- Updated `FilePreview` component
+  - Added `isDeleting` prop
+  - Shows spinner and "Removing..." text during deletion
+  - Disables remove button while deleting
+
+- Updated `Step1InputForm` and page
+  - Added `onClearResume` and `isDeletingResume` props
+  - Clicking X now deletes from server, then allows new upload
+
+---
+
 ### Deno Module Import Fix
 
 **Purpose:** Fix TypeScript error with Deno standard library import.
