@@ -1,41 +1,63 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   getOnboardingSessionId,
   setOnboardingSessionId,
+  clearOnboardingSessionId,
 } from "@/lib/onboarding/cookie";
 import { sha256 } from "@/lib/utils/hash";
+
+interface StartRequestBody {
+  forceNew?: boolean;
+}
 
 /**
  * POST /api/onboarding/start
  * 
  * Start or resume an anonymous onboarding session.
+ * - If forceNew is true, always create a new session
  * - If cookie exists and session is valid, return existing sessionId
  * - Otherwise, create new session in DB and set cookie
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    // Check for existing session cookie
-    const existingSessionId = await getOnboardingSessionId();
+    // Parse request body for forceNew flag
+    let forceNew = false;
+    try {
+      const body = await request.json() as StartRequestBody;
+      forceNew = body.forceNew === true;
+    } catch {
+      // No body or invalid JSON is fine, just use defaults
+    }
 
-    if (existingSessionId) {
-      // Verify session exists and is active in DB
-      const admin = supabaseAdmin();
-      const { data: session } = await admin
-        .from("onboarding_sessions")
-        .select("id, status, expires_at")
-        .eq("id", existingSessionId)
-        .single();
+    // Clear existing session if forceNew
+    if (forceNew) {
+      await clearOnboardingSessionId();
+    }
 
-      if (
-        session &&
-        session.status === "active" &&
-        new Date(session.expires_at) > new Date()
-      ) {
-        return NextResponse.json({ sessionId: existingSessionId });
+    // Check for existing session cookie (unless forceNew)
+    if (!forceNew) {
+      const existingSessionId = await getOnboardingSessionId();
+
+      if (existingSessionId) {
+        // Verify session exists and is active in DB
+        const admin = supabaseAdmin();
+        const { data: session } = await admin
+          .from("onboarding_sessions")
+          .select("id, status, expires_at")
+          .eq("id", existingSessionId)
+          .single();
+
+        if (
+          session &&
+          session.status === "active" &&
+          new Date(session.expires_at) > new Date()
+        ) {
+          return NextResponse.json({ sessionId: existingSessionId });
+        }
+        // Session is invalid/expired, will create new one below
       }
-      // Session is invalid/expired, will create new one below
     }
 
     // Get IP and user agent for analytics

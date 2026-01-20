@@ -7,8 +7,11 @@ import { AnalyzeResult, ExportResult, Step } from "../types";
 import { loadDraft, saveDraft, clearDraft } from "@/lib/storage/draft";
 import {
 	startOnboardingSession,
+	getSessionStatus,
+	startNewSession,
 	uploadResume,
 	saveDraft as saveOnboardingDraft,
+	SessionStatusResult,
 } from "@/lib/onboarding/client";
 
 interface UploadedResume {
@@ -38,22 +41,109 @@ export function useResumeForm() {
 	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [isUploadingResume, setIsUploadingResume] = useState(false);
 	const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
+	const [isLoadingSession, setIsLoadingSession] = useState(true);
+	const [isSessionLocked, setIsSessionLocked] = useState(false);
+	const [hasPreviousDraft, setHasPreviousDraft] = useState(false);
+	const [previousResumeFilename, setPreviousResumeFilename] = useState<string | null>(null);
 	const sessionInitRef = useRef(false);
 
-	// Initialize onboarding session on mount
+	// Initialize onboarding session on mount and restore draft if exists
 	useEffect(() => {
 		if (sessionInitRef.current) return;
 		sessionInitRef.current = true;
 
-		startOnboardingSession()
-			.then((id) => {
-				setSessionId(id);
-				console.log("Onboarding session started:", id);
-			})
-			.catch((err) => {
-				console.error("Failed to start onboarding session:", err);
-				// Non-blocking - the app still works, just won't persist to Supabase
-			});
+		async function initSession() {
+			setIsLoadingSession(true);
+			try {
+				// First, check if there's an existing session with draft
+				const status = await getSessionStatus();
+
+				if (status) {
+					setSessionId(status.sessionId);
+					console.log("Existing session found:", status.sessionId, "Status:", status.status);
+
+					// Check if session is locked (claimed or expired)
+					if (!status.isEditable) {
+						setIsSessionLocked(true);
+						console.log("Session is locked (claimed/expired)");
+						toast.warning("Previous session completed", {
+							description: "Start a new session to create another resume.",
+						});
+					}
+
+					// Restore draft data if exists
+					if (status.draft) {
+						setHasPreviousDraft(true);
+						setJobDescription(status.draft.jdText);
+						setPreviousResumeFilename(status.draft.resumeOriginalFilename);
+						
+						// If we have resume info from server, set uploadedResume state
+						if (status.draft.resumeBucket && status.draft.resumeObjectPath) {
+							setUploadedResume({
+								bucket: status.draft.resumeBucket,
+								objectPath: status.draft.resumeObjectPath,
+								originalFilename: status.draft.resumeOriginalFilename || "resume",
+								mimeType: "application/pdf", // Default
+								sizeBytes: 0,
+							});
+						}
+
+						console.log("Restored draft from server:", {
+							jdLength: status.draft.jdText.length,
+							resumeFilename: status.draft.resumeOriginalFilename,
+						});
+						toast.info("Previous session restored", {
+							description: "Your job description has been restored.",
+						});
+					}
+				} else {
+					// No existing session, start a new one
+					const id = await startOnboardingSession();
+					setSessionId(id);
+					console.log("New onboarding session started:", id);
+				}
+			} catch (err) {
+				console.error("Failed to initialize session:", err);
+				// Try to start a fresh session as fallback
+				try {
+					const id = await startOnboardingSession();
+					setSessionId(id);
+				} catch {
+					// Non-blocking - the app still works
+				}
+			} finally {
+				setIsLoadingSession(false);
+			}
+		}
+
+		initSession();
+	}, []);
+
+	// Function to start a fresh session (clear old one and start new)
+	const startFreshSession = useCallback(async () => {
+		setIsLoadingSession(true);
+		try {
+			const id = await startNewSession();
+			setSessionId(id);
+			setIsSessionLocked(false);
+			setHasPreviousDraft(false);
+			setPreviousResumeFilename(null);
+			setJobDescription("");
+			setResumeFile(null);
+			setUploadedResume(null);
+			setFocusPrompt("");
+			setAnalysis(null);
+			setExportResult(null);
+			setStep(0);
+			clearDraft();
+			console.log("Fresh session started:", id);
+			toast.success("New session started");
+		} catch (err) {
+			console.error("Failed to start fresh session:", err);
+			toast.error("Failed to start new session");
+		} finally {
+			setIsLoadingSession(false);
+		}
 	}, []);
 
 	// Draft persistence (anonymous-friendly localStorage backup)
@@ -271,6 +361,10 @@ export function useResumeForm() {
 		sessionId,
 		isUploadingResume,
 		uploadedResume,
+		isLoadingSession,
+		isSessionLocked,
+		hasPreviousDraft,
+		previousResumeFilename,
 		
 		// Computed values
 		canContinueFromStep0,
@@ -280,5 +374,6 @@ export function useResumeForm() {
 		runAnalyze,
 		exportPdf,
 		resetAll,
+		startFreshSession,
 	};
 }

@@ -53,6 +53,66 @@ export async function startOnboardingSession(): Promise<string> {
   return data.sessionId;
 }
 
+export interface SessionStatusResult {
+  sessionId: string;
+  status: "active" | "claimed" | "expired";
+  isEditable: boolean;
+  draft: {
+    jdText: string;
+    jdTitle: string | null;
+    jdCompany: string | null;
+    resumeOriginalFilename: string | null;
+    resumeBucket: string | null;
+    resumeObjectPath: string | null;
+  } | null;
+}
+
+/**
+ * Get the current session status and any existing draft data.
+ * Returns null if no session exists.
+ */
+export async function getSessionStatus(): Promise<SessionStatusResult | null> {
+  const response = await fetch("/api/onboarding/session-status", {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get session status");
+  }
+
+  const data = await response.json();
+  
+  // If no session found, return null
+  if (data.hasSession === false || data.error === "No session found") {
+    return null;
+  }
+
+  return data as SessionStatusResult;
+}
+
+/**
+ * Start a completely new session, clearing any existing one.
+ * @returns new sessionId
+ */
+export async function startNewSession(): Promise<string> {
+  const response = await fetch("/api/onboarding/start", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ forceNew: true }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to start new session");
+  }
+
+  const data = await response.json();
+  return data.sessionId;
+}
+
 /**
  * Upload a resume file to Supabase Storage.
  * 
