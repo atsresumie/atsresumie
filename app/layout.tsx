@@ -44,11 +44,6 @@ export default function RootLayout({
 			<body>
 				<Providers>{children}</Providers>
 			</body>
-
-			<script
-				type="application/ld+json"
-				dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-			/>
 		</html>
 	);
 }
