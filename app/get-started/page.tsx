@@ -84,6 +84,7 @@ export default function GetStartedPage() {
 									onFocusPromptChange={form.setFocusPrompt}
 									canAnalyze={form.canAnalyze}
 									isAnalyzing={form.isAnalyzing}
+								isUploadingResume={form.isUploadingResume}
 									onBack={() => form.setStep(0)}
 									onAnalyze={form.runAnalyze}
 								/>

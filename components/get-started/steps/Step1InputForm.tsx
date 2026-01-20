@@ -13,6 +13,7 @@ interface Step1InputFormProps {
 	onFocusPromptChange: (value: string) => void;
 	canAnalyze: boolean;
 	isAnalyzing: boolean;
+	isUploadingResume?: boolean;
 	onBack: () => void;
 	onAnalyze: () => void;
 }
@@ -33,6 +34,7 @@ export default function Step1InputForm({
 	onFocusPromptChange,
 	canAnalyze,
 	isAnalyzing,
+	isUploadingResume = false,
 	onBack,
 	onAnalyze,
 }: Step1InputFormProps) {

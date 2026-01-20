@@ -1,10 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { ResumeMode } from "../ModeCards";
 import { AnalyzeResult, ExportResult, Step } from "../types";
 import { loadDraft, saveDraft, clearDraft } from "@/lib/storage/draft";
+import {
+	startOnboardingSession,
+	uploadResume,
+	saveDraft as saveOnboardingDraft,
+} from "@/lib/onboarding/client";
+
+interface UploadedResume {
+	bucket: string;
+	objectPath: string;
+	originalFilename: string;
+	mimeType: string;
+	sizeBytes: number;
+}
 
 export function useResumeForm() {
 	const [step, setStep] = useState<Step>(0);
@@ -21,8 +34,29 @@ export function useResumeForm() {
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportResult, setExportResult] = useState<ExportResult | null>(null);
 
-	// Draft persistence (anonymous-friendly)
-	// Note: We don't persist the file itself, only metadata
+	// Onboarding session state
+	const [sessionId, setSessionId] = useState<string | null>(null);
+	const [isUploadingResume, setIsUploadingResume] = useState(false);
+	const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
+	const sessionInitRef = useRef(false);
+
+	// Initialize onboarding session on mount
+	useEffect(() => {
+		if (sessionInitRef.current) return;
+		sessionInitRef.current = true;
+
+		startOnboardingSession()
+			.then((id) => {
+				setSessionId(id);
+				console.log("Onboarding session started:", id);
+			})
+			.catch((err) => {
+				console.error("Failed to start onboarding session:", err);
+				// Non-blocking - the app still works, just won't persist to Supabase
+			});
+	}, []);
+
+	// Draft persistence (anonymous-friendly localStorage backup)
 	useEffect(() => {
 		const d = loadDraft();
 		if (!d) return;
@@ -38,7 +72,6 @@ export function useResumeForm() {
 			step,
 			mode,
 			jobDescription,
-			// Don't save file to localStorage, only save that a file was present
 			resumeFileName: resumeFile?.name ?? null,
 			focusPrompt,
 			analysis,
@@ -49,7 +82,8 @@ export function useResumeForm() {
 	const canAnalyze =
 		jobDescription.trim().length > 50 &&
 		resumeFile !== null &&
-		!isAnalyzing;
+		!isAnalyzing &&
+		!isUploadingResume;
 
 	// Log validation errors to console for debugging
 	useEffect(() => {
@@ -64,11 +98,48 @@ export function useResumeForm() {
 			if (isAnalyzing) {
 				errors.push("Analysis already in progress");
 			}
+			if (isUploadingResume) {
+				errors.push("Resume upload in progress");
+			}
 			if (errors.length > 0) {
 				console.warn("Cannot analyze - validation errors:", errors);
 			}
 		}
-	}, [canAnalyze, jobDescription, resumeFile, isAnalyzing]);
+	}, [canAnalyze, jobDescription, resumeFile, isAnalyzing, isUploadingResume]);
+
+	// Handle resume file change - upload to Supabase Storage
+	const handleResumeFileChange = useCallback(async (file: File | null) => {
+		setResumeFile(file);
+		setUploadedResume(null);
+
+		if (!file) return;
+
+		// Upload to Supabase Storage
+		setIsUploadingResume(true);
+		try {
+			const result = await uploadResume(file);
+			setUploadedResume({
+				bucket: result.bucket,
+				objectPath: result.objectPath,
+				originalFilename: file.name,
+				mimeType: file.type,
+				sizeBytes: file.size,
+			});
+			console.log("Resume uploaded to:", result.objectPath);
+			toast.success("Resume uploaded", {
+				description: "Your resume has been securely uploaded.",
+			});
+		} catch (err) {
+			console.error("Failed to upload resume:", err);
+			toast.error("Upload failed", {
+				description: err instanceof Error ? err.message : "Please try again.",
+			});
+			// Reset file on upload failure
+			setResumeFile(null);
+		} finally {
+			setIsUploadingResume(false);
+		}
+	}, []);
 
 	const runAnalyze = useCallback(async () => {
 		if (!resumeFile) {
@@ -82,6 +153,26 @@ export function useResumeForm() {
 		setIsAnalyzing(true);
 		setExportResult(null);
 		try {
+			// Save draft to Supabase if we have an uploaded resume
+			if (uploadedResume && sessionId) {
+				try {
+					const draftId = await saveOnboardingDraft({
+						jdText: jobDescription,
+						jdTitle: undefined, // Could extract from JD later
+						jdCompany: undefined, // Could extract from JD later
+						resumeBucket: uploadedResume.bucket,
+						resumeObjectPath: uploadedResume.objectPath,
+						resumeOriginalFilename: uploadedResume.originalFilename,
+						resumeMimeType: uploadedResume.mimeType,
+						resumeSizeBytes: uploadedResume.sizeBytes,
+					});
+					console.log("Draft saved to Supabase:", draftId);
+				} catch (err) {
+					console.error("Failed to save draft to Supabase:", err);
+					// Non-blocking - continue with analysis
+				}
+			}
+
 			// Create FormData to send file
 			const formData = new FormData();
 			formData.append("mode", mode);
@@ -105,7 +196,7 @@ export function useResumeForm() {
 		} finally {
 			setIsAnalyzing(false);
 		}
-	}, [mode, jobDescription, resumeFile, focusPrompt]);
+	}, [mode, jobDescription, resumeFile, focusPrompt, uploadedResume, sessionId]);
 
 	// Stub: replace with your auth state (NextAuth session)
 	const isLoggedIn = false;
@@ -145,6 +236,7 @@ export function useResumeForm() {
 		setFocusPrompt("");
 		setAnalysis(null);
 		setExportResult(null);
+		setUploadedResume(null);
 		clearDraft();
 	}, []);
 
@@ -161,7 +253,7 @@ export function useResumeForm() {
 		jobDescription,
 		setJobDescription,
 		resumeFile,
-		setResumeFile,
+		setResumeFile: handleResumeFileChange,
 		focusPrompt,
 		setFocusPrompt,
 		
@@ -174,6 +266,11 @@ export function useResumeForm() {
 		setShowGate,
 		isExporting,
 		exportResult,
+		
+		// Onboarding state
+		sessionId,
+		isUploadingResume,
+		uploadedResume,
 		
 		// Computed values
 		canContinueFromStep0,
