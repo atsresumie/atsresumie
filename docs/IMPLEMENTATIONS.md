@@ -31,6 +31,26 @@ This document tracks major features and changes made to the application.
 
 ---
 
+### Resume File UI Restoration
+
+**Purpose:** Show previously uploaded resume filename in the UI when session is restored.
+
+**Changes:**
+- Modified `components/get-started/steps/components/FilePreview.tsx`
+  - Now accepts optional `filename` string and `isRestored` boolean props
+  - Shows green checkmark icon for restored files
+  - Displays "Previously uploaded" instead of file size
+  
+- Updated `components/get-started/steps/Step1InputForm.tsx`
+  - Added `previousResumeFilename` prop
+  - Shows FilePreview with restored filename when session has previous resume
+  - Clicking X on restored file opens file picker instead of clearing
+
+- Updated `app/get-started/page.tsx`
+  - Passes `previousResumeFilename` from hook to Step1InputForm
+
+---
+
 ### Deno Module Import Fix
 
 **Purpose:** Fix TypeScript error with Deno standard library import.

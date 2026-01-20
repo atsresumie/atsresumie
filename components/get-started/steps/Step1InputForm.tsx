@@ -14,6 +14,7 @@ interface Step1InputFormProps {
 	canAnalyze: boolean;
 	isAnalyzing: boolean;
 	isUploadingResume?: boolean;
+	previousResumeFilename?: string | null; // From restored session
 	onBack: () => void;
 	onAnalyze: () => void;
 }
@@ -35,11 +36,17 @@ export default function Step1InputForm({
 	canAnalyze,
 	isAnalyzing,
 	isUploadingResume = false,
+	previousResumeFilename,
 	onBack,
 	onAnalyze,
 }: Step1InputFormProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
+
+	// Determine if we should show file preview (either current file or restored)
+	const hasFile = resumeFile !== null;
+	const hasRestoredFile = !hasFile && !!previousResumeFilename;
+	const showFilePreview = hasFile || hasRestoredFile;
 
 	const validateAndSetFile = useCallback(
 		(file: File | null) => {
@@ -151,7 +158,7 @@ export default function Step1InputForm({
 						className="hidden"
 					/>
 
-					{!resumeFile ? (
+					{!showFilePreview ? (
 						<FileDropzone
 							isDragging={isDragging}
 							onDragOver={handleDragOver}
@@ -161,8 +168,10 @@ export default function Step1InputForm({
 						/>
 					) : (
 						<FilePreview
-							file={resumeFile}
-							onRemove={handleRemoveFile}
+							file={resumeFile ?? undefined}
+							filename={hasRestoredFile ? previousResumeFilename : undefined}
+							isRestored={hasRestoredFile}
+							onRemove={hasRestoredFile ? handleBrowseClick : handleRemoveFile}
 						/>
 					)}
 
