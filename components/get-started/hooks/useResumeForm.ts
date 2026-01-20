@@ -43,11 +43,15 @@ export function useResumeForm() {
 	// Onboarding session state
 	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [isUploadingResume, setIsUploadingResume] = useState(false);
-	const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
+	const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(
+		null,
+	);
 	const [isLoadingSession, setIsLoadingSession] = useState(true);
 	const [isSessionLocked, setIsSessionLocked] = useState(false);
 	const [hasPreviousDraft, setHasPreviousDraft] = useState(false);
-	const [previousResumeFilename, setPreviousResumeFilename] = useState<string | null>(null);
+	const [previousResumeFilename, setPreviousResumeFilename] = useState<
+		string | null
+	>(null);
 	const sessionInitRef = useRef(false);
 
 	// Initialize onboarding session on mount and restore draft if exists
@@ -63,14 +67,20 @@ export function useResumeForm() {
 
 				if (status) {
 					setSessionId(status.sessionId);
-					console.log("Existing session found:", status.sessionId, "Status:", status.status);
+					console.log(
+						"Existing session found:",
+						status.sessionId,
+						"Status:",
+						status.status,
+					);
 
 					// Check if session is locked (claimed or expired)
 					if (!status.isEditable) {
 						setIsSessionLocked(true);
 						console.log("Session is locked (claimed/expired)");
 						toast.warning("Previous session completed", {
-							description: "Start a new session to create another resume.",
+							description:
+								"Start a new session to create another resume.",
 						});
 					}
 
@@ -78,14 +88,21 @@ export function useResumeForm() {
 					if (status.draft) {
 						setHasPreviousDraft(true);
 						setJobDescription(status.draft.jdText);
-						setPreviousResumeFilename(status.draft.resumeOriginalFilename);
-						
+						setPreviousResumeFilename(
+							status.draft.resumeOriginalFilename,
+						);
+
 						// If we have resume info from server, set uploadedResume state
-						if (status.draft.resumeBucket && status.draft.resumeObjectPath) {
+						if (
+							status.draft.resumeBucket &&
+							status.draft.resumeObjectPath
+						) {
 							setUploadedResume({
 								bucket: status.draft.resumeBucket,
 								objectPath: status.draft.resumeObjectPath,
-								originalFilename: status.draft.resumeOriginalFilename || "resume",
+								originalFilename:
+									status.draft.resumeOriginalFilename ||
+									"resume",
 								mimeType: "application/pdf", // Default
 								sizeBytes: 0,
 							});
@@ -96,7 +113,8 @@ export function useResumeForm() {
 							resumeFilename: status.draft.resumeOriginalFilename,
 						});
 						toast.info("Previous session restored", {
-							description: "Your job description has been restored.",
+							description:
+								"Your job description has been restored.",
 						});
 					}
 				} else {
@@ -151,14 +169,20 @@ export function useResumeForm() {
 
 	// Function to delete uploaded resume from server and clear local state
 	const [isDeletingResume, setIsDeletingResume] = useState(false);
-	
+
 	const clearUploadedResume = useCallback(async () => {
 		// If we have uploaded resume info, delete from server
 		if (uploadedResume) {
 			setIsDeletingResume(true);
 			try {
-				await deleteResume(uploadedResume.bucket, uploadedResume.objectPath);
-				console.log("Resume deleted from server:", uploadedResume.objectPath);
+				await deleteResume(
+					uploadedResume.bucket,
+					uploadedResume.objectPath,
+				);
+				console.log(
+					"Resume deleted from server:",
+					uploadedResume.objectPath,
+				);
 				toast.success("Resume removed");
 			} catch (err) {
 				console.error("Failed to delete resume:", err);
@@ -174,7 +198,7 @@ export function useResumeForm() {
 		setUploadedResume(null);
 		setHasPreviousDraft(false);
 		setPreviousResumeFilename(null);
-	}, [uploadedResume]);	// Draft persistence (anonymous-friendly localStorage backup)
+	}, [uploadedResume]); // Draft persistence (anonymous-friendly localStorage backup)
 	useEffect(() => {
 		const d = loadDraft();
 		if (!d) return;
@@ -197,12 +221,12 @@ export function useResumeForm() {
 	}, [step, mode, jobDescription, resumeFile, focusPrompt, analysis]);
 
 	const canContinueFromStep0 = !!mode;
-	
+
 	// Allow analysis if we have either:
 	// 1. A fresh file just uploaded (resumeFile !== null)
 	// 2. A previously uploaded resume from restored session (uploadedResume !== null)
 	const hasResumeForAnalysis = resumeFile !== null || uploadedResume !== null;
-	
+
 	const canAnalyze =
 		jobDescription.trim().length > 50 &&
 		hasResumeForAnalysis &&
@@ -214,10 +238,14 @@ export function useResumeForm() {
 		if (!canAnalyze) {
 			const errors: string[] = [];
 			if (jobDescription.trim().length <= 50) {
-				errors.push(`Job description too short: ${jobDescription.trim().length}/50 characters required`);
+				errors.push(
+					`Job description too short: ${jobDescription.trim().length}/50 characters required`,
+				);
 			}
 			if (!hasResumeForAnalysis) {
-				errors.push("No resume file (upload one or use restored resume)");
+				errors.push(
+					"No resume file (upload one or use restored resume)",
+				);
 			}
 			if (isAnalyzing) {
 				errors.push("Analysis already in progress");
@@ -229,7 +257,13 @@ export function useResumeForm() {
 				console.warn("Cannot analyze - validation errors:", errors);
 			}
 		}
-	}, [canAnalyze, jobDescription, hasResumeForAnalysis, isAnalyzing, isUploadingResume]);
+	}, [
+		canAnalyze,
+		jobDescription,
+		hasResumeForAnalysis,
+		isAnalyzing,
+		isUploadingResume,
+	]);
 
 	// Handle resume file change - upload to Supabase Storage
 	const handleResumeFileChange = useCallback(async (file: File | null) => {
@@ -256,7 +290,8 @@ export function useResumeForm() {
 		} catch (err) {
 			console.error("Failed to upload resume:", err);
 			toast.error("Upload failed", {
-				description: err instanceof Error ? err.message : "Please try again.",
+				description:
+					err instanceof Error ? err.message : "Please try again.",
 			});
 			// Reset file on upload failure
 			setResumeFile(null);
@@ -274,7 +309,7 @@ export function useResumeForm() {
 			setStep(1);
 			return;
 		}
-		
+
 		setIsAnalyzing(true);
 		setExportResult(null);
 		try {
@@ -303,7 +338,7 @@ export function useResumeForm() {
 			formData.append("mode", mode);
 			formData.append("jobDescription", jobDescription);
 			formData.append("focusPrompt", focusPrompt);
-			
+
 			if (resumeFile) {
 				// Fresh file upload
 				formData.append("resumeFile", resumeFile);
@@ -329,7 +364,14 @@ export function useResumeForm() {
 		} finally {
 			setIsAnalyzing(false);
 		}
-	}, [mode, jobDescription, resumeFile, focusPrompt, uploadedResume, sessionId]);
+	}, [
+		mode,
+		jobDescription,
+		resumeFile,
+		focusPrompt,
+		uploadedResume,
+		sessionId,
+	]);
 
 	// Use real auth state from useAuth hook
 	const { isAuthenticated } = useAuth();
@@ -361,7 +403,12 @@ export function useResumeForm() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ versionId: analysis.versionId }),
 			});
-			if (!res.ok) throw new Error("Export failed");
+			if (!res.ok) {
+				toast.error("Export failed", {
+					description: "Please try again.",
+				});
+				throw new Error("Export failed");
+			}
 			const data = (await res.json()) as ExportResult;
 			setExportResult(data);
 			toast.success("PDF exported successfully!");
@@ -391,11 +438,11 @@ export function useResumeForm() {
 		// Step state
 		step,
 		setStep,
-		
+
 		// Mode state
 		mode,
 		setMode,
-		
+
 		// Form fields
 		jobDescription,
 		setJobDescription,
@@ -403,17 +450,17 @@ export function useResumeForm() {
 		setResumeFile: handleResumeFileChange,
 		focusPrompt,
 		setFocusPrompt,
-		
+
 		// Analysis state
 		isAnalyzing,
 		analysis,
-		
+
 		// Export state
 		showGate,
 		setShowGate,
 		isExporting,
 		exportResult,
-		
+
 		// Onboarding state
 		sessionId,
 		isUploadingResume,
@@ -423,11 +470,11 @@ export function useResumeForm() {
 		hasPreviousDraft,
 		previousResumeFilename,
 		isDeletingResume,
-		
+
 		// Computed values
 		canContinueFromStep0,
 		canAnalyze,
-		
+
 		// Actions
 		runAnalyze,
 		exportPdf,
