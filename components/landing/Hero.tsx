@@ -163,14 +163,16 @@ export const Hero = () => {
 							}}
 							className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
 						>
-							<motion.button
-								onClick={() => scrollToSection("#start")}
+							<Link href="/get-started" className="w-full sm:w-auto">
+								<motion.button
+	
 								className="w-full sm:w-auto px-8 py-4 bg-secondary text-secondary-foreground font-semibold rounded-xl shadow-soft hover:shadow-glow transition-all"
 								whileHover={{ scale: 1.02, y: -2 }}
 								whileTap={{ scale: 0.98 }}
 							>
-								<Link href="/get-started">Get Started</Link>
-							</motion.button>
+								Get Started
+								</motion.button>
+							</Link>
 							<motion.button
 								onClick={() => scrollToSection("#how-it-works")}
 								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-xl border border-border hover:bg-muted/50 transition-all"

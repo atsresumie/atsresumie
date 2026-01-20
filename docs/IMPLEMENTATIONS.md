@@ -4,6 +4,20 @@ This document tracks major features and changes made to the application.
 
 ---
 
+## 2026-01-20
+
+### Get Started Button UI Fix
+
+**Purpose:** Make the entire "Get Started" button clickable, not just the text.
+
+**Changes:**
+- Modified `components/landing/Hero.tsx`
+  - Restructured button component to wrap `<Link>` around `<motion.button>` instead of nesting Link inside button
+  - Removed conflicting `onClick` handler
+  - Added `className="w-full sm:w-auto"` to Link wrapper for proper responsive sizing
+
+---
+
 ## 2026-01-19
 
 ### Session Restoration & Draft Protection
