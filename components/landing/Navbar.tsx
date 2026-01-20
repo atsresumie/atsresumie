@@ -1,7 +1,11 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut, User } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import AuthModal from "@/components/auth/AuthModal";
 
 const navLinks = [
 	{ label: "Pricing", href: "#pricing" },
@@ -11,6 +15,10 @@ const navLinks = [
 
 export const Navbar = () => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [showAuthModal, setShowAuthModal] = useState(false);
+	const [authModalTab, setAuthModalTab] = useState<"signin" | "signup">("signin");
+	const { user, isAuthenticated, isLoading, signOut } = useAuth();
+
 	const { scrollY } = useScroll();
 	const backgroundColor = useTransform(
 		scrollY,
@@ -40,6 +48,23 @@ export const Navbar = () => {
 		element?.scrollIntoView({ behavior: "smooth" });
 	};
 
+	const openSignIn = () => {
+		setAuthModalTab("signin");
+		setShowAuthModal(true);
+		setIsOpen(false);
+	};
+
+	const openSignUp = () => {
+		setAuthModalTab("signup");
+		setShowAuthModal(true);
+		setIsOpen(false);
+	};
+
+	const handleSignOut = async () => {
+		await signOut();
+		setIsOpen(false);
+	};
+
 	return (
 		<>
 			<motion.nav
@@ -59,7 +84,7 @@ export const Navbar = () => {
 						</motion.a>
 
 						{/* Desktop Navigation */}
-						<div className="hidden md:flex items-center gap-8">
+						<div className="hidden md:flex items-center gap-6">
 							{navLinks.map((link) => (
 								<motion.button
 									key={link.label}
@@ -71,6 +96,51 @@ export const Navbar = () => {
 									{link.label}
 								</motion.button>
 							))}
+
+							{/* Auth Buttons */}
+							{!isLoading && (
+								<>
+									{isAuthenticated ? (
+										<div className="flex items-center gap-3">
+											<div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(233,221,199,0.08)]">
+												<User size={16} className="text-muted-foreground" />
+												<span className="text-sm text-foreground max-w-[120px] truncate">
+													{user?.email?.split("@")[0]}
+												</span>
+											</div>
+											<motion.button
+												onClick={handleSignOut}
+												className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+												whileHover={{ y: -1 }}
+												whileTap={{ y: 0 }}
+											>
+												<LogOut size={16} />
+												Sign out
+											</motion.button>
+										</div>
+									) : (
+										<>
+											<motion.button
+												onClick={openSignIn}
+												className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+												whileHover={{ y: -1 }}
+												whileTap={{ y: 0 }}
+											>
+												Sign in
+											</motion.button>
+											<motion.button
+												onClick={openSignUp}
+												className="px-4 py-2 bg-[rgba(233,221,199,0.1)] text-foreground font-medium text-sm rounded-xl border border-[rgba(233,221,199,0.15)] hover:bg-[rgba(233,221,199,0.15)] transition-all"
+												whileHover={{ scale: 1.02, y: -1 }}
+												whileTap={{ scale: 0.98 }}
+											>
+												Sign up
+											</motion.button>
+										</>
+									)}
+								</>
+							)}
+
 							<motion.button
 								onClick={() => scrollToSection("#start")}
 								className="px-5 py-2.5 bg-secondary text-secondary-foreground font-medium text-sm rounded-xl shadow-soft hover:shadow-glow transition-all"
@@ -103,7 +173,7 @@ export const Navbar = () => {
 				className="fixed inset-0 z-40 md:hidden bg-background/98 backdrop-blur-xl"
 				style={{ pointerEvents: isOpen ? "auto" : "none" }}
 			>
-				<div className="flex flex-col items-center justify-center h-full gap-8">
+				<div className="flex flex-col items-center justify-center h-full gap-6">
 					{navLinks.map((link, i) => (
 						<motion.button
 							key={link.label}
@@ -123,6 +193,55 @@ export const Navbar = () => {
 							{link.label}
 						</motion.button>
 					))}
+
+					{/* Mobile Auth Buttons */}
+					{!isLoading && (
+						<>
+							{isAuthenticated ? (
+								<motion.button
+									onClick={handleSignOut}
+									className="flex items-center gap-2 text-lg text-muted-foreground"
+									initial={{ opacity: 0, y: 20 }}
+									animate={
+										isOpen
+											? { opacity: 1, y: 0, transition: { delay: 0.3 } }
+											: { opacity: 0, y: 20 }
+									}
+								>
+									<LogOut size={20} />
+									Sign out ({user?.email?.split("@")[0]})
+								</motion.button>
+							) : (
+								<>
+									<motion.button
+										onClick={openSignIn}
+										className="text-lg text-muted-foreground"
+										initial={{ opacity: 0, y: 20 }}
+										animate={
+											isOpen
+												? { opacity: 1, y: 0, transition: { delay: 0.3 } }
+												: { opacity: 0, y: 20 }
+										}
+									>
+										Sign in
+									</motion.button>
+									<motion.button
+										onClick={openSignUp}
+										className="px-6 py-3 bg-[rgba(233,221,199,0.1)] text-foreground font-medium text-lg rounded-xl border border-[rgba(233,221,199,0.15)]"
+										initial={{ opacity: 0, y: 20 }}
+										animate={
+											isOpen
+												? { opacity: 1, y: 0, transition: { delay: 0.35 } }
+												: { opacity: 0, y: 20 }
+										}
+									>
+										Sign up
+									</motion.button>
+								</>
+							)}
+						</>
+					)}
+
 					<motion.button
 						onClick={() => scrollToSection("#start")}
 						className="mt-4 px-8 py-4 bg-secondary text-secondary-foreground font-medium text-lg rounded-xl"
@@ -132,7 +251,7 @@ export const Navbar = () => {
 								? {
 										opacity: 1,
 										y: 0,
-										transition: { delay: 0.3 },
+										transition: { delay: 0.4 },
 								  }
 								: { opacity: 0, y: 20 }
 						}
@@ -141,6 +260,14 @@ export const Navbar = () => {
 					</motion.button>
 				</div>
 			</motion.div>
+
+			{/* Auth Modal */}
+			<AuthModal
+				open={showAuthModal}
+				onClose={() => setShowAuthModal(false)}
+				defaultTab={authModalTab}
+			/>
 		</>
 	);
 };
+

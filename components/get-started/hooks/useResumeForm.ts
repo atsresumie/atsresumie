@@ -12,8 +12,10 @@ import {
 	uploadResume,
 	deleteResume,
 	saveDraft as saveOnboardingDraft,
+	claimSession,
 	SessionStatusResult,
 } from "@/lib/onboarding/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UploadedResume {
 	bucket: string;
@@ -314,20 +316,31 @@ export function useResumeForm() {
 		}
 	}, [mode, jobDescription, resumeFile, focusPrompt, uploadedResume, sessionId]);
 
-	// Stub: replace with your auth state (NextAuth session)
-	const isLoggedIn = false;
+	// Use real auth state from useAuth hook
+	const { isAuthenticated } = useAuth();
 
 	const exportPdf = useCallback(async () => {
 		if (!analysis) return;
 
-		// Gate download behind login (Option C)
-		if (!isLoggedIn) {
+		// Gate download behind login
+		if (!isAuthenticated) {
 			setShowGate(true);
 			return;
 		}
 
 		setIsExporting(true);
 		try {
+			// Claim the onboarding session if we have one
+			if (sessionId) {
+				try {
+					await claimSession();
+					console.log("Session claimed successfully");
+				} catch (err) {
+					console.error("Failed to claim session:", err);
+					// Continue with export anyway
+				}
+			}
+
 			const res = await fetch("/api/export", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -336,13 +349,16 @@ export function useResumeForm() {
 			if (!res.ok) throw new Error("Export failed");
 			const data = (await res.json()) as ExportResult;
 			setExportResult(data);
+			toast.success("PDF exported successfully!");
 		} catch (e) {
 			console.error(e);
-			alert("Export failed. Please try again.");
+			toast.error("Export failed", {
+				description: "Please try again.",
+			});
 		} finally {
 			setIsExporting(false);
 		}
-	}, [analysis, isLoggedIn]);
+	}, [analysis, isAuthenticated, sessionId]);
 
 	const resetAll = useCallback(() => {
 		setStep(0);

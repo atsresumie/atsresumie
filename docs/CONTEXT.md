@@ -294,3 +294,6 @@ Session ID stored in httpOnly cookie, not exposed to JavaScript. Cookie helpers 
 
 ### Next task
 - Implement Auth using supabase Auth, it should be seemless, google o-auth sign-in should also be included.
+- Auth : After user enter their email and password for signing-up, it should notify the user using a toast or may be dialoge box, that the user is being signed up and should verify their email which they have received from supabase.
+- Auth : After user signing-in, they are allowed to access the onboarding flow which includes getting their pdf generated from AI.
+-  Fix: The Analyze and Preview button is currently disabled when the current oboarding session is active and the user should be allowed to access the onboarding flow even with the active onboarding session. They are only not allowed to Generate or Export the pdf , which requires login or signup.
