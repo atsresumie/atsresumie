@@ -291,3 +291,6 @@ Session ID stored in httpOnly cookie, not exposed to JavaScript. Cookie helpers 
 ---
 
 *Last updated: 2026-01-19*
+
+### Next task
+- Implement Auth using supabase Auth, it should be seemless, google o-auth sign-in should also be included.

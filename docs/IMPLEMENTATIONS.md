@@ -100,7 +100,7 @@ Users can start using the app without signing up. Session is tracked via `ats_on
 
 ### Session Cookie Strategy
 - Cookie is httpOnly, sameSite: lax, secure in production
-- 7-day expiration
+- 14-day expiration
 - Contains only session UUID, not user data
 
 ### Dual Storage
