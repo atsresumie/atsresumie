@@ -82,6 +82,16 @@ $$;
 
 ---
 
+### 2026-01-20: TopNav User Menu
+
+**Updated `components/get-started/TopNav.tsx`:**
+
+- Added user icon button (top right) when authenticated
+- Dropdown shows email and "Sign out" option
+- Closes on click outside
+
+---
+
 ## Setup Required
 
 ### Google Cloud Console
@@ -98,6 +108,8 @@ $$;
 ## Next Task
 
 - When user is already logged in, and the user will be on get-started page, on the navbar ,on top right corner, the user will see the user menu.
+
+- Also, when the user signs up they will automatically have the credit on their account, after sign up they should see a message that they have the credit remaining which is 3 credits.
 
 - Not on authentication part, but temporarily, we will integrate Claude API to generate Latex for the user. We will also use Latex compiler to generate PDF according to the Latex code.
 
