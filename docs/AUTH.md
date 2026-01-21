@@ -89,6 +89,24 @@ $$;
 - Added user icon button (top right) when authenticated
 - Dropdown shows email and "Sign out" option
 - Closes on click outside
+- Fixed z-index overlay issue (changed to `z-20`)
+
+---
+
+### 2026-01-20: Claimed Session Draft Error Fix
+
+**Problem:** "Session is no longer active" error when running analysis after logging in.
+
+**Cause:** After user authenticates and claims session, trying to save draft to claimed session fails.
+
+**Fix in `useResumeForm.ts`:**
+
+```typescript
+// Skip draft saving if session is claimed
+if (uploadedResume && sessionId && !isSessionLocked) {
+	// Save draft...
+}
+```
 
 ---
 
@@ -107,10 +125,7 @@ $$;
 
 ## Next Task
 
-- When user is already logged in, and the user will be on get-started page, on the navbar ,on top right corner, the user will see the user menu.
-
-- Also, when the user signs up they will automatically have the credit on their account, after sign up they should see a message that they have the credit remaining which is 3 credits.
-
-- Not on authentication part, but temporarily, we will integrate Claude API to generate Latex for the user. We will also use Latex compiler to generate PDF according to the Latex code.
-
-- Fix: Authentication bugs and polish the entire on-boarding workflow in authentication branch.
+- Credits system: After signup, users get 3 free credits, show message
+- Claude API integration for LaTeX generation
+- LaTeX compiler for PDF generation
+- Polish entire onboarding workflow

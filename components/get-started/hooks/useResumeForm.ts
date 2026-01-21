@@ -313,8 +313,8 @@ export function useResumeForm() {
 		setIsAnalyzing(true);
 		setExportResult(null);
 		try {
-			// Save draft to Supabase if we have an uploaded resume
-			if (uploadedResume && sessionId) {
+			// Save draft to Supabase if we have an uploaded resume and session is still active
+			if (uploadedResume && sessionId && !isSessionLocked) {
 				try {
 					const draftId = await saveOnboardingDraft({
 						jdText: jobDescription,
@@ -328,7 +328,10 @@ export function useResumeForm() {
 					});
 					console.log("Draft saved to Supabase:", draftId);
 				} catch (err) {
-					console.error("Failed to save draft to Supabase:", err);
+					console.warn(
+						"Draft save skipped (session may be claimed):",
+						err,
+					);
 					// Non-blocking - continue with analysis
 				}
 			}
@@ -371,6 +374,7 @@ export function useResumeForm() {
 		focusPrompt,
 		uploadedResume,
 		sessionId,
+		isSessionLocked,
 	]);
 
 	// Use real auth state from useAuth hook
