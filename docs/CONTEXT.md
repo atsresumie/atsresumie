@@ -48,6 +48,7 @@ atsresumie/
 │   │       └── claim/           # Claim session after signup
 │   ├── auth/              # Authentication routes
 │   │   └── callback/      # OAuth callback handler (PKCE)
+│   ├── dashboard/         # User dashboard (placeholder)
 │   ├── get-started/       # Main onboarding page
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Landing page

@@ -125,7 +125,7 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 ## Next Task
 
-- Credits system: After signup, users get 3 free credits, show message
-- Claude API integration for LaTeX generation
+- Credits system: After signup, users get 3 free credits, show message in somewhere in the UI in the get-started page about their credits remaining.
+- Claude API integration for LaTeX generation in the get-started page through an api endpoint.
 - LaTeX compiler for PDF generation
-- Polish entire onboarding workflow
+- Polish entire onboarding workflow with Authentication System.

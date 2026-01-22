@@ -52,6 +52,15 @@ export default function TopNav({ onReset }: TopNavProps) {
 					Reset
 				</button>
 
+				{isAuthenticated && (
+					<Link
+						href="/dashboard"
+						className="hidden rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-sm hover:bg-[rgba(233,221,199,0.10)] md:inline-flex items-center"
+					>
+						Dashboard
+					</Link>
+				)}
+
 				<div className="rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-1 text-xs">
 					Preview free • Export uses credits
 				</div>
