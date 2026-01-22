@@ -199,7 +199,22 @@ When user clicks "Download PDF":
 claim_onboarding_session(p_session_id UUID)
 -- Links anonymous session to authenticated user
 -- Sets status='claimed', user_id=auth.uid()
+
+get_credits()
+-- Returns current user's credit balance
+
+adjust_credits(p_delta, p_reason, p_source)
+-- Atomic credit mutation (for generation, purchases, refunds)
 ```
+
+### user_profiles
+
+| Column     | Type      | Description                 |
+| ---------- | --------- | --------------------------- |
+| id         | uuid      | PK, references auth.users   |
+| credits    | integer   | Current balance (default 0) |
+| created_at | timestamp | Profile creation            |
+| updated_at | timestamp | Last update                 |
 
 ---
 
@@ -227,7 +242,8 @@ claim_onboarding_session(p_session_id UUID)
 | Endpoint         | Method | Description                               |
 | ---------------- | ------ | ----------------------------------------- |
 | `/api/analyze`   | POST   | Run ATS analysis (supports stored resume) |
-| `/api/export`    | POST   | Generate PDF (mock implementation)        |
+| `/api/export`    | POST   | Generate PDF (requires auth + credits)    |
+| `/api/credits`   | GET    | Get user's remaining credits              |
 | `/api/jobs/[id]` | GET    | Poll job status                           |
 
 ---
@@ -293,13 +309,14 @@ const canAnalyze =
 - **PDF export gate with authentication**
 - Session claiming (RPC function)
 - Middleware for session refresh
+- **Credits System (3 on signup, server-enforced)**
 
 ### Placeholder/TODO 🚧
 
 - Real AI integration for analysis (currently mock)
 - Real PDF generation (returns mock URL)
 - Email verification flow UI
-- Credits system
+- Stripe integration for credit purchases
 - Email notifications
 
 ---

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { RotateCcw, User, LogOut } from "lucide-react";
+import { RotateCcw, User, LogOut, Coins } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useCredits } from "@/hooks/useCredits";
 
 interface TopNavProps {
 	onReset: () => void;
@@ -11,6 +12,7 @@ interface TopNavProps {
 
 export default function TopNav({ onReset }: TopNavProps) {
 	const { user, isAuthenticated, signOut } = useAuth();
+	const { credits } = useCredits();
 	const [showMenu, setShowMenu] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
 
@@ -61,9 +63,28 @@ export default function TopNav({ onReset }: TopNavProps) {
 					</Link>
 				)}
 
-				<div className="rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-1 text-xs">
-					Preview free • Export uses credits
-				</div>
+				{/* Credits Badge */}
+				{isAuthenticated && credits !== null && (
+					<div
+						className={`rounded-full border px-3 py-1 text-xs flex items-center gap-1.5 ${
+							credits === 0
+								? "border-red-500/30 bg-red-500/10 text-red-300"
+								: credits === 1
+									? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+									: "border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)]"
+						}`}
+					>
+						<Coins className="h-3 w-3" />
+						{credits === 1 && <span>⚠</span>}
+						Credits: {credits}
+					</div>
+				)}
+
+				{!isAuthenticated && (
+					<div className="rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-1 text-xs">
+						Preview free • Export uses credits
+					</div>
+				)}
 
 				{/* User Menu */}
 				{isAuthenticated && (

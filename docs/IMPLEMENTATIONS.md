@@ -78,6 +78,35 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
 
 ---
 
+### Credits System
+
+**Purpose:** Implement credits system where users get 3 credits on signup, decremented on successful PDF generation.
+
+**Design:** Balance + Extensible RPC approach for future Stripe integration.
+
+**New Files:**
+
+- `hooks/useCredits.ts` - Hook to fetch and cache user credits
+- `app/api/credits/route.ts` - GET endpoint to retrieve credits
+- `supabase/credits_system.sql` - Database schema, RLS, triggers, RPCs
+
+**Modified Files:**
+
+- `components/get-started/TopNav.tsx` - Credits badge display
+- `app/api/export/route.ts` - Auth check + credits verification + decrement on success
+- `components/get-started/hooks/useResumeForm.ts` - NO_CREDITS error handling
+
+**Database (Supabase):**
+
+- `user_profiles` table with `credits` column
+- `handle_new_user()` trigger grants 3 credits on signup
+- `get_credits()` RPC returns current balance
+- `adjust_credits(delta, reason, source)` RPC for atomic mutations
+
+**Future Stripe:** Call `adjust_credits(+N, 'purchase', 'stripe')`
+
+---
+
 ## 2026-01-19
 
 ### Session Restoration & Draft Protection

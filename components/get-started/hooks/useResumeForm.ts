@@ -408,6 +408,17 @@ export function useResumeForm() {
 				body: JSON.stringify({ versionId: analysis.versionId }),
 			});
 			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({}));
+
+				// Handle insufficient credits
+				if (res.status === 402 || errorData.code === "NO_CREDITS") {
+					toast.error("No credits remaining", {
+						description:
+							"You've used all your credits. Upgrade to generate more resumes.",
+					});
+					throw new Error("No credits");
+				}
+
 				toast.error("Export failed", {
 					description: "Please try again.",
 				});
@@ -418,9 +429,6 @@ export function useResumeForm() {
 			toast.success("PDF exported successfully!");
 		} catch (e) {
 			console.error(e);
-			toast.error("Export failed", {
-				description: "Please try again.",
-			});
 		} finally {
 			setIsExporting(false);
 		}

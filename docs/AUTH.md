@@ -123,9 +123,32 @@ if (uploadedResume && sessionId && !isSessionLocked) {
     - Site URL: `http://localhost:3000`
     - Redirect URL: `http://localhost:3000/auth/callback`
 
+---
+
+### 2026-01-21: Credits System
+
+**New Files:**
+
+- `hooks/useCredits.ts` - Fetch and cache credits
+- `app/api/credits/route.ts` - GET endpoint
+- `supabase/credits_system.sql` - DB schema
+
+**Modified Files:**
+
+- `TopNav.tsx` - Credits badge (colored by balance)
+- `app/api/export/route.ts` - Auth + credits check + decrement
+- `useResumeForm.ts` - NO_CREDITS error handling
+
+**UI Copy:**
+
+- Normal: "Credits: 3"
+- Low: "⚠ Credits: 1" (yellow)
+- Zero: "Credits: 0" (red)
+
+---
+
 ## Next Task
 
-- Credits system: After signup, users get 3 free credits, show message in somewhere in the UI in the get-started page about their credits remaining.
-- Claude API integration for LaTeX generation in the get-started page through an api endpoint.
+- Claude API integration for LaTeX generation
 - LaTeX compiler for PDF generation
-- Polish entire onboarding workflow with Authentication System.
+- Polish entire onboarding workflow
