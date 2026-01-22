@@ -226,6 +226,3 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 - Claude API integration (real generation)
 - LaTeX compiler implementation
 - Polish onboarding workflow
-- Local storage on_boarding session change on reset as well.
-  Fix the issue of session expired, create a new one for uploading. User should not think about that,
-  They just want to create it, make it smooth.

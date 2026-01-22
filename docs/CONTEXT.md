@@ -37,7 +37,9 @@ atsresumie/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
 │   │   ├── analyze/       # ATS analysis endpoint
-│   │   ├── export/        # PDF export endpoint
+│   │   ├── credits/       # Get user credits
+│   │   ├── export/        # PDF export endpoint (deprecated - use generate)
+│   │   ├── generate/      # Create generation job
 │   │   ├── jobs/[id]/     # Job status polling
 │   │   └── onboarding/    # Anonymous session management
 │   │       ├── start/           # Create/resume session
@@ -61,13 +63,16 @@ atsresumie/
 │   │   ├── hooks/         # useResumeForm hook
 │   │   ├── steps/         # Step0, Step1, Step2 components
 │   │   ├── SignupGateModal.tsx # Export gate (triggers AuthModal)
+│   │   ├── SuccessModal.tsx    # Post-generation success modal
 │   │   └── ...
 │   ├── landing/           # Landing page components
 │   │   └── Navbar.tsx     # Navbar with Sign In/Sign Up buttons
 │   └── ui/                # shadcn/ui components
 │
 ├── hooks/                 # Global custom hooks
-│   └── useAuth.ts         # Auth state hook
+│   ├── useAuth.ts         # Auth state hook
+│   ├── useCredits.ts      # Credits state hook
+│   └── useJobPolling.ts   # Job status polling hook
 │
 ├── lib/                   # Utility libraries
 │   ├── auth/              # Authentication
@@ -193,6 +198,25 @@ When user clicks "Download PDF":
 | resume_object_path       | text | Storage object path       |
 | resume_original_filename | text | User's filename           |
 
+### generation_jobs
+
+| Column             | Type      | Description                      |
+| ------------------ | --------- | -------------------------------- |
+| id                 | uuid      | Primary key                      |
+| user_id            | uuid      | FK to auth.users                 |
+| parent_job_id      | uuid      | For retry grouping               |
+| jd_text            | text      | Job description                  |
+| resume_object_path | text      | Resume storage path              |
+| focus_prompt       | text      | Optional focus instructions      |
+| status             | text      | pending/running/succeeded/failed |
+| error_message      | text      | Failure reason                   |
+| latex_text         | text      | Generated LaTeX                  |
+| pdf_url            | text      | Generated PDF URL                |
+| created_at         | timestamp | Job creation                     |
+| updated_at         | timestamp | Last update                      |
+| started_at         | timestamp | When processing began            |
+| completed_at       | timestamp | When job finished                |
+
 ### Database Functions (RPC)
 
 ```sql
@@ -204,7 +228,13 @@ get_credits()
 -- Returns current user's credit balance
 
 adjust_credits(p_delta, p_reason, p_source)
--- Atomic credit mutation (for generation, purchases, refunds)
+-- Atomic credit mutation (for current user)
+
+adjust_credits_for_user(p_user_id, p_delta, p_reason, p_source)
+-- Admin credit adjustment with explicit user_id
+
+update_job_status(p_job_id, p_status, p_latex_text, p_pdf_url, p_error_message)
+-- Server-controlled job status updates (SECURITY DEFINER)
 ```
 
 ### user_profiles
@@ -239,12 +269,13 @@ adjust_credits(p_delta, p_reason, p_source)
 
 ### Analysis & Export
 
-| Endpoint         | Method | Description                               |
-| ---------------- | ------ | ----------------------------------------- |
-| `/api/analyze`   | POST   | Run ATS analysis (supports stored resume) |
-| `/api/export`    | POST   | Generate PDF (requires auth + credits)    |
-| `/api/credits`   | GET    | Get user's remaining credits              |
-| `/api/jobs/[id]` | GET    | Poll job status                           |
+| Endpoint         | Method | Description                                     |
+| ---------------- | ------ | ----------------------------------------------- |
+| `/api/analyze`   | POST   | Run ATS analysis (supports stored resume)       |
+| `/api/generate`  | POST   | Create generation job (requires auth + credits) |
+| `/api/export`    | POST   | **Deprecated** - Use `/api/generate` instead    |
+| `/api/credits`   | GET    | Get user's remaining credits                    |
+| `/api/jobs/[id]` | GET    | Poll job status and outputs                     |
 
 ---
 
@@ -272,10 +303,14 @@ Central state management for the onboarding wizard.
   canAnalyze,           // JD length >50 && has resume
   runAnalyze,           // Triggers /api/analyze
 
-  // Export
+  // Export/Generation
   showGate, setShowGate,
   isExporting, exportResult,
-  exportPdf,            // Checks auth, claims session, calls /api/export
+  exportPdf,            // Creates job, polls status, auto-downloads PDF
+
+  // Success Modal
+  showSuccessModal, setShowSuccessModal,
+  handleCreateAnother,  // Resets form + starts new session
 
   // Session
   sessionId, isLoadingSession, isSessionLocked,
@@ -298,26 +333,58 @@ const canAnalyze =
 
 ### Implemented ✅
 
-- Anonymous onboarding flow
-- Session creation and restoration
+**Core Features:**
+
+- Anonymous onboarding flow with session management
 - Resume upload to Supabase Storage
-- Draft saving and retrieval
+- Draft saving and retrieval (localStorage + database)
 - Mock ATS analysis (with stored resume support)
-- **Supabase Auth (Email/Password + Google OAuth)**
-- **AuthModal with Sign In/Sign Up tabs**
-- **Navbar auth buttons**
-- **PDF export gate with authentication**
-- Session claiming (RPC function)
+- Supabase Auth (Email/Password + Google OAuth)
+- AuthModal with Sign In/Sign Up tabs
+- Navbar auth buttons with user menu
 - Middleware for session refresh
-- **Credits System (3 on signup, server-enforced)**
+
+**Credits System:**
+
+- 3 free credits on signup (via trigger)
+- Server-side credit checks and mutations
+- Credits badge in TopNav (color-coded)
+- Atomic credit decrement on successful generation
+- `get_credits()` and `adjust_credits()` RPCs
+
+**Generation Job System:**
+
+- Job-based lifecycle (pending → running → succeeded/failed)
+- Database table with RLS policies
+- POST `/api/generate` - Creates job, returns jobId
+- GET `/api/jobs/[id]` - Poll status endpoint
+- Job status polling with frontend hook
+- Mock processing (1.5s delay)
+- Credits decrement ONLY on success
+
+**Session Management:**
+
+- Auto-renew expired sessions for authenticated users
+- Auto-start new session after successful generation
+- Clear claimed session data from localStorage
+- Skip draft restoration for claimed sessions
+
+**UX Enhancements:**
+
+- Success modal with "Create Another" and "Dashboard" options
+- Auto-download PDF on generation success
+- Success toast notification
+- Clean form reset after export
 
 ### Placeholder/TODO 🚧
 
-- Real AI integration for analysis (currently mock)
-- Real PDF generation (returns mock URL)
+- **Real Claude API integration** for resume generation
+- **LaTeX compiler** for PDF creation
+- Real PDF upload to Supabase Storage (currently mock URL)
 - Email verification flow UI
 - Stripe integration for credit purchases
 - Email notifications
+- User dashboard with generation history
 
 ---
 
@@ -336,4 +403,37 @@ const canAnalyze =
 
 ---
 
-_Last updated: 2026-01-20_
+## Generation Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant G as /api/generate
+    participant J as /api/jobs/[id]
+    participant P as processJob()
+    participant C as Credits RPC
+
+    U->>F: Click "Generate PDF"
+    F->>G: POST (jdText, resume, focus)
+    G->>G: Check credits > 0
+    G->>G: Create job (status=pending)
+    G->>P: Start async processing
+    G-->>F: Return { jobId }
+
+    F->>J: Poll GET /api/jobs/[id]
+    P->>P: Set status=running
+    P->>P: Mock work (1.5s)
+    P->>C: adjust_credits_for_user(-1)
+    P->>P: Set status=succeeded + outputs
+
+    J-->>F: { status: succeeded, pdfUrl }
+    F->>F: clearDraft()
+    F->>F: startNewSession()
+    F->>F: Auto-download PDF
+    F->>U: Show success toast + modal
+```
+
+---
+
+_Last updated: 2026-01-22_
