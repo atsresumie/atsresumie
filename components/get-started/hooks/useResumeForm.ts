@@ -12,8 +12,10 @@ import {
 	uploadResume,
 	deleteResume,
 	saveDraft as saveOnboardingDraft,
+	claimSession,
 	SessionStatusResult,
 } from "@/lib/onboarding/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UploadedResume {
 	bucket: string;
@@ -37,15 +39,20 @@ export function useResumeForm() {
 	const [showGate, setShowGate] = useState(false);
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportResult, setExportResult] = useState<ExportResult | null>(null);
+	const [showSuccessModal, setShowSuccessModal] = useState(false);
 
 	// Onboarding session state
 	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [isUploadingResume, setIsUploadingResume] = useState(false);
-	const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
+	const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(
+		null,
+	);
 	const [isLoadingSession, setIsLoadingSession] = useState(true);
 	const [isSessionLocked, setIsSessionLocked] = useState(false);
 	const [hasPreviousDraft, setHasPreviousDraft] = useState(false);
-	const [previousResumeFilename, setPreviousResumeFilename] = useState<string | null>(null);
+	const [previousResumeFilename, setPreviousResumeFilename] = useState<
+		string | null
+	>(null);
 	const sessionInitRef = useRef(false);
 
 	// Initialize onboarding session on mount and restore draft if exists
@@ -61,29 +68,72 @@ export function useResumeForm() {
 
 				if (status) {
 					setSessionId(status.sessionId);
-					console.log("Existing session found:", status.sessionId, "Status:", status.status);
+					console.log(
+						"Existing session found:",
+						status.sessionId,
+						"Status:",
+						status.status,
+					);
 
 					// Check if session is locked (claimed or expired)
 					if (!status.isEditable) {
 						setIsSessionLocked(true);
-						console.log("Session is locked (claimed/expired)");
-						toast.warning("Previous session completed", {
-							description: "Start a new session to create another resume.",
-						});
+						console.log(
+							"Session is locked (claimed/expired) - starting new session",
+						);
+
+						// For authenticated users, automatically start a new session
+						if (isAuthenticated) {
+							try {
+								const newId = await startNewSession();
+								setSessionId(newId);
+								setIsSessionLocked(false);
+								setHasPreviousDraft(false);
+								setPreviousResumeFilename(null);
+								console.log("Auto-started new session:", newId);
+								toast.info("Started fresh session", {
+									description:
+										"You can create a new resume now.",
+								});
+								return; // Skip draft restoration
+							} catch (err) {
+								console.error(
+									"Failed to auto-start new session:",
+									err,
+								);
+								toast.warning("Previous session completed", {
+									description:
+										"Click Reset to start a new session.",
+								});
+							}
+						} else {
+							// For non-authenticated, show the warning
+							toast.warning("Previous session completed", {
+								description:
+									"Start a new session to create another resume.",
+							});
+						}
 					}
 
-					// Restore draft data if exists
-					if (status.draft) {
+					// Restore draft data only if session is still editable (not claimed)
+					if (status.draft && status.isEditable) {
 						setHasPreviousDraft(true);
 						setJobDescription(status.draft.jdText);
-						setPreviousResumeFilename(status.draft.resumeOriginalFilename);
-						
+						setPreviousResumeFilename(
+							status.draft.resumeOriginalFilename,
+						);
+
 						// If we have resume info from server, set uploadedResume state
-						if (status.draft.resumeBucket && status.draft.resumeObjectPath) {
+						if (
+							status.draft.resumeBucket &&
+							status.draft.resumeObjectPath
+						) {
 							setUploadedResume({
 								bucket: status.draft.resumeBucket,
 								objectPath: status.draft.resumeObjectPath,
-								originalFilename: status.draft.resumeOriginalFilename || "resume",
+								originalFilename:
+									status.draft.resumeOriginalFilename ||
+									"resume",
 								mimeType: "application/pdf", // Default
 								sizeBytes: 0,
 							});
@@ -94,7 +144,8 @@ export function useResumeForm() {
 							resumeFilename: status.draft.resumeOriginalFilename,
 						});
 						toast.info("Previous session restored", {
-							description: "Your job description has been restored.",
+							description:
+								"Your job description has been restored.",
 						});
 					}
 				} else {
@@ -149,14 +200,20 @@ export function useResumeForm() {
 
 	// Function to delete uploaded resume from server and clear local state
 	const [isDeletingResume, setIsDeletingResume] = useState(false);
-	
+
 	const clearUploadedResume = useCallback(async () => {
 		// If we have uploaded resume info, delete from server
 		if (uploadedResume) {
 			setIsDeletingResume(true);
 			try {
-				await deleteResume(uploadedResume.bucket, uploadedResume.objectPath);
-				console.log("Resume deleted from server:", uploadedResume.objectPath);
+				await deleteResume(
+					uploadedResume.bucket,
+					uploadedResume.objectPath,
+				);
+				console.log(
+					"Resume deleted from server:",
+					uploadedResume.objectPath,
+				);
 				toast.success("Resume removed");
 			} catch (err) {
 				console.error("Failed to delete resume:", err);
@@ -172,7 +229,7 @@ export function useResumeForm() {
 		setUploadedResume(null);
 		setHasPreviousDraft(false);
 		setPreviousResumeFilename(null);
-	}, [uploadedResume]);	// Draft persistence (anonymous-friendly localStorage backup)
+	}, [uploadedResume]); // Draft persistence (anonymous-friendly localStorage backup)
 	useEffect(() => {
 		const d = loadDraft();
 		if (!d) return;
@@ -195,9 +252,15 @@ export function useResumeForm() {
 	}, [step, mode, jobDescription, resumeFile, focusPrompt, analysis]);
 
 	const canContinueFromStep0 = !!mode;
+
+	// Allow analysis if we have either:
+	// 1. A fresh file just uploaded (resumeFile !== null)
+	// 2. A previously uploaded resume from restored session (uploadedResume !== null)
+	const hasResumeForAnalysis = resumeFile !== null || uploadedResume !== null;
+
 	const canAnalyze =
 		jobDescription.trim().length > 50 &&
-		resumeFile !== null &&
+		hasResumeForAnalysis &&
 		!isAnalyzing &&
 		!isUploadingResume;
 
@@ -206,10 +269,14 @@ export function useResumeForm() {
 		if (!canAnalyze) {
 			const errors: string[] = [];
 			if (jobDescription.trim().length <= 50) {
-				errors.push(`Job description too short: ${jobDescription.trim().length}/50 characters required`);
+				errors.push(
+					`Job description too short: ${jobDescription.trim().length}/50 characters required`,
+				);
 			}
-			if (resumeFile === null) {
-				errors.push("No resume file uploaded");
+			if (!hasResumeForAnalysis) {
+				errors.push(
+					"No resume file (upload one or use restored resume)",
+				);
 			}
 			if (isAnalyzing) {
 				errors.push("Analysis already in progress");
@@ -221,7 +288,13 @@ export function useResumeForm() {
 				console.warn("Cannot analyze - validation errors:", errors);
 			}
 		}
-	}, [canAnalyze, jobDescription, resumeFile, isAnalyzing, isUploadingResume]);
+	}, [
+		canAnalyze,
+		jobDescription,
+		hasResumeForAnalysis,
+		isAnalyzing,
+		isUploadingResume,
+	]);
 
 	// Handle resume file change - upload to Supabase Storage
 	const handleResumeFileChange = useCallback(async (file: File | null) => {
@@ -248,7 +321,8 @@ export function useResumeForm() {
 		} catch (err) {
 			console.error("Failed to upload resume:", err);
 			toast.error("Upload failed", {
-				description: err instanceof Error ? err.message : "Please try again.",
+				description:
+					err instanceof Error ? err.message : "Please try again.",
 			});
 			// Reset file on upload failure
 			setResumeFile(null);
@@ -258,19 +332,20 @@ export function useResumeForm() {
 	}, []);
 
 	const runAnalyze = useCallback(async () => {
-		if (!resumeFile) {
+		// Check if we have a resume - either fresh upload or from server
+		if (!resumeFile && !uploadedResume) {
 			toast.warning("Resume file required", {
-				description: "Please re-upload your resume to regenerate the analysis.",
+				description: "Please upload your resume to run the analysis.",
 			});
 			setStep(1);
 			return;
 		}
-		
+
 		setIsAnalyzing(true);
 		setExportResult(null);
 		try {
-			// Save draft to Supabase if we have an uploaded resume
-			if (uploadedResume && sessionId) {
+			// Save draft to Supabase if we have an uploaded resume and session is still active
+			if (uploadedResume && sessionId && !isSessionLocked) {
 				try {
 					const draftId = await saveOnboardingDraft({
 						jdText: jobDescription,
@@ -284,17 +359,28 @@ export function useResumeForm() {
 					});
 					console.log("Draft saved to Supabase:", draftId);
 				} catch (err) {
-					console.error("Failed to save draft to Supabase:", err);
+					console.warn(
+						"Draft save skipped (session may be claimed):",
+						err,
+					);
 					// Non-blocking - continue with analysis
 				}
 			}
 
-			// Create FormData to send file
+			// Create FormData to send file or storage reference
 			const formData = new FormData();
 			formData.append("mode", mode);
 			formData.append("jobDescription", jobDescription);
-			formData.append("resumeFile", resumeFile);
 			formData.append("focusPrompt", focusPrompt);
+
+			if (resumeFile) {
+				// Fresh file upload
+				formData.append("resumeFile", resumeFile);
+			} else if (uploadedResume) {
+				// Use stored resume from server
+				formData.append("resumeBucket", uploadedResume.bucket);
+				formData.append("resumeObjectPath", uploadedResume.objectPath);
+			}
 
 			const res = await fetch("/api/analyze", {
 				method: "POST",
@@ -312,37 +398,180 @@ export function useResumeForm() {
 		} finally {
 			setIsAnalyzing(false);
 		}
-	}, [mode, jobDescription, resumeFile, focusPrompt, uploadedResume, sessionId]);
+	}, [
+		mode,
+		jobDescription,
+		resumeFile,
+		focusPrompt,
+		uploadedResume,
+		sessionId,
+		isSessionLocked,
+	]);
 
-	// Stub: replace with your auth state (NextAuth session)
-	const isLoggedIn = false;
+	// Use real auth state from useAuth hook
+	const { isAuthenticated } = useAuth();
+
+	// Job polling state
+	const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+	const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+	// Poll job status
+	const pollJobStatus = useCallback(async (jobId: string) => {
+		try {
+			const res = await fetch(`/api/jobs/${jobId}`);
+			if (!res.ok) {
+				throw new Error("Failed to fetch job status");
+			}
+			const job = await res.json();
+
+			if (job.status === "succeeded") {
+				// Stop polling
+				if (pollingRef.current) {
+					clearInterval(pollingRef.current);
+					pollingRef.current = null;
+				}
+				setCurrentJobId(null);
+				setIsExporting(false);
+				setExportResult({ pdfUrl: job.pdfUrl, latex: "" });
+
+				// Clear localStorage draft since session is now claimed
+				clearDraft();
+
+				// Auto-start new session for clean UX
+				try {
+					const newId = await startNewSession();
+					setSessionId(newId);
+					setIsSessionLocked(false);
+					console.log(
+						"Auto-started new session after export:",
+						newId,
+					);
+				} catch (err) {
+					console.error("Failed to auto-start new session:", err);
+				}
+
+				// Auto-download PDF
+				if (job.pdfUrl) {
+					const link = document.createElement("a");
+					link.href = job.pdfUrl;
+					link.download = "resume.pdf";
+					document.body.appendChild(link);
+					link.click();
+					document.body.removeChild(link);
+				}
+
+				// Show success toast
+				toast.success("PDF generated successfully!", {
+					description: "Your resume is downloading now.",
+				});
+
+				setShowSuccessModal(true); // Show success modal instead of toast
+			} else if (job.status === "failed") {
+				// Stop polling
+				if (pollingRef.current) {
+					clearInterval(pollingRef.current);
+					pollingRef.current = null;
+				}
+				setCurrentJobId(null);
+				setIsExporting(false);
+				toast.error("Generation failed", {
+					description: job.errorMessage || "Please try again.",
+				});
+			}
+			// Continue polling for pending/running
+		} catch (err) {
+			console.error("Job polling error:", err);
+		}
+	}, []);
+
+	// Cleanup polling on unmount
+	useEffect(() => {
+		return () => {
+			if (pollingRef.current) {
+				clearInterval(pollingRef.current);
+			}
+		};
+	}, []);
 
 	const exportPdf = useCallback(async () => {
 		if (!analysis) return;
 
-		// Gate download behind login (Option C)
-		if (!isLoggedIn) {
+		// Gate download behind login
+		if (!isAuthenticated) {
 			setShowGate(true);
 			return;
 		}
 
 		setIsExporting(true);
 		try {
-			const res = await fetch("/api/export", {
+			// Only try to claim if session is not already locked
+			if (sessionId && !isSessionLocked) {
+				try {
+					await claimSession();
+					setIsSessionLocked(true); // Prevent future claim attempts
+					console.log("Session claimed successfully");
+				} catch (err) {
+					console.warn("Session claim skipped:", err);
+				}
+			}
+
+			// Create generation job
+			const res = await fetch("/api/generate", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ versionId: analysis.versionId }),
+				body: JSON.stringify({
+					jdText: jobDescription,
+					resumeObjectPath: uploadedResume?.objectPath || null,
+					focusPrompt: focusPrompt || null,
+				}),
 			});
-			if (!res.ok) throw new Error("Export failed");
-			const data = (await res.json()) as ExportResult;
-			setExportResult(data);
+
+			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({}));
+
+				// Handle insufficient credits
+				if (res.status === 402 || errorData.code === "NO_CREDITS") {
+					toast.error("No credits remaining", {
+						description:
+							"You've used all your credits. Upgrade to generate more resumes.",
+					});
+					setIsExporting(false);
+					return;
+				}
+
+				toast.error("Generation failed", {
+					description: "Please try again.",
+				});
+				setIsExporting(false);
+				return;
+			}
+
+			const { jobId } = await res.json();
+			setCurrentJobId(jobId);
+
+			// Start polling for job status
+			pollingRef.current = setInterval(() => {
+				pollJobStatus(jobId);
+			}, 1000);
+
+			// Initial poll
+			pollJobStatus(jobId);
 		} catch (e) {
 			console.error(e);
-			alert("Export failed. Please try again.");
-		} finally {
 			setIsExporting(false);
+			toast.error("Generation failed", {
+				description: "Please try again.",
+			});
 		}
-	}, [analysis, isLoggedIn]);
+	}, [
+		analysis,
+		isAuthenticated,
+		sessionId,
+		jobDescription,
+		uploadedResume,
+		focusPrompt,
+		pollJobStatus,
+	]);
 
 	const resetAll = useCallback(() => {
 		setStep(0);
@@ -356,15 +585,22 @@ export function useResumeForm() {
 		clearDraft();
 	}, []);
 
+	const handleCreateAnother = useCallback(async () => {
+		setShowSuccessModal(false);
+		resetAll();
+		await startFreshSession();
+		toast.info("Started new session");
+	}, [resetAll, startFreshSession]);
+
 	return {
 		// Step state
 		step,
 		setStep,
-		
+
 		// Mode state
 		mode,
 		setMode,
-		
+
 		// Form fields
 		jobDescription,
 		setJobDescription,
@@ -372,17 +608,17 @@ export function useResumeForm() {
 		setResumeFile: handleResumeFileChange,
 		focusPrompt,
 		setFocusPrompt,
-		
+
 		// Analysis state
 		isAnalyzing,
 		analysis,
-		
+
 		// Export state
 		showGate,
 		setShowGate,
 		isExporting,
 		exportResult,
-		
+
 		// Onboarding state
 		sessionId,
 		isUploadingResume,
@@ -392,16 +628,21 @@ export function useResumeForm() {
 		hasPreviousDraft,
 		previousResumeFilename,
 		isDeletingResume,
-		
+
 		// Computed values
 		canContinueFromStep0,
 		canAnalyze,
-		
+
 		// Actions
 		runAnalyze,
 		exportPdf,
 		resetAll,
 		startFreshSession,
 		clearUploadedResume,
+
+		// Success Modal
+		showSuccessModal,
+		setShowSuccessModal,
+		handleCreateAnother,
 	};
 }

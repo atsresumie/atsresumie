@@ -115,12 +115,10 @@ export default function GetStartedPage() {
 			<SignupGateModal
 				open={form.showGate}
 				onClose={() => form.setShowGate(false)}
-				onContinue={() => {
-					// In your real app: start auth, then call exportPdf after session exists.
-					alert(
-						"Hook this up to your auth (NextAuth). After login, call exportPdf()."
-					);
+				onAuthSuccess={() => {
+					// After successful auth, trigger PDF export
 					form.setShowGate(false);
+					form.exportPdf();
 				}}
 			/>
 		</div>
