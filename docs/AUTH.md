@@ -171,6 +171,56 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 ---
 
+### 2026-01-22: Auto-Renew Expired Sessions
+
+**Problem**: Authenticated users with expired/locked sessions saw warning toast and had to manually click Reset.
+
+**Solution**:
+
+- Auto-start new session for authenticated users with locked sessions
+- Skip warning toast, show "Started fresh session" instead
+- Non-authenticated users still see manual warning
+
+**Modified**: `useResumeForm.ts` session init flow
+
+---
+
+### 2026-01-22: Clear Claimed Session Data
+
+**Problem**: After successful PDF generation, old session data (job description + resume) was repopulating the form on next visit.
+
+**Solution**:
+
+- Call `clearDraft()` after successful generation to remove localStorage data
+- **Auto-start new session immediately after export** (no waiting for navigation)
+- Only restore draft if `status.isEditable === true` (not claimed)
+- Claimed sessions no longer populate form fields
+
+**Modified**: `useResumeForm.ts` - `pollJobStatus` and session init
+
+**UX Flow**:
+
+1. User generates PDF → job succeeds
+2. localStorage cleared + new session started automatically
+3. Success modal shows with fresh session ready
+4. Click "Create Another" → clean form, no old data
+
+---
+
+### 2026-01-22: Auto-Download PDF on Success
+
+**Feature**: Automatic PDF download when generation completes successfully.
+
+**Implementation**:
+
+- Programmatically trigger download via `<a>` element with `download` attribute
+- Success toast: "PDF generated successfully! Your resume is downloading now."
+- Download happens before success modal appears
+
+**Modified**: `useResumeForm.ts` - `pollJobStatus`
+
+---
+
 ## Next Task
 
 - Claude API integration (real generation)

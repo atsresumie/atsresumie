@@ -78,15 +78,45 @@ export function useResumeForm() {
 					// Check if session is locked (claimed or expired)
 					if (!status.isEditable) {
 						setIsSessionLocked(true);
-						console.log("Session is locked (claimed/expired)");
-						toast.warning("Previous session completed", {
-							description:
-								"Start a new session to create another resume.",
-						});
+						console.log(
+							"Session is locked (claimed/expired) - starting new session",
+						);
+
+						// For authenticated users, automatically start a new session
+						if (isAuthenticated) {
+							try {
+								const newId = await startNewSession();
+								setSessionId(newId);
+								setIsSessionLocked(false);
+								setHasPreviousDraft(false);
+								setPreviousResumeFilename(null);
+								console.log("Auto-started new session:", newId);
+								toast.info("Started fresh session", {
+									description:
+										"You can create a new resume now.",
+								});
+								return; // Skip draft restoration
+							} catch (err) {
+								console.error(
+									"Failed to auto-start new session:",
+									err,
+								);
+								toast.warning("Previous session completed", {
+									description:
+										"Click Reset to start a new session.",
+								});
+							}
+						} else {
+							// For non-authenticated, show the warning
+							toast.warning("Previous session completed", {
+								description:
+									"Start a new session to create another resume.",
+							});
+						}
 					}
 
-					// Restore draft data if exists
-					if (status.draft) {
+					// Restore draft data only if session is still editable (not claimed)
+					if (status.draft && status.isEditable) {
 						setHasPreviousDraft(true);
 						setJobDescription(status.draft.jdText);
 						setPreviousResumeFilename(
@@ -403,6 +433,38 @@ export function useResumeForm() {
 				setCurrentJobId(null);
 				setIsExporting(false);
 				setExportResult({ pdfUrl: job.pdfUrl, latex: "" });
+
+				// Clear localStorage draft since session is now claimed
+				clearDraft();
+
+				// Auto-start new session for clean UX
+				try {
+					const newId = await startNewSession();
+					setSessionId(newId);
+					setIsSessionLocked(false);
+					console.log(
+						"Auto-started new session after export:",
+						newId,
+					);
+				} catch (err) {
+					console.error("Failed to auto-start new session:", err);
+				}
+
+				// Auto-download PDF
+				if (job.pdfUrl) {
+					const link = document.createElement("a");
+					link.href = job.pdfUrl;
+					link.download = "resume.pdf";
+					document.body.appendChild(link);
+					link.click();
+					document.body.removeChild(link);
+				}
+
+				// Show success toast
+				toast.success("PDF generated successfully!", {
+					description: "Your resume is downloading now.",
+				});
+
 				setShowSuccessModal(true); // Show success modal instead of toast
 			} else if (job.status === "failed") {
 				// Stop polling
