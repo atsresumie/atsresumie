@@ -147,8 +147,35 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 ---
 
+### 2026-01-21: Generation Job System
+
+**Purpose:** Job-based lifecycle (pending → running → succeeded) with polling.
+
+**New Files:**
+
+- `supabase/generation_jobs.sql` - Table schema + RPCs
+- `app/api/generate/route.ts` - Create job + mock processing
+- `hooks/useJobPolling.ts` - Polling logic
+- `SuccessModal.tsx` - Post-generation UI
+
+**Modified Files:**
+
+- `useResumeForm.ts` - Integrated polling & success modal
+
+**Flow:**
+
+1. Click Generate → POST /api/generate
+2. Poll /api/jobs/[id]
+3. On Success: decrement credit, show modal
+4. Modal: "Create Another" (resets session) or "Dashboard"
+
+---
+
 ## Next Task
 
-- Claude API integration for LaTeX generation
-- LaTeX compiler for PDF generation
-- Polish entire onboarding workflow
+- Claude API integration (real generation)
+- LaTeX compiler implementation
+- Polish onboarding workflow
+- Local storage on_boarding session change on reset as well.
+  Fix the issue of session expired, create a new one for uploading. User should not think about that,
+  They just want to create it, make it smooth.

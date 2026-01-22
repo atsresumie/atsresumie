@@ -39,6 +39,7 @@ export function useResumeForm() {
 	const [showGate, setShowGate] = useState(false);
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportResult, setExportResult] = useState<ExportResult | null>(null);
+	const [showSuccessModal, setShowSuccessModal] = useState(false);
 
 	// Onboarding session state
 	const [sessionId, setSessionId] = useState<string | null>(null);
@@ -380,6 +381,56 @@ export function useResumeForm() {
 	// Use real auth state from useAuth hook
 	const { isAuthenticated } = useAuth();
 
+	// Job polling state
+	const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+	const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+	// Poll job status
+	const pollJobStatus = useCallback(async (jobId: string) => {
+		try {
+			const res = await fetch(`/api/jobs/${jobId}`);
+			if (!res.ok) {
+				throw new Error("Failed to fetch job status");
+			}
+			const job = await res.json();
+
+			if (job.status === "succeeded") {
+				// Stop polling
+				if (pollingRef.current) {
+					clearInterval(pollingRef.current);
+					pollingRef.current = null;
+				}
+				setCurrentJobId(null);
+				setIsExporting(false);
+				setExportResult({ pdfUrl: job.pdfUrl, latex: "" });
+				setShowSuccessModal(true); // Show success modal instead of toast
+			} else if (job.status === "failed") {
+				// Stop polling
+				if (pollingRef.current) {
+					clearInterval(pollingRef.current);
+					pollingRef.current = null;
+				}
+				setCurrentJobId(null);
+				setIsExporting(false);
+				toast.error("Generation failed", {
+					description: job.errorMessage || "Please try again.",
+				});
+			}
+			// Continue polling for pending/running
+		} catch (err) {
+			console.error("Job polling error:", err);
+		}
+	}, []);
+
+	// Cleanup polling on unmount
+	useEffect(() => {
+		return () => {
+			if (pollingRef.current) {
+				clearInterval(pollingRef.current);
+			}
+		};
+	}, []);
+
 	const exportPdf = useCallback(async () => {
 		if (!analysis) return;
 
@@ -391,22 +442,28 @@ export function useResumeForm() {
 
 		setIsExporting(true);
 		try {
-			// Claim the onboarding session if we have one
-			if (sessionId) {
+			// Only try to claim if session is not already locked
+			if (sessionId && !isSessionLocked) {
 				try {
 					await claimSession();
+					setIsSessionLocked(true); // Prevent future claim attempts
 					console.log("Session claimed successfully");
 				} catch (err) {
-					console.error("Failed to claim session:", err);
-					// Continue with export anyway
+					console.warn("Session claim skipped:", err);
 				}
 			}
 
-			const res = await fetch("/api/export", {
+			// Create generation job
+			const res = await fetch("/api/generate", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ versionId: analysis.versionId }),
+				body: JSON.stringify({
+					jdText: jobDescription,
+					resumeObjectPath: uploadedResume?.objectPath || null,
+					focusPrompt: focusPrompt || null,
+				}),
 			});
+
 			if (!res.ok) {
 				const errorData = await res.json().catch(() => ({}));
 
@@ -416,23 +473,43 @@ export function useResumeForm() {
 						description:
 							"You've used all your credits. Upgrade to generate more resumes.",
 					});
-					throw new Error("No credits");
+					setIsExporting(false);
+					return;
 				}
 
-				toast.error("Export failed", {
+				toast.error("Generation failed", {
 					description: "Please try again.",
 				});
-				throw new Error("Export failed");
+				setIsExporting(false);
+				return;
 			}
-			const data = (await res.json()) as ExportResult;
-			setExportResult(data);
-			toast.success("PDF exported successfully!");
+
+			const { jobId } = await res.json();
+			setCurrentJobId(jobId);
+
+			// Start polling for job status
+			pollingRef.current = setInterval(() => {
+				pollJobStatus(jobId);
+			}, 1000);
+
+			// Initial poll
+			pollJobStatus(jobId);
 		} catch (e) {
 			console.error(e);
-		} finally {
 			setIsExporting(false);
+			toast.error("Generation failed", {
+				description: "Please try again.",
+			});
 		}
-	}, [analysis, isAuthenticated, sessionId]);
+	}, [
+		analysis,
+		isAuthenticated,
+		sessionId,
+		jobDescription,
+		uploadedResume,
+		focusPrompt,
+		pollJobStatus,
+	]);
 
 	const resetAll = useCallback(() => {
 		setStep(0);
@@ -445,6 +522,13 @@ export function useResumeForm() {
 		setUploadedResume(null);
 		clearDraft();
 	}, []);
+
+	const handleCreateAnother = useCallback(async () => {
+		setShowSuccessModal(false);
+		resetAll();
+		await startFreshSession();
+		toast.info("Started new session");
+	}, [resetAll, startFreshSession]);
 
 	return {
 		// Step state
@@ -493,5 +577,10 @@ export function useResumeForm() {
 		resetAll,
 		startFreshSession,
 		clearUploadedResume,
+
+		// Success Modal
+		showSuccessModal,
+		setShowSuccessModal,
+		handleCreateAnother,
 	};
 }
