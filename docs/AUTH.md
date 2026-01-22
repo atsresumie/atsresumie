@@ -225,4 +225,3 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 - Claude API integration (real generation)
 - LaTeX compiler implementation
-- Polish onboarding workflow
