@@ -4,6 +4,14 @@ import { useRef, useState, useCallback } from "react";
 import { FileText } from "lucide-react";
 import { FileDropzone, FilePreview, ActionButtons } from "./components";
 
+type UploadState =
+	| "idle"
+	| "preparing"
+	| "uploading"
+	| "uploaded_temp"
+	| "uploaded_final"
+	| "error";
+
 interface Step1InputFormProps {
 	jobDescription: string;
 	onJobDescriptionChange: (value: string) => void;
@@ -19,6 +27,15 @@ interface Step1InputFormProps {
 	onClearResume?: () => void; // Delete resume from server
 	onBack: () => void;
 	onAnalyze: () => void;
+	// Upload progress state (soft-commit flow)
+	uploadState?: UploadState;
+	uploadProgress?: number;
+	uploadedBytes?: number;
+	totalBytes?: number;
+	estimatedSecondsRemaining?: number;
+	uploadError?: string | null;
+	onCancelUpload?: () => void;
+	onRetryUpload?: () => void;
 }
 
 const ACCEPTED_TYPES = [
@@ -43,6 +60,15 @@ export default function Step1InputForm({
 	onClearResume,
 	onBack,
 	onAnalyze,
+	// Upload progress props
+	uploadState = "idle",
+	uploadProgress = 0,
+	uploadedBytes = 0,
+	totalBytes = 0,
+	estimatedSecondsRemaining,
+	uploadError,
+	onCancelUpload,
+	onRetryUpload,
 }: Step1InputFormProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
@@ -62,7 +88,7 @@ export default function Step1InputForm({
 			// Validate file type
 			const isValidType = ACCEPTED_TYPES.includes(file.type);
 			const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) =>
-				file.name.toLowerCase().endsWith(ext)
+				file.name.toLowerCase().endsWith(ext),
 			);
 
 			if (!isValidType && !hasValidExtension) {
@@ -78,7 +104,7 @@ export default function Step1InputForm({
 
 			onResumeFileChange(file);
 		},
-		[onResumeFileChange]
+		[onResumeFileChange],
 	);
 
 	const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -104,7 +130,7 @@ export default function Step1InputForm({
 				validateAndSetFile(files[0]);
 			}
 		},
-		[validateAndSetFile]
+		[validateAndSetFile],
 	);
 
 	const handleFileSelect = useCallback(
@@ -114,7 +140,7 @@ export default function Step1InputForm({
 				validateAndSetFile(files[0]);
 			}
 		},
-		[validateAndSetFile]
+		[validateAndSetFile],
 	);
 
 	const handleBrowseClick = useCallback(() => {
@@ -173,10 +199,29 @@ export default function Step1InputForm({
 					) : (
 						<FilePreview
 							file={resumeFile ?? undefined}
-							filename={hasRestoredFile ? previousResumeFilename : undefined}
+							filename={
+								hasRestoredFile
+									? previousResumeFilename
+									: undefined
+							}
 							isRestored={hasRestoredFile}
 							isDeleting={isDeletingResume}
-							onRemove={hasRestoredFile && onClearResume ? onClearResume : handleRemoveFile}
+							onRemove={
+								hasRestoredFile && onClearResume
+									? onClearResume
+									: handleRemoveFile
+							}
+							// Upload progress props
+							uploadState={uploadState}
+							uploadProgress={uploadProgress}
+							uploadedBytes={uploadedBytes}
+							totalBytes={totalBytes}
+							estimatedSecondsRemaining={
+								estimatedSecondsRemaining
+							}
+							errorMessage={uploadError ?? undefined}
+							onCancel={onCancelUpload}
+							onRetry={onRetryUpload}
 						/>
 					)}
 

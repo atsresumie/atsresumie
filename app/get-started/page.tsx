@@ -37,8 +37,12 @@ export default function GetStartedPage() {
 				<div className="flex flex-col gap-4 pt-6 md:flex-row md:items-end md:justify-between">
 					<div className="max-w-2xl">
 						<motion.h1
-							initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-							animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+							initial={
+								reduceMotion ? false : { opacity: 0, y: 10 }
+							}
+							animate={
+								reduceMotion ? undefined : { opacity: 1, y: 0 }
+							}
 							transition={{
 								type: "spring",
 								stiffness: 120,
@@ -74,22 +78,37 @@ export default function GetStartedPage() {
 								/>
 							)}
 
-									{form.step === 1 && (
+							{form.step === 1 && (
 								<Step1InputForm
 									jobDescription={form.jobDescription}
-									onJobDescriptionChange={form.setJobDescription}
+									onJobDescriptionChange={
+										form.setJobDescription
+									}
 									resumeFile={form.resumeFile}
-									onResumeFileChange={form.setResumeFile}		
+									onResumeFileChange={form.setResumeFile}
 									focusPrompt={form.focusPrompt}
 									onFocusPromptChange={form.setFocusPrompt}
 									canAnalyze={form.canAnalyze}
 									isAnalyzing={form.isAnalyzing}
 									isUploadingResume={form.isUploadingResume}
 									isDeletingResume={form.isDeletingResume}
-									previousResumeFilename={form.previousResumeFilename}
+									previousResumeFilename={
+										form.previousResumeFilename
+									}
 									onClearResume={form.clearUploadedResume}
 									onBack={() => form.setStep(0)}
 									onAnalyze={form.runAnalyze}
+									// Upload progress props (soft-commit flow)
+									uploadState={form.uploadState}
+									uploadProgress={form.uploadProgress}
+									uploadedBytes={form.uploadedBytes}
+									totalBytes={form.totalBytes}
+									estimatedSecondsRemaining={
+										form.estimatedSecondsRemaining
+									}
+									uploadError={form.uploadError}
+									onCancelUpload={form.cancelUpload}
+									onRetryUpload={form.retryUpload}
 								/>
 							)}
 

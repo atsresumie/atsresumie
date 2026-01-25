@@ -13,7 +13,9 @@ import {
 	deleteResume,
 	saveDraft as saveOnboardingDraft,
 	claimSession,
+	commitResume,
 	SessionStatusResult,
+	UploadProgress,
 } from "@/lib/onboarding/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -54,6 +56,25 @@ export function useResumeForm() {
 		string | null
 	>(null);
 	const sessionInitRef = useRef(false);
+
+	// Upload progress state for soft-commit flow
+	type UploadState =
+		| "idle"
+		| "preparing"
+		| "uploading"
+		| "uploaded_temp"
+		| "uploaded_final"
+		| "error";
+	const [uploadState, setUploadState] = useState<UploadState>("idle");
+	const [uploadProgress, setUploadProgress] = useState(0);
+	const [uploadedBytes, setUploadedBytes] = useState(0);
+	const [totalBytes, setTotalBytes] = useState(0);
+	const [estimatedSecondsRemaining, setEstimatedSecondsRemaining] = useState<
+		number | undefined
+	>();
+	const [uploadError, setUploadError] = useState<string | null>(null);
+	const uploadAbortRef = useRef<AbortController | null>(null);
+	const pendingFileRef = useRef<File | null>(null); // For retry functionality
 
 	// Initialize onboarding session on mount and restore draft if exists
 	useEffect(() => {
@@ -296,40 +317,156 @@ export function useResumeForm() {
 		isUploadingResume,
 	]);
 
-	// Handle resume file change - upload to Supabase Storage
-	const handleResumeFileChange = useCallback(async (file: File | null) => {
-		setResumeFile(file);
-		setUploadedResume(null);
+	// Handle resume file change - upload to Supabase Storage with progress tracking
+	const handleResumeFileChange = useCallback(
+		async (file: File | null) => {
+			// Cancel any in-progress upload
+			if (uploadAbortRef.current) {
+				uploadAbortRef.current.abort();
+				uploadAbortRef.current = null;
+			}
 
-		if (!file) return;
+			// Reset state
+			setResumeFile(file);
+			setUploadProgress(0);
+			setUploadedBytes(0);
+			setTotalBytes(0);
+			setEstimatedSecondsRemaining(undefined);
+			setUploadError(null);
 
-		// Upload to Supabase Storage
-		setIsUploadingResume(true);
-		try {
-			const result = await uploadResume(file);
-			setUploadedResume({
-				bucket: result.bucket,
-				objectPath: result.objectPath,
-				originalFilename: file.name,
-				mimeType: file.type,
-				sizeBytes: file.size,
-			});
-			console.log("Resume uploaded to:", result.objectPath);
-			toast.success("Resume uploaded", {
-				description: "Your resume has been securely uploaded.",
-			});
-		} catch (err) {
-			console.error("Failed to upload resume:", err);
-			toast.error("Upload failed", {
-				description:
-					err instanceof Error ? err.message : "Please try again.",
-			});
-			// Reset file on upload failure
-			setResumeFile(null);
-		} finally {
-			setIsUploadingResume(false);
+			if (!file) {
+				setUploadState("idle");
+				setUploadedResume(null);
+				return;
+			}
+
+			// Store file for retry
+			pendingFileRef.current = file;
+			setTotalBytes(file.size);
+
+			// Delete previous temp file if exists (file replacement scenario)
+			if (
+				uploadedResume &&
+				uploadedResume.objectPath.includes("/temp/")
+			) {
+				try {
+					await deleteResume(
+						uploadedResume.bucket,
+						uploadedResume.objectPath,
+					);
+					console.log(
+						"Previous temp file deleted:",
+						uploadedResume.objectPath,
+					);
+				} catch (err) {
+					console.warn(
+						"Failed to delete previous temp file (non-critical):",
+						err,
+					);
+				}
+			}
+			setUploadedResume(null);
+
+			// Start upload
+			setUploadState("preparing");
+			setIsUploadingResume(true);
+
+			const abortController = new AbortController();
+			uploadAbortRef.current = abortController;
+
+			try {
+				setUploadState("uploading");
+				const result = await uploadResume(file, {
+					signal: abortController.signal,
+					onProgress: (progress) => {
+						setUploadProgress(progress.percentage);
+						setUploadedBytes(progress.loaded);
+						setTotalBytes(progress.total);
+						setEstimatedSecondsRemaining(
+							progress.estimatedSecondsRemaining,
+						);
+					},
+				});
+
+				// Upload succeeded - set state and save draft with temp status
+				const uploadedResumeData = {
+					bucket: result.bucket,
+					objectPath: result.objectPath,
+					originalFilename: result.originalFilename,
+					mimeType: file.type,
+					sizeBytes: file.size,
+				};
+				setUploadedResume(uploadedResumeData);
+				setUploadState("uploaded_temp");
+				setUploadProgress(100);
+
+				console.log("Resume uploaded to temp:", result.objectPath);
+				toast.success("Resume uploaded", {
+					description:
+						"Ready for analysis. Click 'Preview & Analyze' to confirm.",
+				});
+
+				// Save draft with temp resume info (non-blocking)
+				if (sessionId && !isSessionLocked) {
+					try {
+						await saveOnboardingDraft({
+							jdText: jobDescription || " ", // Placeholder if empty
+							resumeBucket: result.bucket,
+							resumeObjectPath: result.objectPath,
+							resumeOriginalFilename: result.originalFilename,
+							resumeMimeType: file.type,
+							resumeSizeBytes: file.size,
+							resumeStatus: "temp",
+						});
+						console.log("Draft saved with temp resume");
+					} catch (err) {
+						console.warn(
+							"Non-critical: Failed to save draft:",
+							err,
+						);
+					}
+				}
+			} catch (err) {
+				// Handle cancellation
+				if (
+					err instanceof Error &&
+					err.message === "Upload cancelled"
+				) {
+					console.log("Upload cancelled by user");
+					setUploadState("idle");
+					setResumeFile(null);
+					return;
+				}
+
+				// Handle error
+				console.error("Failed to upload resume:", err);
+				const errorMessage =
+					err instanceof Error ? err.message : "Please try again.";
+				setUploadError(errorMessage);
+				setUploadState("error");
+				toast.error("Upload failed", { description: errorMessage });
+			} finally {
+				setIsUploadingResume(false);
+				uploadAbortRef.current = null;
+			}
+		},
+		[uploadedResume, sessionId, isSessionLocked, jobDescription],
+	);
+
+	// Cancel upload function
+	const cancelUpload = useCallback(() => {
+		if (uploadAbortRef.current) {
+			uploadAbortRef.current.abort();
+			uploadAbortRef.current = null;
 		}
 	}, []);
+
+	// Retry upload function
+	const retryUpload = useCallback(() => {
+		if (pendingFileRef.current) {
+			handleResumeFileChange(pendingFileRef.current);
+		}
+	}, [handleResumeFileChange]);
 
 	const runAnalyze = useCallback(async () => {
 		// Check if we have a resume - either fresh upload or from server
@@ -344,26 +481,40 @@ export function useResumeForm() {
 		setIsAnalyzing(true);
 		setExportResult(null);
 		try {
-			// Save draft to Supabase if we have an uploaded resume and session is still active
-			if (uploadedResume && sessionId && !isSessionLocked) {
+			// Commit temp resume to final storage before analysis
+			// This is the key step in soft-commit flow
+			let finalObjectPath = uploadedResume?.objectPath;
+			if (
+				uploadedResume &&
+				uploadState === "uploaded_temp" &&
+				sessionId &&
+				!isSessionLocked
+			) {
 				try {
-					const draftId = await saveOnboardingDraft({
-						jdText: jobDescription,
-						jdTitle: undefined, // Could extract from JD later
-						jdCompany: undefined, // Could extract from JD later
-						resumeBucket: uploadedResume.bucket,
-						resumeObjectPath: uploadedResume.objectPath,
-						resumeOriginalFilename: uploadedResume.originalFilename,
-						resumeMimeType: uploadedResume.mimeType,
-						resumeSizeBytes: uploadedResume.sizeBytes,
-					});
-					console.log("Draft saved to Supabase:", draftId);
-				} catch (err) {
-					console.warn(
-						"Draft save skipped (session may be claimed):",
-						err,
+					const commitResult = await commitResume();
+					console.log(
+						"Resume committed to final:",
+						commitResult.finalPath,
 					);
-					// Non-blocking - continue with analysis
+
+					// Update local state with final path
+					setUploadedResume({
+						...uploadedResume,
+						objectPath: commitResult.finalPath,
+					});
+					setUploadState("uploaded_final");
+					finalObjectPath = commitResult.finalPath;
+
+					toast.success("Resume confirmed", {
+						description: "Your resume is ready for analysis.",
+					});
+				} catch (err) {
+					console.error("Failed to commit resume:", err);
+					toast.error("Couldn't confirm resume", {
+						description: "Please try again.",
+					});
+					setIsAnalyzing(false);
+					return;
 				}
 			}
 
@@ -377,9 +528,12 @@ export function useResumeForm() {
 				// Fresh file upload
 				formData.append("resumeFile", resumeFile);
 			} else if (uploadedResume) {
-				// Use stored resume from server
+				// Use stored resume from server (now at final path)
 				formData.append("resumeBucket", uploadedResume.bucket);
-				formData.append("resumeObjectPath", uploadedResume.objectPath);
+				formData.append(
+					"resumeObjectPath",
+					finalObjectPath || uploadedResume.objectPath,
+				);
 			}
 
 			const res = await fetch("/api/analyze", {
@@ -404,6 +558,7 @@ export function useResumeForm() {
 		resumeFile,
 		focusPrompt,
 		uploadedResume,
+		uploadState,
 		sessionId,
 		isSessionLocked,
 	]);
@@ -629,6 +784,14 @@ export function useResumeForm() {
 		previousResumeFilename,
 		isDeletingResume,
 
+		// Upload progress state (soft-commit flow)
+		uploadState,
+		uploadProgress,
+		uploadedBytes,
+		totalBytes,
+		estimatedSecondsRemaining,
+		uploadError,
+
 		// Computed values
 		canContinueFromStep0,
 		canAnalyze,
@@ -639,6 +802,8 @@ export function useResumeForm() {
 		resetAll,
 		startFreshSession,
 		clearUploadedResume,
+		cancelUpload,
+		retryUpload,
 
 		// Success Modal
 		showSuccessModal,
