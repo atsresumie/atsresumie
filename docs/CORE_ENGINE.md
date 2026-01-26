@@ -486,7 +486,40 @@ subscribe(jobId);
 
 ### UI Behavior
 
-1. User clicks "Analyze & Preview"
-2. Progress indicator shown while `status` is `pending` or `running`
 3. On `succeeded`: Step 3 displays generated LaTeX in code viewer
 4. On `failed`: Error toast with retry option
+
+---
+
+## Realtime Export Flow (2026-01-26)
+
+### Overview
+
+The "Download PDF" flow has also been upgraded to use Supabase Realtime, eliminating polling completely from the application.
+
+### Architecture
+
+```
+User clicks "Download PDF"
+        ↓
+POST /api/generate (purpose: 'export')
+*Note: Currently re-triggers generation. Future optimization: reuse Preview result.*
+        ↓
+Create job (status: pending)
+        ↓
+Return { jobId }
+        ↓
+Frontend subscribes to Realtime (separate 'export' subscription)
+        ↓
+Realtime pushes status updates
+        ↓
+On `succeeded`:
+- Clear local draft (session claimed)
+- Reset form state
+- Open PDF URL (if available) or show success modal
+```
+
+### Components Updated
+
+- `useResumeForm.ts`: Added second `useJobRealtime` hook instance specifically for export events (`subscribeToExportJob`).
+- `exportPdf`: Replaced `setInterval` polling with `subscribeToExportJob(jobId)`.

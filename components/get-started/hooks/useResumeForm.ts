@@ -620,28 +620,16 @@ export function useResumeForm() {
 	// Use real auth state from useAuth hook
 	const { isAuthenticated } = useAuth();
 
-	// Job polling state
-	const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-	const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
-	// Poll job status
-	const pollJobStatus = useCallback(async (jobId: string) => {
-		try {
-			const res = await fetch(`/api/jobs/${jobId}`);
-			if (!res.ok) {
-				throw new Error("Failed to fetch job status");
-			}
-			const job = await res.json();
-
-			if (job.status === "succeeded") {
-				// Stop polling
-				if (pollingRef.current) {
-					clearInterval(pollingRef.current);
-					pollingRef.current = null;
-				}
-				setCurrentJobId(null);
+	// Realtime subscription for export job (separate from preview job)
+	const { subscribe: subscribeToExportJob, status: exportJobStatus } =
+		useJobRealtime({
+			onRunning: () => {
+				console.log("[Export Realtime] Job is running...");
+			},
+			onSuccess: async (latex) => {
+				console.log("[Export Realtime] Job succeeded");
 				setIsExporting(false);
-				setExportResult({ pdfUrl: job.pdfUrl, latex: "" });
+				setExportResult({ pdfUrl: "", latex }); // PDF URL will be set by job
 
 				// Clear localStorage draft since session is now claimed
 				clearDraft();
@@ -652,6 +640,7 @@ export function useResumeForm() {
 				setUploadedResume(null);
 				setFocusPrompt("");
 				setAnalysis(null);
+				setGeneratedLatex(null);
 				setUploadState("idle");
 				setUploadProgress(0);
 				setUploadedBytes(0);
@@ -675,43 +664,21 @@ export function useResumeForm() {
 					console.error("Failed to auto-start new session:", err);
 				}
 
-				// Open PDF in new tab (instead of auto-download which redirects current page)
-				if (job.pdfUrl) {
-					window.open(job.pdfUrl, "_blank", "noopener,noreferrer");
-				}
-
 				// Show success toast
 				toast.success("PDF generated successfully!", {
 					description: "Your resume has been downloaded.",
 				});
 
-				setShowSuccessModal(true); // Show success modal instead of toast
-			} else if (job.status === "failed") {
-				// Stop polling
-				if (pollingRef.current) {
-					clearInterval(pollingRef.current);
-					pollingRef.current = null;
-				}
-				setCurrentJobId(null);
+				setShowSuccessModal(true);
+			},
+			onError: (msg) => {
+				console.error("[Export Realtime] Job failed:", msg);
 				setIsExporting(false);
 				toast.error("Generation failed", {
-					description: job.errorMessage || "Please try again.",
+					description: msg || "Please try again.",
 				});
-			}
-			// Continue polling for pending/running
-		} catch (err) {
-			console.error("Job polling error:", err);
-		}
-	}, []);
-
-	// Cleanup polling on unmount
-	useEffect(() => {
-		return () => {
-			if (pollingRef.current) {
-				clearInterval(pollingRef.current);
-			}
-		};
-	}, []);
+			},
+		});
 
 	const exportPdf = useCallback(async () => {
 		if (!analysis) return;
@@ -767,15 +734,13 @@ export function useResumeForm() {
 			}
 
 			const { jobId } = await res.json();
-			setCurrentJobId(jobId);
 
-			// Start polling for job status
-			pollingRef.current = setInterval(() => {
-				pollJobStatus(jobId);
-			}, 1000);
+			// Subscribe to Realtime updates for this export job
+			subscribeToExportJob(jobId);
 
-			// Initial poll
-			pollJobStatus(jobId);
+			console.log(
+				`[exportPdf] Created job ${jobId}, subscribed to Realtime`,
+			);
 		} catch (e) {
 			console.error(e);
 			setIsExporting(false);
@@ -787,10 +752,11 @@ export function useResumeForm() {
 		analysis,
 		isAuthenticated,
 		sessionId,
+		isSessionLocked,
 		jobDescription,
 		uploadedResume,
 		focusPrompt,
-		pollJobStatus,
+		subscribeToExportJob,
 	]);
 
 	const resetAll = useCallback(() => {
