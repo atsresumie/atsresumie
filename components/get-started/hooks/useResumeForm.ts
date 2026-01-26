@@ -592,6 +592,22 @@ export function useResumeForm() {
 				// Clear localStorage draft since session is now claimed
 				clearDraft();
 
+				// Reset all form state for fresh start
+				setJobDescription("");
+				setResumeFile(null);
+				setUploadedResume(null);
+				setFocusPrompt("");
+				setAnalysis(null);
+				setUploadState("idle");
+				setUploadProgress(0);
+				setUploadedBytes(0);
+				setTotalBytes(0);
+				setEstimatedSecondsRemaining(undefined);
+				setUploadError(null);
+				setHasPreviousDraft(false);
+				setPreviousResumeFilename(null);
+				setStep(0); // Go back to mode selection
+
 				// Auto-start new session for clean UX
 				try {
 					const newId = await startNewSession();
@@ -605,19 +621,14 @@ export function useResumeForm() {
 					console.error("Failed to auto-start new session:", err);
 				}
 
-				// Auto-download PDF
+				// Open PDF in new tab (instead of auto-download which redirects current page)
 				if (job.pdfUrl) {
-					const link = document.createElement("a");
-					link.href = job.pdfUrl;
-					link.download = "resume.pdf";
-					document.body.appendChild(link);
-					link.click();
-					document.body.removeChild(link);
+					window.open(job.pdfUrl, "_blank", "noopener,noreferrer");
 				}
 
 				// Show success toast
 				toast.success("PDF generated successfully!", {
-					description: "Your resume is downloading now.",
+					description: "Your resume has been downloaded.",
 				});
 
 				setShowSuccessModal(true); // Show success modal instead of toast
