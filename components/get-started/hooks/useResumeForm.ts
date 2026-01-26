@@ -18,6 +18,7 @@ import {
 	UploadProgress,
 } from "@/lib/onboarding/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useJobRealtime } from "@/hooks/useJobRealtime";
 
 interface UploadedResume {
 	bucket: string;
@@ -37,6 +38,10 @@ export function useResumeForm() {
 
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
 	const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
+
+	// LaTeX generation state (from Claude via Realtime)
+	const [generatedLatex, setGeneratedLatex] = useState<string | null>(null);
+	const [generationJobId, setGenerationJobId] = useState<string | null>(null);
 
 	const [showGate, setShowGate] = useState(false);
 	const [isExporting, setIsExporting] = useState(false);
@@ -468,6 +473,35 @@ export function useResumeForm() {
 		}
 	}, [handleResumeFileChange]);
 
+	// Realtime subscription for generation job updates
+	const {
+		subscribe: subscribeToJob,
+		unsubscribe: unsubscribeFromJob,
+		status: jobRealtimeStatus,
+		latexText: realtimeLatexText,
+		errorMessage: realtimeErrorMessage,
+	} = useJobRealtime({
+		onRunning: () => {
+			console.log("[Realtime] Job is running...");
+		},
+		onSuccess: (latex) => {
+			console.log("[Realtime] Job succeeded, got LaTeX");
+			setGeneratedLatex(latex);
+			setIsAnalyzing(false);
+			setStep(2);
+			toast.success("Resume generated!", {
+				description: "Your tailored resume is ready for preview.",
+			});
+		},
+		onError: (msg) => {
+			console.error("[Realtime] Job failed:", msg);
+			setIsAnalyzing(false);
+			toast.error("Generation failed", {
+				description: msg || "Please try again.",
+			});
+		},
+	});
+
 	const runAnalyze = useCallback(async () => {
 		// Check if we have a resume - either fresh upload or from server
 		if (!resumeFile && !uploadedResume) {
@@ -480,8 +514,10 @@ export function useResumeForm() {
 
 		setIsAnalyzing(true);
 		setExportResult(null);
+		setGeneratedLatex(null);
+
 		try {
-			// Commit temp resume to final storage before analysis
+			// Commit temp resume to final storage before generation
 			// This is the key step in soft-commit flow
 			let finalObjectPath = uploadedResume?.objectPath;
 			if (
@@ -506,7 +542,7 @@ export function useResumeForm() {
 					finalObjectPath = commitResult.finalPath;
 
 					toast.success("Resume confirmed", {
-						description: "Your resume is ready for analysis.",
+						description: "Starting generation...",
 					});
 				} catch (err) {
 					console.error("Failed to commit resume:", err);
@@ -518,40 +554,57 @@ export function useResumeForm() {
 				}
 			}
 
-			// Create FormData to send file or storage reference
-			const formData = new FormData();
-			formData.append("mode", mode);
-			formData.append("jobDescription", jobDescription);
-			formData.append("focusPrompt", focusPrompt);
+			// Call /api/generate to create job and start LaTeX generation
+			// Convert mode to lowercase for API
+			const apiMode = mode.toLowerCase() as "quick" | "deep" | "scratch";
 
-			if (resumeFile) {
-				// Fresh file upload
-				formData.append("resumeFile", resumeFile);
-			} else if (uploadedResume) {
-				// Use stored resume from server (now at final path)
-				formData.append("resumeBucket", uploadedResume.bucket);
-				formData.append(
-					"resumeObjectPath",
-					finalObjectPath || uploadedResume.objectPath,
-				);
+			const res = await fetch("/api/generate", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					jdText: jobDescription,
+					resumeObjectPath:
+						finalObjectPath || uploadedResume?.objectPath,
+					focusPrompt: focusPrompt || null,
+					mode: apiMode,
+					purpose: "preview", // Indicates this is for preview, not export
+				}),
+			});
+
+			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({}));
+
+				// Handle insufficient credits
+				if (res.status === 402 || errorData.code === "NO_CREDITS") {
+					toast.error("No credits remaining", {
+						description:
+							"You've used all your credits. Upgrade to generate more resumes.",
+					});
+					setIsAnalyzing(false);
+					return;
+				}
+
+				throw new Error(errorData.error || "Generation failed");
 			}
 
-			const res = await fetch("/api/analyze", {
-				method: "POST",
-				body: formData,
-			});
-			if (!res.ok) throw new Error("Analyze failed");
-			const data = (await res.json()) as AnalyzeResult;
-			setAnalysis(data);
-			setStep(2);
+			const { jobId } = await res.json();
+			setGenerationJobId(jobId);
+
+			// Subscribe to Realtime updates for this job
+			// The hook will handle setting step=2 and generatedLatex on success
+			subscribeToJob(jobId);
+
+			console.log(
+				`[runAnalyze] Created job ${jobId}, subscribed to Realtime`,
+			);
 		} catch (e) {
 			console.error(e);
-			toast.error("Analysis failed", {
+			setIsAnalyzing(false);
+			toast.error("Generation failed", {
 				description: "Something went wrong. Please try again.",
 			});
-		} finally {
-			setIsAnalyzing(false);
 		}
+		// Note: setIsAnalyzing(false) is handled by Realtime callbacks
 	}, [
 		mode,
 		jobDescription,
@@ -561,6 +614,7 @@ export function useResumeForm() {
 		uploadState,
 		sessionId,
 		isSessionLocked,
+		subscribeToJob,
 	]);
 
 	// Use real auth state from useAuth hook
@@ -778,6 +832,10 @@ export function useResumeForm() {
 		// Analysis state
 		isAnalyzing,
 		analysis,
+
+		// LaTeX generation state (from Claude)
+		generatedLatex,
+		generationJobId,
 
 		// Export state
 		showGate,

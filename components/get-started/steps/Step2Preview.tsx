@@ -6,7 +6,8 @@ import KeywordBars from "@/components/ats/KeywordBars";
 import { AnalyzeResult, ExportResult } from "../types";
 
 interface Step2PreviewProps {
-	analysis: AnalyzeResult;
+	analysis: AnalyzeResult | null;
+	latexText: string | null; // Claude-generated LaTeX from generation job
 	exportResult: ExportResult | null;
 	isExporting: boolean;
 	onEditInputs: () => void;
@@ -15,80 +16,91 @@ interface Step2PreviewProps {
 
 export default function Step2Preview({
 	analysis,
+	latexText,
 	exportResult,
 	isExporting,
 	onEditInputs,
 	onExport,
 }: Step2PreviewProps) {
+	// Use latexText from generation job, fallback to analysis.latexPreview for backward compat
+	const displayLatex = latexText || analysis?.latexPreview || "";
+
 	return (
 		<section className="space-y-5">
-			{/* Score header */}
-			<div className="flex items-center justify-between gap-3">
-				<div>
-					<div className="text-sm text-[rgba(233,221,199,0.75)]">
-						Estimated ATS Match
+			{/* ATS analysis sections - only shown when analysis is available */}
+			{analysis && (
+				<>
+					{/* Score header */}
+					<div className="flex items-center justify-between gap-3">
+						<div>
+							<div className="text-sm text-[rgba(233,221,199,0.75)]">
+								Estimated ATS Match
+							</div>
+							<div className="mt-1 text-2xl font-semibold tracking-tight">
+								{analysis.atsScore} / 100
+							</div>
+						</div>
+
+						<div className="w-23">
+							<AtsRing value={analysis.atsScore} />
+						</div>
 					</div>
-					<div className="mt-1 text-2xl font-semibold tracking-tight">
-						{analysis.atsScore} / 100
+
+					{/* Keyword breakdown */}
+					<KeywordBars items={analysis.breakdown} />
+
+					{/* Changes and missing context */}
+					<div className="grid gap-4 md:grid-cols-2">
+						<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
+							<div className="text-sm font-medium">
+								What we improved
+							</div>
+							<ul className="mt-2 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
+								{(analysis.changes || []).map((c, i) => (
+									<li key={i} className="leading-relaxed">
+										• {c}
+									</li>
+								))}
+							</ul>
+						</div>
+
+						<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
+							<div className="text-sm font-medium">
+								Suggested missing context
+							</div>
+							<ul className="mt-2 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
+								{(analysis.missing || []).map((m, i) => (
+									<li key={i} className="leading-relaxed">
+										• {m}
+									</li>
+								))}
+							</ul>
+							<button
+								onClick={onEditInputs}
+								className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-sm hover:bg-[rgba(233,221,199,0.10)]"
+							>
+								Edit inputs
+							</button>
+						</div>
 					</div>
-				</div>
-
-				<div className="w-23">
-					<AtsRing value={analysis.atsScore} />
-				</div>
-			</div>
-
-			{/* Keyword breakdown */}
-			<KeywordBars items={analysis.breakdown} />
-
-			{/* Changes and missing context */}
-			<div className="grid gap-4 md:grid-cols-2">
-				<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
-					<div className="text-sm font-medium">What we improved</div>
-					<ul className="mt-2 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
-						{analysis.changes.map((c, i) => (
-							<li key={i} className="leading-relaxed">
-								• {c}
-							</li>
-						))}
-					</ul>
-				</div>
-
-				<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
-					<div className="text-sm font-medium">
-						Suggested missing context
-					</div>
-					<ul className="mt-2 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
-						{analysis.missing.map((m, i) => (
-							<li key={i} className="leading-relaxed">
-								• {m}
-							</li>
-						))}
-					</ul>
-					<button
-						onClick={onEditInputs}
-						className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-sm hover:bg-[rgba(233,221,199,0.10)]"
-					>
-						Edit inputs
-					</button>
-				</div>
-			</div>
+				</>
+			)}
 
 			{/* LaTeX preview */}
 			<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.03)] p-4">
 				<div className="flex items-center justify-between">
-					<div className="text-sm font-medium">LaTeX preview</div>
+					<div className="text-sm font-medium">Generated LaTeX</div>
 					<button
 						onClick={() =>
-							navigator.clipboard.writeText(analysis.latexPreview)
+							navigator.clipboard.writeText(displayLatex)
 						}
 						className="rounded-lg border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-2 py-1 text-xs hover:bg-[rgba(233,221,199,0.10)]"
 					>
 						Copy
 					</button>
 				</div>
-				<pre className="mt-3 max-h-56 overflow-auto rounded-lg bg-[rgba(0,0,0,0.35)] p-3 text-xs text-[rgba(233,221,199,0.75)]">
-					{analysis.latexPreview}
+				<pre className="mt-3 max-h-80 overflow-auto rounded-lg bg-[rgba(0,0,0,0.35)] p-3 text-xs text-[rgba(233,221,199,0.75)] font-mono">
+					{displayLatex || "Generating LaTeX..."}
 				</pre>
 			</div>
 
@@ -127,7 +139,9 @@ export default function Step2Preview({
 						<button
 							className="w-fit rounded-lg border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-xs hover:bg-[rgba(233,221,199,0.10)]"
 							onClick={() =>
-								navigator.clipboard.writeText(exportResult.latex)
+								navigator.clipboard.writeText(
+									exportResult.latex,
+								)
 							}
 						>
 							Copy full LaTeX

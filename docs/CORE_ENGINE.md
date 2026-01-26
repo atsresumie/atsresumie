@@ -311,3 +311,182 @@ setSessionId(newId);
 | File                                            | Change                                         |
 | ----------------------------------------------- | ---------------------------------------------- |
 | `components/get-started/hooks/useResumeForm.ts` | Added form state reset after successful export |
+
+---
+
+## Claude LaTeX Generation Engine (2026-01-25)
+
+### Overview
+
+Replaced the mock LaTeX generation with real Claude-powered generation. Supports three tailoring modes with specific prompts optimized for each use case.
+
+### Architecture
+
+```
+POST /api/generate
+    ↓
+Validate mode + inputs
+    ↓
+Create job (status: pending)
+    ↓
+processJob() async
+    ↓
+update_job_status(running)
+    ↓
+generateLatexWithClaude(inputs)
+    ↓
+[success] → adjust_credits(-1) → update_job_status(succeeded, latex)
+[failure] → update_job_status(failed, error) [NO credit decrement]
+```
+
+### Files Created/Modified
+
+| File                        | Type     | Description                                                       |
+| --------------------------- | -------- | ----------------------------------------------------------------- |
+| `lib/llm/claudeLatex.ts`    | NEW      | Claude integration with system prompt, 3 mode prompts, validation |
+| `app/api/generate/route.ts` | MODIFIED | Replaced mock with real Claude generation                         |
+
+### Generation Modes
+
+| Mode      | Use Case                          | Required Fields                                                                                                     |
+| --------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `quick`   | Speed-optimized minimal changes   | `jdText`, `resumeText`                                                                                              |
+| `deep`    | Deep tailoring with questionnaire | `jdText`, `resumeText`, `targetTitle`, `topStrengths`, `highlightRoles`, `highlightProjects`, `mustIncludeKeywords` |
+| `scratch` | Build from structured profile     | `jdText`, `name`, `location`, `email`, `targetTitle`, `skillsList`, `experienceEntries`                             |
+
+### API Request Examples
+
+```typescript
+// Quick mode
+POST /api/generate
+{
+  "mode": "quick",
+  "jdText": "Job description...",
+  "resumeText": "Resume text..."
+}
+
+// Deep mode
+POST /api/generate
+{
+  "mode": "deep",
+  "jdText": "Job description...",
+  "resumeText": "Resume text...",
+  "targetTitle": "Senior Software Engineer",
+  "topStrengths": "System design, TypeScript",
+  "highlightRoles": "Lead Engineer at X",
+  "highlightProjects": "Built platform...",
+  "mustIncludeKeywords": "Kubernetes, AWS"
+}
+```
+
+### Credit Handling
+
+- Credits checked **before** job creation
+- Credits decremented **only after** successful generation
+- No credit charged on failure
+
+### Environment Variables
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### Dependencies
+
+```bash
+pnpm add -w @anthropic-ai/sdk
+```
+
+---
+
+## LaTeX Preview with Supabase Realtime (2026-01-26)
+
+### Overview
+
+Replaced polling-based job status checking with Supabase Realtime subscriptions. "Analyze & Preview" now generates real Claude-powered LaTeX and displays it in Step 3 via push-based updates.
+
+### Architecture
+
+```
+User clicks "Analyze & Preview"
+        ↓
+POST /api/generate (purpose: 'preview')
+        ↓
+Create job (status: pending)
+        ↓
+Return { jobId } immediately
+        ↓
+Frontend subscribes to Realtime (generation_jobs, id=eq.jobId)
+        ↓
+processJob() runs async in background
+        ↓
+Realtime pushes status updates:
+  pending → running → succeeded (with latex_text)
+        ↓
+Frontend receives update, navigates to Step 3
+        ↓
+Step 3 displays REAL Claude-generated LaTeX
+```
+
+### Credit Policy
+
+- Credits deducted **on LaTeX generation success** (at "Preview")
+- PDF export later reuses existing LaTeX, no additional credit charge
+
+### Files Created/Modified
+
+| File                                            | Type     | Description                                              |
+| ----------------------------------------------- | -------- | -------------------------------------------------------- |
+| `hooks/useJobRealtime.ts`                       | NEW      | Supabase Realtime subscription hook for job updates      |
+| `app/api/jobs/[id]/route.ts`                    | MODIFIED | Added `latexText` to response                            |
+| `app/api/generate/route.ts`                     | MODIFIED | Fixed mode handling, uses QuickModeInputs type           |
+| `components/get-started/hooks/useResumeForm.ts` | MODIFIED | Replaced `runAnalyze` to use Realtime instead of polling |
+| `components/get-started/steps/Step2Preview.tsx` | MODIFIED | Accepts `latexText` prop, conditionally renders analysis |
+| `app/get-started/page.tsx`                      | MODIFIED | Passes `generatedLatex` to Step2Preview                  |
+
+### useJobRealtime Hook
+
+```typescript
+const { subscribe, unsubscribe, status, latexText, errorMessage } =
+	useJobRealtime({
+		onSuccess: (latex) => {
+			/* navigate to step 3 */
+		},
+		onError: (msg) => {
+			/* show toast */
+		},
+	});
+
+// Start subscription after job creation
+subscribe(jobId);
+```
+
+### API Changes
+
+**GET /api/jobs/[id]** - Now returns:
+
+```json
+{
+	"status": "succeeded",
+	"latexText": "\\documentclass{article}...",
+	"pdfUrl": null
+}
+```
+
+**POST /api/generate** - Accepts:
+
+```json
+{
+	"jdText": "...",
+	"resumeObjectPath": "...",
+	"mode": "quick",
+	"purpose": "preview"
+}
+```
+
+### UI Behavior
+
+1. User clicks "Analyze & Preview"
+2. Progress indicator shown while `status` is `pending` or `running`
+3. On `succeeded`: Step 3 displays generated LaTeX in code viewer
+4. On `failed`: Error toast with retry option

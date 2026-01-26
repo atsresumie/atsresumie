@@ -112,15 +112,17 @@ export default function GetStartedPage() {
 								/>
 							)}
 
-							{form.step === 2 && form.analysis && (
-								<Step2Preview
-									analysis={form.analysis}
-									exportResult={form.exportResult}
-									isExporting={form.isExporting}
-									onEditInputs={() => form.setStep(1)}
-									onExport={form.exportPdf}
-								/>
-							)}
+							{form.step === 2 &&
+								(form.analysis || form.generatedLatex) && (
+									<Step2Preview
+										analysis={form.analysis}
+										latexText={form.generatedLatex}
+										exportResult={form.exportResult}
+										isExporting={form.isExporting}
+										onEditInputs={() => form.setStep(1)}
+										onExport={form.exportPdf}
+									/>
+								)}
 						</div>
 					</div>
 
