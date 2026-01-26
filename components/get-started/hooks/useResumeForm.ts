@@ -681,7 +681,13 @@ export function useResumeForm() {
 		});
 
 	const exportPdf = useCallback(async () => {
-		if (!analysis) return;
+		// Require generatedLatex (must have completed preview first)
+		if (!generatedLatex || !generationJobId) {
+			toast.warning("Please run preview first", {
+				description: "Generate a resume preview before downloading.",
+			});
+			return;
+		}
 
 		// Gate download behind login
 		if (!isAuthenticated) {
@@ -695,68 +701,101 @@ export function useResumeForm() {
 			if (sessionId && !isSessionLocked) {
 				try {
 					await claimSession();
-					setIsSessionLocked(true); // Prevent future claim attempts
+					setIsSessionLocked(true);
 					console.log("Session claimed successfully");
 				} catch (err) {
 					console.warn("Session claim skipped:", err);
 				}
 			}
 
-			// Create generation job
-			const res = await fetch("/api/generate", {
+			// Call export-pdf endpoint (compiles LaTeX → PDF, uploads to storage)
+			console.log(
+				`[exportPdf] Compiling PDF for job ${generationJobId}...`,
+			);
+
+			const res = await fetch("/api/export-pdf", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					jdText: jobDescription,
-					resumeObjectPath: uploadedResume?.objectPath || null,
-					focusPrompt: focusPrompt || null,
-				}),
+				body: JSON.stringify({ jobId: generationJobId }),
 			});
 
 			if (!res.ok) {
 				const errorData = await res.json().catch(() => ({}));
 
-				// Handle insufficient credits
-				if (res.status === 402 || errorData.code === "NO_CREDITS") {
-					toast.error("No credits remaining", {
-						description:
-							"You've used all your credits. Upgrade to generate more resumes.",
+				if (res.status === 409) {
+					toast.error("LaTeX not ready", {
+						description: "Please run preview first.",
 					});
-					setIsExporting(false);
-					return;
+				} else if (res.status === 400) {
+					toast.error("PDF compilation failed", {
+						description:
+							errorData.details ||
+							"LaTeX may have syntax errors. Try copying and compiling manually.",
+					});
+				} else {
+					toast.error("Export failed", {
+						description: errorData.error || "Please try again.",
+					});
 				}
-
-				toast.error("Generation failed", {
-					description: "Please try again.",
-				});
 				setIsExporting(false);
 				return;
 			}
 
-			const { jobId } = await res.json();
+			const { pdfUrl } = await res.json();
 
-			// Subscribe to Realtime updates for this export job
-			subscribeToExportJob(jobId);
+			// Open PDF in new tab
+			window.open(pdfUrl, "_blank", "noopener,noreferrer");
 
-			console.log(
-				`[exportPdf] Created job ${jobId}, subscribed to Realtime`,
-			);
+			// Clear localStorage draft since export is complete
+			clearDraft();
+
+			// Reset all form state for fresh start
+			setJobDescription("");
+			setResumeFile(null);
+			setUploadedResume(null);
+			setFocusPrompt("");
+			setAnalysis(null);
+			setGeneratedLatex(null);
+			setGenerationJobId(null);
+			setUploadState("idle");
+			setUploadProgress(0);
+			setUploadedBytes(0);
+			setTotalBytes(0);
+			setEstimatedSecondsRemaining(undefined);
+			setUploadError(null);
+			setHasPreviousDraft(false);
+			setPreviousResumeFilename(null);
+			setStep(0); // Go back to mode selection
+
+			// Auto-start new session for clean UX
+			try {
+				const newId = await startNewSession();
+				setSessionId(newId);
+				setIsSessionLocked(false);
+				console.log("Auto-started new session after export:", newId);
+			} catch (err) {
+				console.error("Failed to auto-start new session:", err);
+			}
+
+			toast.success("PDF ready!", {
+				description: "Your resume has been opened in a new tab.",
+			});
+
+			setIsExporting(false);
+			setShowSuccessModal(true);
 		} catch (e) {
 			console.error(e);
 			setIsExporting(false);
-			toast.error("Generation failed", {
+			toast.error("Export failed", {
 				description: "Please try again.",
 			});
 		}
 	}, [
-		analysis,
+		generatedLatex,
+		generationJobId,
 		isAuthenticated,
 		sessionId,
 		isSessionLocked,
-		jobDescription,
-		uploadedResume,
-		focusPrompt,
-		subscribeToExportJob,
 	]);
 
 	const resetAll = useCallback(() => {

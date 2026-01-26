@@ -523,3 +523,65 @@ On `succeeded`:
 
 - `useResumeForm.ts`: Added second `useJobRealtime` hook instance specifically for export events (`subscribeToExportJob`).
 - `exportPdf`: Replaced `setInterval` polling with `subscribeToExportJob(jobId)`.
+
+---
+
+## PDF Compilation with latex-online.cc (2026-01-26)
+
+### Overview
+
+Implemented actual PDF generation by compiling LaTeX using latex-online.cc API, uploading to Supabase Storage, and returning a signed URL.
+
+### Architecture
+
+```
+User clicks "Download PDF"
+        ↓
+POST /api/export-pdf { jobId: generationJobId }
+        ↓
+Fetch generation_jobs, verify ownership
+        ↓
+If pdf_object_path exists → return signed URL (cached)
+        ↓
+GET https://latexonline.cc/compile?text=<latex>&force=true&command=pdflatex
+        ↓
+On 2xx: Upload PDF bytes to generated-pdfs/${userId}/${jobId}.pdf
+        ↓
+Update job: pdf_object_path
+        ↓
+Return signed URL (10 min expiry)
+```
+
+### Credit Policy
+
+- ✅ Credits deducted at **LaTeX generation** (Preview step)
+- ✅ PDF compilation is **FREE** (no additional credit)
+- ✅ Cached PDFs returned instantly on repeat downloads
+
+### Files
+
+| File                          | Type     | Description                         |
+| ----------------------------- | -------- | ----------------------------------- |
+| `app/api/export-pdf/route.ts` | NEW      | PDF compilation endpoint            |
+| `useResumeForm.ts`            | MODIFIED | `exportPdf` calls `/api/export-pdf` |
+
+### Storage
+
+### Refinements (2026-01-26 18:00)
+
+1. **Size Guard**:
+    - `MAX_LATEX_LENGTH = 30000` (latex-online query string limit)
+    - Returns **413 Payload Too Large** if exceeded
+2. **Error Handling**:
+    - Captures first 1500 chars of compile log
+    - Stores in `generation_jobs.error_message` for debugging
+    - Returns safe 400 error to user
+3. **UX Improvements**:
+    - After successful export:
+        - Clears local draft
+        - Resets full form state (clean slate)
+        - Auto-starts NEW onboarding session
+        - Opens PDF in new tab
+4. **Idempotency**:
+    - Checks `pdf_object_path` before compiling
+    - If exists → generates fresh signed URL immediately (no recompile)
