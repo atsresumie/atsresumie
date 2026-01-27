@@ -145,6 +145,41 @@ export function useJobRealtime(
 				});
 
 			channelRef.current = channel;
+
+			// Initial fetch to handle race conditions (e.g. job finished before subscription)
+			supabase
+				.from("generation_jobs")
+				.select("status, latex_text, error_message")
+				.eq("id", jobId)
+				.single()
+				.then(({ data, error }) => {
+					if (error || !data) return;
+
+					console.log(
+						`[Realtime] Initial fetch for ${jobId}:`,
+						data.status,
+					);
+
+					// Only update if we're still checking this job
+					if (jobIdRef.current !== jobId) return;
+
+					setStatus(data.status as JobStatus);
+
+					if (data.status === "succeeded") {
+						setLatexText(data.latex_text);
+						onSuccessRef.current?.(data.latex_text || "");
+						unsubscribe();
+					} else if (data.status === "failed") {
+						const msg =
+							data.error_message ||
+							"Generation failed. Please try again.";
+						setErrorMessage(msg);
+						onErrorRef.current?.(msg);
+						unsubscribe();
+					} else if (data.status === "running") {
+						onRunningRef.current?.();
+					}
+				});
 		},
 		[unsubscribe],
 	);
