@@ -4,9 +4,9 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { extractTextFromFile } from "@/lib/ats/extractText";
 import {
 	generateLatexWithClaude,
-	validateQuickModeInputs,
+	validateModeInputs,
 	GenerationMode,
-	QuickModeInputs,
+	UnifiedModeInputs,
 } from "@/lib/llm/claudeLatex";
 
 /**
@@ -39,7 +39,8 @@ async function getResumeText(
 }
 
 /**
- * Process a generation job with Claude LaTeX generation
+ * Process a generation job with Claude LaTeX generation.
+ * Mode controls which system prompt and user template are used.
  */
 async function processJob(
 	jobId: string,
@@ -47,7 +48,6 @@ async function processJob(
 	jdText: string,
 	resumeText: string,
 	mode: GenerationMode,
-	focusPrompt?: string,
 ) {
 	const supabase = supabaseAdmin();
 
@@ -58,20 +58,16 @@ async function processJob(
 			p_status: "running",
 		});
 
-		// 2. Build inputs for Claude
-		// Note: Currently only 'quick' mode is fully supported. Deep/scratch modes
-		// require additional inputs from the UI questionnaire (to be implemented).
-		// For now, treat all modes as quick mode for LaTeX generation.
-		const inputs: QuickModeInputs = {
-			mode: "quick",
+		// 2. Build unified inputs for Claude (all modes use same structure)
+		const inputs: UnifiedModeInputs = {
+			mode,
 			jdText,
 			resumeText,
-			targetTitle: focusPrompt, // Use focus prompt as target title hint
 		};
 
-		// 3. Generate LaTeX using Claude
+		// 3. Generate LaTeX using Claude with mode-specific prompts
 		console.log(
-			`[Job ${jobId}] Starting Claude LaTeX generation (requested mode: ${mode}, using: quick)`,
+			`[Job ${jobId}] Starting Claude LaTeX generation (mode: ${mode})`,
 		);
 		const result = await generateLatexWithClaude(inputs);
 
@@ -92,7 +88,7 @@ async function processJob(
 		}
 
 		console.log(
-			`[Job ${jobId}] LaTeX generation successful (${result.latex.length} chars)`,
+			`[Job ${jobId}] LaTeX generation successful (${result.latex.length} chars, mode: ${mode})`,
 		);
 
 		// 4. Decrement credit ONLY on success (using admin RPC with explicit user_id)
@@ -121,15 +117,16 @@ async function processJob(
 		}
 
 		// 5. Mark job as succeeded with LaTeX output
-		// Note: PDF URL is null for now - PDF compilation will be implemented later
 		await supabase.rpc("update_job_status", {
 			p_job_id: jobId,
 			p_status: "succeeded",
 			p_latex_text: result.latex,
-			p_pdf_url: null, // PDF compilation not yet implemented
+			p_pdf_url: null,
 		});
 
-		console.log(`[Job ${jobId}] Job completed successfully`);
+		console.log(
+			`[Job ${jobId}] Job completed successfully (mode: ${mode})`,
+		);
 	} catch (error) {
 		console.error(`[Job ${jobId}] Job processing failed:`, error);
 
@@ -183,28 +180,62 @@ export async function POST(req: Request) {
 		const { jdText, resumeObjectPath, focusPrompt } = body;
 		const mode: GenerationMode = body.mode || "quick";
 
-		// 4. Validate required fields
-		if (!jdText) {
+		// 4. Validate mode is valid
+		const validModes: GenerationMode[] = ["quick", "deep", "scratch"];
+		if (!validModes.includes(mode)) {
 			return NextResponse.json(
-				{ error: "Job description is required" },
+				{
+					error: "Validation failed",
+					fieldErrors: {
+						mode: "Mode must be one of: quick, deep, scratch",
+					},
+				},
 				{ status: 400 },
 			);
 		}
 
-		if (!resumeObjectPath) {
+		// 5. Validate required fields
+		const fieldErrors: Record<string, string> = {};
+
+		if (!jdText || typeof jdText !== "string") {
+			fieldErrors.jdText = "Job description is required";
+		} else if (jdText.trim().length < 50) {
+			fieldErrors.jdText =
+				"Job description must be at least 50 characters";
+		}
+
+		if (!resumeObjectPath || typeof resumeObjectPath !== "string") {
+			fieldErrors.resumeObjectPath = "Resume is required";
+		}
+
+		if (Object.keys(fieldErrors).length > 0) {
 			return NextResponse.json(
-				{ error: "Resume is required" },
+				{ error: "Validation failed", fieldErrors },
 				{ status: 400 },
 			);
 		}
 
-		// 5. Extract resume text from storage
+		// 6. Extract resume text from storage
 		let resumeText: string;
 		try {
 			resumeText = await getResumeText(resumeObjectPath);
 			console.log(
 				`Extracted resume text (${resumeText.length} chars) from ${resumeObjectPath}`,
 			);
+
+			// Validate resumeText length
+			if (resumeText.trim().length < 100) {
+				return NextResponse.json(
+					{
+						error: "Validation failed",
+						fieldErrors: {
+							resumeText:
+								"Resume content is too short. Please upload a valid resume.",
+						},
+					},
+					{ status: 400 },
+				);
+			}
 		} catch (err) {
 			console.error("Failed to extract resume text:", err);
 			return NextResponse.json(
@@ -213,7 +244,7 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// 6. Create job with status='pending'
+		// 7. Create job with status='pending' and mode
 		const { data: job, error: insertError } = await supabase
 			.from("generation_jobs")
 			.insert({
@@ -222,6 +253,7 @@ export async function POST(req: Request) {
 				resume_object_path: resumeObjectPath,
 				focus_prompt: focusPrompt || null,
 				status: "pending",
+				// Note: If you want to store mode in DB, add a 'mode' column
 			})
 			.select("id")
 			.single();
@@ -234,20 +266,12 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// 7. Start processing asynchronously (fire and forget)
-		// Note: In production, use a proper queue (Supabase Edge Functions, etc.)
-		processJob(
-			job.id,
-			user.id,
-			jdText,
-			resumeText,
-			mode,
-			focusPrompt,
-		).catch((err) => {
+		// 8. Start processing asynchronously with the selected mode
+		processJob(job.id, user.id, jdText, resumeText, mode).catch((err) => {
 			console.error("Background job processing error:", err);
 		});
 
-		// 8. Return jobId immediately
+		// 9. Return jobId immediately
 		return NextResponse.json({ jobId: job.id });
 	} catch (error) {
 		console.error("Generate API error:", error);

@@ -2,14 +2,17 @@
  * Claude LaTeX Resume Generator
  *
  * Generates ATS-safe LaTeX resumes using Claude API with three modes:
- * - QUICK: Speed-optimized minimal changes
- * - DEEP: Deep tailoring with questionnaire answers
- * - SCRATCH: Build from structured profile data
+ * - QUICK: Speed-optimized minimal changes (cheapest tokens)
+ * - DEEP: Premium output with strict professional typesetting (more tokens)
+ * - SCRATCH: Rebuild resume structure from resumeText (moderate tokens)
+ *
+ * All modes accept the same UI inputs: jdText + resumeText.
+ * Missing fields are derived programmatically.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import {
-	SYSTEM_PROMPT,
+	SYSTEM_PROMPTS,
 	QUICK_MODE_TEMPLATE,
 	DEEP_MODE_TEMPLATE,
 	SCRATCH_MODE_TEMPLATE,
@@ -21,6 +24,17 @@ import {
 
 export type GenerationMode = "quick" | "deep" | "scratch";
 
+/**
+ * Unified inputs accepted from API - same for all modes.
+ * All modes now use jdText + resumeText; no questionnaire fields.
+ */
+export interface UnifiedModeInputs {
+	mode: GenerationMode;
+	jdText: string;
+	resumeText: string;
+}
+
+// Legacy types kept for backward compatibility
 export interface QuickModeInputs {
 	mode: "quick";
 	jdText: string;
@@ -32,35 +46,21 @@ export interface DeepModeInputs {
 	mode: "deep";
 	jdText: string;
 	resumeText: string;
-	targetTitle: string;
-	topStrengths: string;
-	highlightRoles: string;
-	highlightProjects: string;
-	mustIncludeKeywords: string;
-	locationPreference?: string;
+	targetTitle?: string;
+	mustIncludeKeywords?: string;
 }
 
 export interface ScratchModeInputs {
 	mode: "scratch";
 	jdText: string;
-	name: string;
-	location: string;
-	email: string;
-	phone?: string;
-	links?: string;
-	targetTitle: string;
-	summaryPoints?: string;
-	skillsList: string;
-	experienceEntries: string;
-	projectEntries?: string;
-	educationEntries?: string;
-	certifications?: string;
+	resumeText: string;
 }
 
 export type GenerationInputs =
 	| QuickModeInputs
 	| DeepModeInputs
-	| ScratchModeInputs;
+	| ScratchModeInputs
+	| UnifiedModeInputs;
 
 export interface GenerationResult {
 	success: boolean;
@@ -69,52 +69,168 @@ export interface GenerationResult {
 }
 
 // ============================================
+// TOKEN LIMITS (safeguards against bloat)
+// ============================================
+
+const TOKEN_LIMITS = {
+	quick: { jdText: 6000, resumeText: 8000 },
+	deep: { jdText: 10000, resumeText: 15000 },
+	scratch: { jdText: 8000, resumeText: 12000 },
+};
+
+function truncateText(text: string, maxChars: number): string {
+	if (text.length <= maxChars) return text;
+	return (
+		text.slice(0, maxChars) + "\n\n[... content truncated for length ...]"
+	);
+}
+
+// ============================================
+// DERIVE FUNCTIONS (extract missing fields)
+// ============================================
+
+/**
+ * Extract target title from JD text using pattern matching.
+ * Returns empty string if not found (prompt will handle gracefully).
+ */
+function deriveTargetTitle(jdText: string): string {
+	// Common patterns for job titles
+	const patterns = [
+		/(?:job\s*title|position|role)\s*[:\-]\s*(.+)/i,
+		/(?:we\s*(?:are|'re)\s*(?:looking|hiring)\s*(?:for|a)\s*)(.+?)(?:\.|,|to\s+join)/i,
+		/^(.+?(?:engineer|developer|manager|analyst|designer|architect|lead|specialist|consultant|coordinator|director|vp|head))/im,
+	];
+
+	for (const pattern of patterns) {
+		const match = jdText.match(pattern);
+		if (match && match[1]) {
+			// Clean up and return first 80 chars max
+			return match[1].trim().slice(0, 80);
+		}
+	}
+
+	// Fallback: check first non-empty line
+	const firstLine = jdText.split("\n").find((l) => l.trim().length > 5);
+	if (firstLine && firstLine.length < 100) {
+		return firstLine.trim();
+	}
+
+	return "";
+}
+
+/**
+ * Extract keywords from JD text deterministically (no LLM call).
+ * Picks 10-15 relevant terms for the DEEP mode prompt.
+ */
+function deriveKeywords(jdText: string): string {
+	const lowerJd = jdText.toLowerCase();
+
+	// Common tech keywords to look for
+	const techKeywords = [
+		// Languages
+		"javascript",
+		"typescript",
+		"python",
+		"java",
+		"c#",
+		"c++",
+		"go",
+		"rust",
+		"ruby",
+		"php",
+		"swift",
+		"kotlin",
+		"scala",
+		// Frameworks/Libraries
+		"react",
+		"angular",
+		"vue",
+		"next.js",
+		"node.js",
+		"express",
+		"django",
+		"flask",
+		"spring",
+		".net",
+		"rails",
+		// Databases
+		"sql",
+		"postgresql",
+		"mysql",
+		"mongodb",
+		"redis",
+		"elasticsearch",
+		"dynamodb",
+		// Cloud/DevOps
+		"aws",
+		"azure",
+		"gcp",
+		"docker",
+		"kubernetes",
+		"terraform",
+		"jenkins",
+		"ci/cd",
+		"github actions",
+		// Concepts
+		"microservices",
+		"rest api",
+		"graphql",
+		"agile",
+		"scrum",
+		"tdd",
+		"machine learning",
+		"ai",
+		"data science",
+		// Soft skills
+		"leadership",
+		"communication",
+		"problem-solving",
+		"collaboration",
+	];
+
+	const foundKeywords: string[] = [];
+
+	for (const kw of techKeywords) {
+		if (lowerJd.includes(kw) && foundKeywords.length < 15) {
+			foundKeywords.push(kw);
+		}
+	}
+
+	// Also extract years of experience patterns
+	const expMatch = jdText.match(/(\d+\+?\s*years?)/gi);
+	if (expMatch) {
+		foundKeywords.push(...expMatch.slice(0, 2));
+	}
+
+	return foundKeywords.join(", ");
+}
+
+// ============================================
 // PROMPT BUILDERS
 // ============================================
 
-function buildQuickModePrompt(inputs: QuickModeInputs): string {
-	return QUICK_MODE_TEMPLATE.replace("{{JD_TEXT}}", inputs.jdText)
-		.replace("{{RESUME_TEXT}}", inputs.resumeText)
-		.replace("{{TARGET_TITLE}}", inputs.targetTitle || "(not provided)");
+function buildQuickModePrompt(jdText: string, resumeText: string): string {
+	return QUICK_MODE_TEMPLATE.replace("{{JD_TEXT}}", jdText).replace(
+		"{{RESUME_TEXT}}",
+		resumeText,
+	);
 }
 
-function buildDeepModePrompt(inputs: DeepModeInputs): string {
-	return DEEP_MODE_TEMPLATE.replace("{{JD_TEXT}}", inputs.jdText)
-		.replace("{{RESUME_TEXT}}", inputs.resumeText)
-		.replace("{{TARGET_TITLE}}", inputs.targetTitle)
-		.replace("{{TOP_STRENGTHS}}", inputs.topStrengths)
-		.replace("{{HIGHLIGHT_ROLES}}", inputs.highlightRoles)
-		.replace("{{HIGHLIGHT_PROJECTS}}", inputs.highlightProjects)
-		.replace("{{MUST_INCLUDE_KEYWORDS}}", inputs.mustIncludeKeywords)
-		.replace(
-			"{{LOCATION_PREFERENCE}}",
-			inputs.locationPreference || "(not provided)",
-		);
+function buildDeepModePrompt(jdText: string, resumeText: string): string {
+	const targetTitle = deriveTargetTitle(jdText);
+	const keywords = deriveKeywords(jdText);
+
+	return DEEP_MODE_TEMPLATE.replace("{{JD_TEXT}}", jdText)
+		.replace("{{RESUME_TEXT}}", resumeText)
+		.replace("{{TARGET_TITLE}}", targetTitle || "(infer from JD)")
+		.replace("{{MUST_INCLUDE_KEYWORDS}}", keywords || "(extract from JD)");
 }
 
-function buildScratchModePrompt(inputs: ScratchModeInputs): string {
-	return SCRATCH_MODE_TEMPLATE.replace("{{JD_TEXT}}", inputs.jdText)
-		.replace("{{NAME}}", inputs.name)
-		.replace("{{LOCATION}}", inputs.location)
-		.replace("{{EMAIL}}", inputs.email)
-		.replace("{{PHONE}}", inputs.phone || "(not provided)")
-		.replace("{{LINKS}}", inputs.links || "(not provided)")
-		.replace("{{TARGET_TITLE}}", inputs.targetTitle)
-		.replace("{{SUMMARY_POINTS}}", inputs.summaryPoints || "(not provided)")
-		.replace("{{SKILLS_LIST}}", inputs.skillsList)
-		.replace("{{EXPERIENCE_ENTRIES}}", inputs.experienceEntries)
-		.replace(
-			"{{PROJECT_ENTRIES}}",
-			inputs.projectEntries || "(not provided)",
-		)
-		.replace(
-			"{{EDUCATION_ENTRIES}}",
-			inputs.educationEntries || "(not provided)",
-		)
-		.replace(
-			"{{CERTIFICATIONS}}",
-			inputs.certifications || "(not provided)",
-		);
+function buildScratchModePrompt(jdText: string, resumeText: string): string {
+	return SCRATCH_MODE_TEMPLATE.replace("{{JD_TEXT}}", jdText).replace(
+		"{{RESUME_TEXT}}",
+		resumeText,
+	);
 }
 
 // ============================================
@@ -136,25 +252,34 @@ function getAnthropicClient(): Anthropic {
 /**
  * Generate LaTeX resume using Claude API
  *
- * @param inputs - Mode-specific inputs (quick, deep, or scratch)
+ * @param inputs - Mode + jdText + resumeText (all modes use same inputs)
  * @returns GenerationResult with success status and latex or error
  */
 export async function generateLatexWithClaude(
 	inputs: GenerationInputs,
 ): Promise<GenerationResult> {
 	try {
-		// Build the appropriate prompt based on mode
-		let userPrompt: string;
+		const mode = inputs.mode;
 
-		switch (inputs.mode) {
+		// Get mode-specific limits and apply truncation
+		const limits = TOKEN_LIMITS[mode];
+		const jdText = truncateText(inputs.jdText, limits.jdText);
+		const resumeText = truncateText(inputs.resumeText, limits.resumeText);
+
+		// Select system prompt based on mode
+		const systemPrompt = SYSTEM_PROMPTS[mode];
+
+		// Build mode-specific user prompt
+		let userPrompt: string;
+		switch (mode) {
 			case "quick":
-				userPrompt = buildQuickModePrompt(inputs);
+				userPrompt = buildQuickModePrompt(jdText, resumeText);
 				break;
 			case "deep":
-				userPrompt = buildDeepModePrompt(inputs);
+				userPrompt = buildDeepModePrompt(jdText, resumeText);
 				break;
 			case "scratch":
-				userPrompt = buildScratchModePrompt(inputs);
+				userPrompt = buildScratchModePrompt(jdText, resumeText);
 				break;
 			default:
 				return {
@@ -166,11 +291,19 @@ export async function generateLatexWithClaude(
 		// Initialize Anthropic client
 		const anthropic = getAnthropicClient();
 
-		// Call Claude API
+		// Adjust max_tokens based on mode
+		const maxTokens =
+			mode === "quick" ? 6000 : mode === "deep" ? 10000 : 8000;
+
+		console.log(
+			`[Claude] Generating LaTeX with mode=${mode}, systemPrompt=${systemPrompt.length} chars, userPrompt=${userPrompt.length} chars`,
+		);
+
+		// Call Claude API with mode-specific system prompt
 		const response = await anthropic.messages.create({
 			model: "claude-sonnet-4-20250514",
-			max_tokens: 8192,
-			system: SYSTEM_PROMPT,
+			max_tokens: maxTokens,
+			system: systemPrompt,
 			messages: [
 				{
 					role: "user",
@@ -249,7 +382,57 @@ export async function generateLatexWithClaude(
 }
 
 // ============================================
-// VALIDATION HELPERS
+// VALIDATION (Simplified - all modes same inputs)
+// ============================================
+
+export interface ValidationResult {
+	valid: boolean;
+	fieldErrors?: Record<string, string>;
+	inputs?: UnifiedModeInputs;
+}
+
+/**
+ * Validate inputs for any mode. All modes require jdText + resumeText.
+ */
+export function validateModeInputs(body: any): ValidationResult {
+	const fieldErrors: Record<string, string> = {};
+
+	// Validate mode
+	const validModes = ["quick", "deep", "scratch"];
+	if (!body.mode || !validModes.includes(body.mode)) {
+		fieldErrors.mode = "Mode must be one of: quick, deep, scratch";
+	}
+
+	// Validate jdText
+	if (!body.jdText || typeof body.jdText !== "string") {
+		fieldErrors.jdText = "Job description is required";
+	} else if (body.jdText.trim().length < 50) {
+		fieldErrors.jdText = "Job description must be at least 50 characters";
+	}
+
+	// Validate resumeText
+	if (!body.resumeText || typeof body.resumeText !== "string") {
+		fieldErrors.resumeText = "Resume text is required";
+	} else if (body.resumeText.trim().length < 100) {
+		fieldErrors.resumeText = "Resume text must be at least 100 characters";
+	}
+
+	if (Object.keys(fieldErrors).length > 0) {
+		return { valid: false, fieldErrors };
+	}
+
+	return {
+		valid: true,
+		inputs: {
+			mode: body.mode as GenerationMode,
+			jdText: body.jdText.trim(),
+			resumeText: body.resumeText.trim(),
+		},
+	};
+}
+
+// ============================================
+// LEGACY VALIDATION (for backward compatibility)
 // ============================================
 
 export function validateQuickModeInputs(body: any): {
@@ -257,23 +440,19 @@ export function validateQuickModeInputs(body: any): {
 	error?: string;
 	inputs?: QuickModeInputs;
 } {
-	if (!body.jdText || typeof body.jdText !== "string") {
-		return { valid: false, error: "Job description (jdText) is required" };
-	}
-	if (!body.resumeText || typeof body.resumeText !== "string") {
+	const result = validateModeInputs({ ...body, mode: "quick" });
+	if (!result.valid) {
 		return {
 			valid: false,
-			error: "Resume text is required for quick mode",
+			error: Object.values(result.fieldErrors || {}).join(", "),
 		};
 	}
-
 	return {
 		valid: true,
 		inputs: {
 			mode: "quick",
-			jdText: body.jdText,
-			resumeText: body.resumeText,
-			targetTitle: body.targetTitle,
+			jdText: result.inputs!.jdText,
+			resumeText: result.inputs!.resumeText,
 		},
 	};
 }
@@ -283,58 +462,19 @@ export function validateDeepModeInputs(body: any): {
 	error?: string;
 	inputs?: DeepModeInputs;
 } {
-	if (!body.jdText || typeof body.jdText !== "string") {
-		return { valid: false, error: "Job description (jdText) is required" };
-	}
-	if (!body.resumeText || typeof body.resumeText !== "string") {
-		return { valid: false, error: "Resume text is required for deep mode" };
-	}
-	if (!body.targetTitle || typeof body.targetTitle !== "string") {
+	const result = validateModeInputs({ ...body, mode: "deep" });
+	if (!result.valid) {
 		return {
 			valid: false,
-			error: "Target title is required for deep mode",
+			error: Object.values(result.fieldErrors || {}).join(", "),
 		};
 	}
-	if (!body.topStrengths || typeof body.topStrengths !== "string") {
-		return {
-			valid: false,
-			error: "Top strengths are required for deep mode",
-		};
-	}
-	if (!body.highlightRoles || typeof body.highlightRoles !== "string") {
-		return {
-			valid: false,
-			error: "Highlight roles are required for deep mode",
-		};
-	}
-	if (!body.highlightProjects || typeof body.highlightProjects !== "string") {
-		return {
-			valid: false,
-			error: "Highlight projects are required for deep mode",
-		};
-	}
-	if (
-		!body.mustIncludeKeywords ||
-		typeof body.mustIncludeKeywords !== "string"
-	) {
-		return {
-			valid: false,
-			error: "Must-include keywords are required for deep mode",
-		};
-	}
-
 	return {
 		valid: true,
 		inputs: {
 			mode: "deep",
-			jdText: body.jdText,
-			resumeText: body.resumeText,
-			targetTitle: body.targetTitle,
-			topStrengths: body.topStrengths,
-			highlightRoles: body.highlightRoles,
-			highlightProjects: body.highlightProjects,
-			mustIncludeKeywords: body.mustIncludeKeywords,
-			locationPreference: body.locationPreference,
+			jdText: result.inputs!.jdText,
+			resumeText: result.inputs!.resumeText,
 		},
 	};
 }
@@ -344,54 +484,19 @@ export function validateScratchModeInputs(body: any): {
 	error?: string;
 	inputs?: ScratchModeInputs;
 } {
-	if (!body.jdText || typeof body.jdText !== "string") {
-		return { valid: false, error: "Job description (jdText) is required" };
-	}
-	if (!body.name || typeof body.name !== "string") {
-		return { valid: false, error: "Name is required for scratch mode" };
-	}
-	if (!body.location || typeof body.location !== "string") {
-		return { valid: false, error: "Location is required for scratch mode" };
-	}
-	if (!body.email || typeof body.email !== "string") {
-		return { valid: false, error: "Email is required for scratch mode" };
-	}
-	if (!body.targetTitle || typeof body.targetTitle !== "string") {
+	const result = validateModeInputs({ ...body, mode: "scratch" });
+	if (!result.valid) {
 		return {
 			valid: false,
-			error: "Target title is required for scratch mode",
+			error: Object.values(result.fieldErrors || {}).join(", "),
 		};
 	}
-	if (!body.skillsList || typeof body.skillsList !== "string") {
-		return {
-			valid: false,
-			error: "Skills list is required for scratch mode",
-		};
-	}
-	if (!body.experienceEntries || typeof body.experienceEntries !== "string") {
-		return {
-			valid: false,
-			error: "Experience entries are required for scratch mode",
-		};
-	}
-
 	return {
 		valid: true,
 		inputs: {
 			mode: "scratch",
-			jdText: body.jdText,
-			name: body.name,
-			location: body.location,
-			email: body.email,
-			phone: body.phone,
-			links: body.links,
-			targetTitle: body.targetTitle,
-			summaryPoints: body.summaryPoints,
-			skillsList: body.skillsList,
-			experienceEntries: body.experienceEntries,
-			projectEntries: body.projectEntries,
-			educationEntries: body.educationEntries,
-			certifications: body.certifications,
+			jdText: result.inputs!.jdText,
+			resumeText: result.inputs!.resumeText,
 		},
 	};
 }

@@ -555,8 +555,13 @@ export function useResumeForm() {
 			}
 
 			// Call /api/generate to create job and start LaTeX generation
-			// Convert mode to lowercase for API
-			const apiMode = mode.toLowerCase() as "quick" | "deep" | "scratch";
+			// Convert UI mode to API mode format
+			const modeMap: Record<string, "quick" | "deep" | "scratch"> = {
+				QUICK: "quick",
+				DEEP: "deep",
+				FROM_SCRATCH: "scratch",
+			};
+			const apiMode = modeMap[mode] || "quick";
 
 			const res = await fetch("/api/generate", {
 				method: "POST",
