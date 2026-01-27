@@ -267,9 +267,11 @@ export async function POST(req: Request) {
 		}
 
 		// 8. Start processing asynchronously with the selected mode
-		processJob(job.id, user.id, jdText, resumeText, mode).catch((err) => {
-			console.error("Background job processing error:", err);
-		});
+		await processJob(job.id, user.id, jdText, resumeText, mode).catch(
+			(err) => {
+				console.error("Background job processing error:", err);
+			},
+		);
 
 		// 9. Return jobId immediately
 		return NextResponse.json({ jobId: job.id });
