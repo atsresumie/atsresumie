@@ -94,20 +94,9 @@ export function useResumeForm() {
 
 				if (status) {
 					setSessionId(status.sessionId);
-					console.log(
-						"Existing session found:",
-						status.sessionId,
-						"Status:",
-						status.status,
-					);
-
 					// Check if session is locked (claimed or expired)
 					if (!status.isEditable) {
 						setIsSessionLocked(true);
-						console.log(
-							"Session is locked (claimed/expired) - starting new session",
-						);
-
 						// For authenticated users, automatically start a new session
 						if (isAuthenticated) {
 							try {
@@ -116,7 +105,6 @@ export function useResumeForm() {
 								setIsSessionLocked(false);
 								setHasPreviousDraft(false);
 								setPreviousResumeFilename(null);
-								console.log("Auto-started new session:", newId);
 								toast.info("Started fresh session", {
 									description:
 										"You can create a new resume now.",
@@ -164,11 +152,6 @@ export function useResumeForm() {
 								sizeBytes: 0,
 							});
 						}
-
-						console.log("Restored draft from server:", {
-							jdLength: status.draft.jdText.length,
-							resumeFilename: status.draft.resumeOriginalFilename,
-						});
 						toast.info("Previous session restored", {
 							description:
 								"Your job description has been restored.",
@@ -178,7 +161,6 @@ export function useResumeForm() {
 					// No existing session, start a new one
 					const id = await startOnboardingSession();
 					setSessionId(id);
-					console.log("New onboarding session started:", id);
 				}
 			} catch (err) {
 				console.error("Failed to initialize session:", err);
@@ -214,7 +196,6 @@ export function useResumeForm() {
 			setExportResult(null);
 			setStep(0);
 			clearDraft();
-			console.log("Fresh session started:", id);
 			toast.success("New session started");
 		} catch (err) {
 			console.error("Failed to start fresh session:", err);
@@ -235,12 +216,7 @@ export function useResumeForm() {
 				await deleteResume(
 					uploadedResume.bucket,
 					uploadedResume.objectPath,
-				);
-				console.log(
-					"Resume deleted from server:",
-					uploadedResume.objectPath,
-				);
-				toast.success("Resume removed");
+				);				toast.success("Resume removed");
 			} catch (err) {
 				console.error("Failed to delete resume:", err);
 				toast.error("Failed to delete resume from server");
@@ -358,12 +334,7 @@ export function useResumeForm() {
 					await deleteResume(
 						uploadedResume.bucket,
 						uploadedResume.objectPath,
-					);
-					console.log(
-						"Previous temp file deleted:",
-						uploadedResume.objectPath,
-					);
-				} catch (err) {
+					);				} catch (err) {
 					console.warn(
 						"Failed to delete previous temp file (non-critical):",
 						err,
@@ -404,8 +375,6 @@ export function useResumeForm() {
 				setUploadedResume(uploadedResumeData);
 				setUploadState("uploaded_temp");
 				setUploadProgress(100);
-
-				console.log("Resume uploaded to temp:", result.objectPath);
 				toast.success("Resume uploaded", {
 					description:
 						"Ready for analysis. Click 'Preview & Analyze' to confirm.",
@@ -423,7 +392,6 @@ export function useResumeForm() {
 							resumeSizeBytes: file.size,
 							resumeStatus: "temp",
 						});
-						console.log("Draft saved with temp resume");
 					} catch (err) {
 						console.warn(
 							"Non-critical: Failed to save draft:",
@@ -437,7 +405,6 @@ export function useResumeForm() {
 					err instanceof Error &&
 					err.message === "Upload cancelled"
 				) {
-					console.log("Upload cancelled by user");
 					setUploadState("idle");
 					setResumeFile(null);
 					return;
@@ -482,10 +449,8 @@ export function useResumeForm() {
 		errorMessage: realtimeErrorMessage,
 	} = useJobRealtime({
 		onRunning: () => {
-			console.log("[Realtime] Job is running...");
 		},
 		onSuccess: (latex) => {
-			console.log("[Realtime] Job succeeded, got LaTeX");
 			setGeneratedLatex(latex);
 			setIsAnalyzing(false);
 			setStep(2);
@@ -528,11 +493,6 @@ export function useResumeForm() {
 			) {
 				try {
 					const commitResult = await commitResume();
-					console.log(
-						"Resume committed to final:",
-						commitResult.finalPath,
-					);
-
 					// Update local state with final path
 					setUploadedResume({
 						...uploadedResume,
@@ -597,12 +557,7 @@ export function useResumeForm() {
 
 			// Subscribe to Realtime updates for this job
 			// The hook will handle setting step=2 and generatedLatex on success
-			subscribeToJob(jobId);
-
-			console.log(
-				`[runAnalyze] Created job ${jobId}, subscribed to Realtime`,
-			);
-		} catch (e) {
+			subscribeToJob(jobId);		} catch (e) {
 			console.error(e);
 			setIsAnalyzing(false);
 			toast.error("Generation failed", {
@@ -629,10 +584,8 @@ export function useResumeForm() {
 	const { subscribe: subscribeToExportJob, status: exportJobStatus } =
 		useJobRealtime({
 			onRunning: () => {
-				console.log("[Export Realtime] Job is running...");
 			},
 			onSuccess: async (latex) => {
-				console.log("[Export Realtime] Job succeeded");
 				setIsExporting(false);
 				setExportResult({ pdfUrl: "", latex }); // PDF URL will be set by job
 
@@ -660,12 +613,7 @@ export function useResumeForm() {
 				try {
 					const newId = await startNewSession();
 					setSessionId(newId);
-					setIsSessionLocked(false);
-					console.log(
-						"Auto-started new session after export:",
-						newId,
-					);
-				} catch (err) {
+					setIsSessionLocked(false);				} catch (err) {
 					console.error("Failed to auto-start new session:", err);
 				}
 
@@ -707,17 +655,12 @@ export function useResumeForm() {
 				try {
 					await claimSession();
 					setIsSessionLocked(true);
-					console.log("Session claimed successfully");
 				} catch (err) {
 					console.warn("Session claim skipped:", err);
 				}
 			}
 
 			// Call export-pdf endpoint (compiles LaTeX → PDF, uploads to storage)
-			console.log(
-				`[exportPdf] Compiling PDF for job ${generationJobId}...`,
-			);
-
 			const res = await fetch("/api/export-pdf", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -777,7 +720,6 @@ export function useResumeForm() {
 				const newId = await startNewSession();
 				setSessionId(newId);
 				setIsSessionLocked(false);
-				console.log("Auto-started new session after export:", newId);
 			} catch (err) {
 				console.error("Failed to auto-start new session:", err);
 			}
