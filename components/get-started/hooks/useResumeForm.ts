@@ -157,20 +157,12 @@ export function useResumeForm() {
 								"Your job description has been restored.",
 						});
 					}
-				} else {
-					// No existing session, start a new one
-					const id = await startOnboardingSession();
-					setSessionId(id);
 				}
+				// If no session exists, do NOT create one preemptively.
+				// Session will be created on-demand when user uploads a resume.
 			} catch (err) {
 				console.error("Failed to initialize session:", err);
-				// Try to start a fresh session as fallback
-				try {
-					const id = await startOnboardingSession();
-					setSessionId(id);
-				} catch {
-					// Non-blocking - the app still works
-				}
+				// Non-blocking - the app still works without a session initially
 			} finally {
 				setIsLoadingSession(false);
 			}
@@ -243,14 +235,24 @@ export function useResumeForm() {
 	}, []);
 
 	useEffect(() => {
-		saveDraft({
-			step,
-			mode,
-			jobDescription,
-			resumeFileName: resumeFile?.name ?? null,
-			focusPrompt,
-			analysis,
-		});
+		// Only save draft if there's actual user input to persist
+		// This prevents creating empty drafts on initial page load
+		const hasUserInput =
+			jobDescription.trim().length > 0 ||
+			resumeFile !== null ||
+			focusPrompt.trim().length > 0 ||
+			analysis !== null;
+
+		if (hasUserInput) {
+			saveDraft({
+				step,
+				mode,
+				jobDescription,
+				resumeFileName: resumeFile?.name ?? null,
+				focusPrompt,
+				analysis,
+			});
+		}
 	}, [step, mode, jobDescription, resumeFile, focusPrompt, analysis]);
 
 	const canContinueFromStep0 = !!mode;
@@ -351,6 +353,24 @@ export function useResumeForm() {
 			uploadAbortRef.current = abortController;
 
 			try {
+				// Create session on-demand if not already created (required for upload URL)
+				let currentSessionId = sessionId;
+				if (!currentSessionId) {
+					try {
+						currentSessionId = await startOnboardingSession();
+						setSessionId(currentSessionId);
+					} catch (err) {
+						console.error("Failed to create session:", err);
+						setUploadError("Failed to initialize session");
+						setUploadState("error");
+						setIsUploadingResume(false);
+						toast.error("Upload failed", {
+							description: "Could not initialize session. Please try again.",
+						});
+						return;
+					}
+				}
+
 				setUploadState("uploading");
 				const result = await uploadResume(file, {
 					signal: abortController.signal,
@@ -381,7 +401,8 @@ export function useResumeForm() {
 				});
 
 				// Save draft with temp resume info (non-blocking)
-				if (sessionId && !isSessionLocked) {
+				// Session is guaranteed to exist at this point (created above)
+				if (currentSessionId && !isSessionLocked) {
 					try {
 						await saveOnboardingDraft({
 							jdText: jobDescription || " ", // Placeholder if empty
@@ -467,6 +488,10 @@ export function useResumeForm() {
 		},
 	});
 
+	// Ref to track if analyze request has been cancelled/timed out
+	const analyzeAbortRef = useRef<AbortController | null>(null);
+	const analyzeTimedOutRef = useRef(false);
+
 	const runAnalyze = useCallback(async () => {
 		// Check if we have a resume - either fresh upload or from server
 		if (!resumeFile && !uploadedResume) {
@@ -477,9 +502,30 @@ export function useResumeForm() {
 			return;
 		}
 
+		// Cancel any previous in-flight request
+		if (analyzeAbortRef.current) {
+			analyzeAbortRef.current.abort();
+		}
+
+		// Reset timeout flag and create new abort controller
+		analyzeTimedOutRef.current = false;
+		const abortController = new AbortController();
+		analyzeAbortRef.current = abortController;
+
 		setIsAnalyzing(true);
 		setExportResult(null);
 		setGeneratedLatex(null);
+
+		// Set up 60-second timeout
+		const TIMEOUT_MS = 60000;
+		const timeoutId = setTimeout(() => {
+			analyzeTimedOutRef.current = true;
+			abortController.abort();
+			setIsAnalyzing(false);
+			toast.error("Request timed out", {
+				description: "Something went wrong. Please try again later.",
+			});
+		}, TIMEOUT_MS);
 
 		try {
 			// Commit temp resume to final storage before generation
@@ -493,6 +539,9 @@ export function useResumeForm() {
 			) {
 				try {
 					const commitResult = await commitResume();
+					// Check if timed out while committing
+					if (analyzeTimedOutRef.current) return;
+
 					// Update local state with final path
 					setUploadedResume({
 						...uploadedResume,
@@ -505,7 +554,11 @@ export function useResumeForm() {
 						description: "Starting generation...",
 					});
 				} catch (err) {
+					// Ignore if timed out
+					if (analyzeTimedOutRef.current) return;
+
 					console.error("Failed to commit resume:", err);
+					clearTimeout(timeoutId);
 					toast.error("Couldn't confirm resume", {
 						description: "Please try again.",
 					});
@@ -534,7 +587,14 @@ export function useResumeForm() {
 					mode: apiMode,
 					purpose: "preview", // Indicates this is for preview, not export
 				}),
+				signal: abortController.signal,
 			});
+
+			// Clear timeout since fetch completed
+			clearTimeout(timeoutId);
+
+			// Ignore response if timed out
+			if (analyzeTimedOutRef.current) return;
 
 			if (!res.ok) {
 				const errorData = await res.json().catch(() => ({}));
@@ -553,15 +613,29 @@ export function useResumeForm() {
 			}
 
 			const { jobId } = await res.json();
+
+			// Final check before updating state
+			if (analyzeTimedOutRef.current) return;
+
 			setGenerationJobId(jobId);
 
 			// Subscribe to Realtime updates for this job
 			// The hook will handle setting step=2 and generatedLatex on success
-			subscribeToJob(jobId);		} catch (e) {
+			subscribeToJob(jobId);
+		} catch (e) {
+			// Ignore abort errors from timeout (already handled)
+			if (e instanceof Error && e.name === "AbortError") {
+				return;
+			}
+
+			// Ignore if timed out
+			if (analyzeTimedOutRef.current) return;
+
+			clearTimeout(timeoutId);
 			console.error(e);
 			setIsAnalyzing(false);
 			toast.error("Generation failed", {
-				description: "Something went wrong. Please try again.",
+				description: "Something went wrong. Please try again later.",
 			});
 		}
 		// Note: setIsAnalyzing(false) is handled by Realtime callbacks
