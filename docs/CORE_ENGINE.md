@@ -1,11 +1,3 @@
-## Task
-
-- Integrate the core engine using Claude LLM to generate the Latex for Resume
-- Convert the Latex to PDF and save it on the user database storage, and return the PDF URL to the user. Decuct the credits from the user's account and start a new session
-- Effecient Prompt Engineering to generate the Latex for Resume assuring the quality of the resume
-
-- After fininshing this task, we will focus on the Dashboard page.
-
 ---
 
 ## Resume Upload Soft-Commit System (2026-01-24)
@@ -593,3 +585,5 @@ Return signed URL (10 min expiry)
 - Use a proper Job Queue for PDF generation instead of using vercel edge functions. Either use Supabase Edge Functions.
 
 - Fix : If any user that is not logged in or no session for on_boarding is available, then there should not be atsresumie:getStartedDraft:v1 this cookie in the browser, make this null by default.
+
+- After fininshing this task, we will focus on the Dashboard page.
