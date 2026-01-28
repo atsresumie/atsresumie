@@ -199,6 +199,33 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
 
 ---
 
+## CI/CD
+
+### GitHub Actions CI Pipeline (2026-01-28)
+
+**Purpose:** Automated code quality checks on every PR and push to main.
+
+**File:** `.github/workflows/ci.yml`
+
+**Triggers:**
+
+- Push to `main` branch
+- Pull request targeting `main` branch
+
+**Steps:**
+| Step | Command | Purpose |
+|------|---------|---------|
+| Lint | `pnpm lint` | ESLint code quality checks |
+| Type Check | `pnpm tsc --noEmit` | TypeScript type verification |
+| Build | `pnpm build` | Ensure production build succeeds |
+
+**Required Secrets (GitHub → Settings → Secrets → Actions):**
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+---
+
 ## Architecture Decisions
 
 ### Anonymous Onboarding Flow
@@ -225,4 +252,4 @@ Users can start using the app without signing up. Session is tracked via `ats_on
 
 ---
 
-_Last updated: 2026-01-21_
+_Last updated: 2026-01-28_

@@ -580,11 +580,7 @@ Return signed URL (10 min expiry)
 
 ## Next Task (fixes and improvements)
 
-- Fix the Analyze & Preview loading button, if there is any issue or is there is wait time for more than a minute, just show the toast message stating is something went wrong and try again later.
-
 - Use a proper Job Queue for PDF generation instead of using vercel edge functions. Either use Supabase Edge Functions.
-
-- Fix : If any user that is not logged in or no session for on_boarding is available, then there should not be atsresumie:getStartedDraft:v1 this cookie in the browser, make this null by default.
 
 - If there is compilation error, implement a feature to re-do the analysis with the same prev credit, no extra deduction because of latex compilation failure. (!important)
 
