@@ -586,4 +586,6 @@ Return signed URL (10 min expiry)
 
 - Fix : If any user that is not logged in or no session for on_boarding is available, then there should not be atsresumie:getStartedDraft:v1 this cookie in the browser, make this null by default.
 
+- If there is compilation error, implement a feature to re-do the analysis with the same prev credit, no extra deduction because of latex compilation failure. (!important)
+
 - After fininshing this task, we will focus on the Dashboard page.
