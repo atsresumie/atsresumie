@@ -208,7 +208,8 @@ export function useResumeForm() {
 				await deleteResume(
 					uploadedResume.bucket,
 					uploadedResume.objectPath,
-				);				toast.success("Resume removed");
+				);
+				toast.success("Resume removed");
 			} catch (err) {
 				console.error("Failed to delete resume:", err);
 				toast.error("Failed to delete resume from server");
@@ -336,7 +337,8 @@ export function useResumeForm() {
 					await deleteResume(
 						uploadedResume.bucket,
 						uploadedResume.objectPath,
-					);				} catch (err) {
+					);
+				} catch (err) {
 					console.warn(
 						"Failed to delete previous temp file (non-critical):",
 						err,
@@ -365,7 +367,8 @@ export function useResumeForm() {
 						setUploadState("error");
 						setIsUploadingResume(false);
 						toast.error("Upload failed", {
-							description: "Could not initialize session. Please try again.",
+							description:
+								"Could not initialize session. Please try again.",
 						});
 						return;
 					}
@@ -469,8 +472,7 @@ export function useResumeForm() {
 		latexText: realtimeLatexText,
 		errorMessage: realtimeErrorMessage,
 	} = useJobRealtime({
-		onRunning: () => {
-		},
+		onRunning: () => {},
 		onSuccess: (latex) => {
 			setGeneratedLatex(latex);
 			setIsAnalyzing(false);
@@ -657,8 +659,7 @@ export function useResumeForm() {
 	// Realtime subscription for export job (separate from preview job)
 	const { subscribe: subscribeToExportJob, status: exportJobStatus } =
 		useJobRealtime({
-			onRunning: () => {
-			},
+			onRunning: () => {},
 			onSuccess: async (latex) => {
 				setIsExporting(false);
 				setExportResult({ pdfUrl: "", latex }); // PDF URL will be set by job
@@ -687,7 +688,8 @@ export function useResumeForm() {
 				try {
 					const newId = await startNewSession();
 					setSessionId(newId);
-					setIsSessionLocked(false);				} catch (err) {
+					setIsSessionLocked(false);
+				} catch (err) {
 					console.error("Failed to auto-start new session:", err);
 				}
 
@@ -820,23 +822,14 @@ export function useResumeForm() {
 	]);
 
 	const resetAll = useCallback(() => {
-		setStep(0);
 		setMode("QUICK");
-		setJobDescription("");
-		setResumeFile(null);
-		setFocusPrompt("");
-		setAnalysis(null);
-		setExportResult(null);
-		setUploadedResume(null);
-		clearDraft();
-	}, []);
+		startFreshSession();
+	}, [startFreshSession]);
 
-	const handleCreateAnother = useCallback(async () => {
+	const handleCreateAnother = useCallback(() => {
 		setShowSuccessModal(false);
 		resetAll();
-		await startFreshSession();
-		toast.info("Started new session");
-	}, [resetAll, startFreshSession]);
+	}, [resetAll]);
 
 	return {
 		// Step state
