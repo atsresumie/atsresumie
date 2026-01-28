@@ -6,7 +6,7 @@ export default function DashboardPage() {
 					Dashboard
 				</h1>
 				<p className="mt-4 text-[rgba(233,221,199,0.75)]">
-					Your dashboard is coming soon. Here you'll be able to:
+					Your dashboard is coming soon. Here you&apos;ll be able to:
 				</p>
 				<ul className="mt-6 space-y-3 text-[rgba(233,221,199,0.75)]">
 					<li className="flex items-center gap-2">

@@ -7,7 +7,14 @@ type Draft = {
 	resumeText?: string;
 	resumeFileName?: string | null;
 	focusPrompt?: string;
-	analysis?: any;
+	analysis?: {
+		versionId: string;
+		atsScore: number;
+		breakdown: { label: string; value: number }[];
+		changes: string[];
+		missing: string[];
+		latexPreview: string;
+	} | null;
 };
 
 export function saveDraft(d: Draft) {

@@ -284,7 +284,7 @@ export async function generateLatexWithClaude(
 			default:
 				return {
 					success: false,
-					error: `Invalid mode: ${(inputs as any).mode}`,
+					error: `Invalid mode: ${(inputs as GenerationInputs).mode}`,
 				};
 		}
 
@@ -394,26 +394,31 @@ export interface ValidationResult {
 /**
  * Validate inputs for any mode. All modes require jdText + resumeText.
  */
-export function validateModeInputs(body: any): ValidationResult {
+export function validateModeInputs(
+	body: Record<string, unknown>,
+): ValidationResult {
 	const fieldErrors: Record<string, string> = {};
 
 	// Validate mode
 	const validModes = ["quick", "deep", "scratch"];
-	if (!body.mode || !validModes.includes(body.mode)) {
+	const mode = body.mode as string | undefined;
+	if (!mode || !validModes.includes(mode)) {
 		fieldErrors.mode = "Mode must be one of: quick, deep, scratch";
 	}
 
 	// Validate jdText
-	if (!body.jdText || typeof body.jdText !== "string") {
+	const jdText = body.jdText as string | undefined;
+	if (!jdText || typeof jdText !== "string") {
 		fieldErrors.jdText = "Job description is required";
-	} else if (body.jdText.trim().length < 50) {
+	} else if (jdText.trim().length < 50) {
 		fieldErrors.jdText = "Job description must be at least 50 characters";
 	}
 
 	// Validate resumeText
-	if (!body.resumeText || typeof body.resumeText !== "string") {
+	const resumeText = body.resumeText as string | undefined;
+	if (!resumeText || typeof resumeText !== "string") {
 		fieldErrors.resumeText = "Resume text is required";
-	} else if (body.resumeText.trim().length < 100) {
+	} else if (resumeText.trim().length < 100) {
 		fieldErrors.resumeText = "Resume text must be at least 100 characters";
 	}
 
@@ -424,9 +429,9 @@ export function validateModeInputs(body: any): ValidationResult {
 	return {
 		valid: true,
 		inputs: {
-			mode: body.mode as GenerationMode,
-			jdText: body.jdText.trim(),
-			resumeText: body.resumeText.trim(),
+			mode: (body.mode as GenerationMode) || "quick",
+			jdText: (body.jdText as string).trim(),
+			resumeText: (body.resumeText as string).trim(),
 		},
 	};
 }
@@ -435,7 +440,7 @@ export function validateModeInputs(body: any): ValidationResult {
 // LEGACY VALIDATION (for backward compatibility)
 // ============================================
 
-export function validateQuickModeInputs(body: any): {
+export function validateQuickModeInputs(body: Record<string, unknown>): {
 	valid: boolean;
 	error?: string;
 	inputs?: QuickModeInputs;
@@ -457,7 +462,7 @@ export function validateQuickModeInputs(body: any): {
 	};
 }
 
-export function validateDeepModeInputs(body: any): {
+export function validateDeepModeInputs(body: Record<string, unknown>): {
 	valid: boolean;
 	error?: string;
 	inputs?: DeepModeInputs;
@@ -479,7 +484,7 @@ export function validateDeepModeInputs(body: any): {
 	};
 }
 
-export function validateScratchModeInputs(body: any): {
+export function validateScratchModeInputs(body: Record<string, unknown>): {
 	valid: boolean;
 	error?: string;
 	inputs?: ScratchModeInputs;

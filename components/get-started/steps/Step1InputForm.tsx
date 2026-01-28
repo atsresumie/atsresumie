@@ -226,7 +226,7 @@ export default function Step1InputForm({
 					)}
 
 					<div className="mt-1 text-xs text-[rgba(233,221,199,0.55)]">
-						We'll extract text from your resume for analysis.
+						We&apos;ll extract text from your resume for analysis.
 					</div>
 				</div>
 
