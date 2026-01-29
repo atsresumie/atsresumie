@@ -4,18 +4,20 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-export type JobStatus = "pending" | "running" | "succeeded" | "failed";
+export type JobStatus = "queued" | "processing" | "succeeded" | "failed";
 
 interface JobPayload {
 	id: string;
 	status: JobStatus;
+	progress_stage: string | null;
 	latex_text: string | null;
 	pdf_url: string | null;
 	error_message: string | null;
 }
 
 export interface UseJobRealtimeOptions {
-	onRunning?: () => void;
+	onQueued?: () => void;
+	onProcessing?: (progressStage: string | null) => void;
 	onSuccess?: (latexText: string) => void;
 	onError?: (errorMessage: string) => void;
 }
@@ -23,6 +25,7 @@ export interface UseJobRealtimeOptions {
 export interface UseJobRealtimeReturn {
 	isSubscribed: boolean;
 	status: JobStatus | null;
+	progressStage: string | null;
 	latexText: string | null;
 	errorMessage: string | null;
 	subscribe: (jobId: string) => void;
@@ -35,7 +38,7 @@ export interface UseJobRealtimeReturn {
  *
  * Usage:
  * ```
- * const { subscribe, unsubscribe, status, latexText } = useJobRealtime({
+ * const { subscribe, unsubscribe, status, latexText, progressStage } = useJobRealtime({
  *   onSuccess: (latex) => setStep(2),
  *   onError: (msg) => toast.error(msg)
  * });
@@ -49,10 +52,11 @@ export interface UseJobRealtimeReturn {
 export function useJobRealtime(
 	options: UseJobRealtimeOptions = {},
 ): UseJobRealtimeReturn {
-	const { onRunning, onSuccess, onError } = options;
+	const { onQueued, onProcessing, onSuccess, onError } = options;
 
 	const [isSubscribed, setIsSubscribed] = useState(false);
 	const [status, setStatus] = useState<JobStatus | null>(null);
+	const [progressStage, setProgressStage] = useState<string | null>(null);
 	const [latexText, setLatexText] = useState<string | null>(null);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -60,15 +64,17 @@ export function useJobRealtime(
 	const jobIdRef = useRef<string | null>(null);
 
 	// Stable callback refs to avoid re-subscribing on option changes
-	const onRunningRef = useRef(onRunning);
+	const onQueuedRef = useRef(onQueued);
+	const onProcessingRef = useRef(onProcessing);
 	const onSuccessRef = useRef(onSuccess);
 	const onErrorRef = useRef(onError);
 
 	useEffect(() => {
-		onRunningRef.current = onRunning;
+		onQueuedRef.current = onQueued;
+		onProcessingRef.current = onProcessing;
 		onSuccessRef.current = onSuccess;
 		onErrorRef.current = onError;
-	}, [onRunning, onSuccess, onError]);
+	}, [onQueued, onProcessing, onSuccess, onError]);
 
 	const unsubscribe = useCallback(() => {
 		if (channelRef.current) {
@@ -86,7 +92,8 @@ export function useJobRealtime(
 			unsubscribe();
 
 			jobIdRef.current = jobId;
-			setStatus("pending");
+			setStatus("queued");
+			setProgressStage("queued");
 			setLatexText(null);
 			setErrorMessage(null);
 
@@ -108,12 +115,16 @@ export function useJobRealtime(
 						console.log(
 							`[Realtime] Job ${jobId} update:`,
 							job.status,
+							job.progress_stage,
 						);
 
 						setStatus(job.status);
+						setProgressStage(job.progress_stage);
 
-						if (job.status === "running") {
-							onRunningRef.current?.();
+						if (job.status === "queued") {
+							onQueuedRef.current?.();
+						} else if (job.status === "processing") {
+							onProcessingRef.current?.(job.progress_stage);
 						} else if (job.status === "succeeded") {
 							setLatexText(job.latex_text);
 							onSuccessRef.current?.(job.latex_text || "");
@@ -130,11 +141,11 @@ export function useJobRealtime(
 						}
 					},
 				)
-				.subscribe((status) => {
-					console.log(`[Realtime] Channel status: ${status}`);
-					if (status === "SUBSCRIBED") {
+				.subscribe((subStatus) => {
+					console.log(`[Realtime] Channel status: ${subStatus}`);
+					if (subStatus === "SUBSCRIBED") {
 						setIsSubscribed(true);
-					} else if (status === "CHANNEL_ERROR") {
+					} else if (subStatus === "CHANNEL_ERROR") {
 						console.error("[Realtime] Channel error");
 						setErrorMessage("Connection error. Please try again.");
 						onErrorRef.current?.(
@@ -149,7 +160,7 @@ export function useJobRealtime(
 			// Initial fetch to handle race conditions (e.g. job finished before subscription)
 			supabase
 				.from("generation_jobs")
-				.select("status, latex_text, error_message")
+				.select("status, progress_stage, latex_text, error_message")
 				.eq("id", jobId)
 				.single()
 				.then(({ data, error }) => {
@@ -158,12 +169,14 @@ export function useJobRealtime(
 					console.log(
 						`[Realtime] Initial fetch for ${jobId}:`,
 						data.status,
+						data.progress_stage,
 					);
 
 					// Only update if we're still checking this job
 					if (jobIdRef.current !== jobId) return;
 
 					setStatus(data.status as JobStatus);
+					setProgressStage(data.progress_stage);
 
 					if (data.status === "succeeded") {
 						setLatexText(data.latex_text);
@@ -176,8 +189,10 @@ export function useJobRealtime(
 						setErrorMessage(msg);
 						onErrorRef.current?.(msg);
 						unsubscribe();
-					} else if (data.status === "running") {
-						onRunningRef.current?.();
+					} else if (data.status === "processing") {
+						onProcessingRef.current?.(data.progress_stage);
+					} else if (data.status === "queued") {
+						onQueuedRef.current?.();
 					}
 				});
 		},
@@ -197,6 +212,7 @@ export function useJobRealtime(
 	return {
 		isSubscribed,
 		status,
+		progressStage,
 		latexText,
 		errorMessage,
 		subscribe,

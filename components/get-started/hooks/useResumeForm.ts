@@ -472,7 +472,7 @@ export function useResumeForm() {
 		latexText: realtimeLatexText,
 		errorMessage: realtimeErrorMessage,
 	} = useJobRealtime({
-		onRunning: () => {},
+		onProcessing: () => {},
 		onSuccess: (latex) => {
 			setGeneratedLatex(latex);
 			setIsAnalyzing(false);
@@ -659,7 +659,7 @@ export function useResumeForm() {
 	// Realtime subscription for export job (separate from preview job)
 	const { subscribe: subscribeToExportJob, status: exportJobStatus } =
 		useJobRealtime({
-			onRunning: () => {},
+			onProcessing: () => {},
 			onSuccess: async (latex) => {
 				setIsExporting(false);
 				setExportResult({ pdfUrl: "", latex }); // PDF URL will be set by job

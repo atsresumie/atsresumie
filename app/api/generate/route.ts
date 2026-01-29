@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { extractTextFromFile } from "@/lib/ats/extractText";
-import {
-	generateLatexWithClaude,
-	validateModeInputs,
-	GenerationMode,
-	UnifiedModeInputs,
-} from "@/lib/llm/claudeLatex";
+import type { GenerationMode } from "@/lib/llm/claudeLatex";
 
 /**
  * Extract resume text from Supabase Storage
@@ -39,103 +34,42 @@ async function getResumeText(
 }
 
 /**
- * Process a generation job with Claude LaTeX generation.
- * Mode controls which system prompt and user template are used.
+ * Best-effort kick to Edge Function worker (fire-and-forget with timeout)
  */
-async function processJob(
-	jobId: string,
-	userId: string,
-	jdText: string,
-	resumeText: string,
-	mode: GenerationMode,
-) {
-	const supabase = supabaseAdmin();
+async function kickWorker(jobId: string): Promise<void> {
+	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+	const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+	if (!supabaseUrl || !serviceKey) {
+		console.warn("[Generate] Missing env vars for worker kick");
+		return;
+	}
+
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
 	try {
-		// 1. Set status to 'running'
-		await supabase.rpc("update_job_status", {
-			p_job_id: jobId,
-			p_status: "running",
-		});
-
-		// 2. Build unified inputs for Claude (all modes use same structure)
-		const inputs: UnifiedModeInputs = {
-			mode,
-			jdText,
-			resumeText,
-		};
-
-		// 3. Generate LaTeX using Claude with mode-specific prompts
-		console.log(
-			`[Job ${jobId}] Starting Claude LaTeX generation (mode: ${mode})`,
-		);
-		const result = await generateLatexWithClaude(inputs);
-
-		if (!result.success || !result.latex) {
-			// Generation failed - mark job as failed, DO NOT decrement credits
-			console.error(
-				`[Job ${jobId}] Claude generation failed:`,
-				result.error,
-			);
-			await supabase.rpc("update_job_status", {
-				p_job_id: jobId,
-				p_status: "failed",
-				p_error_message:
-					result.error ||
-					"Resume generation failed. Please try again.",
-			});
-			return;
-		}
-
-		console.log(
-			`[Job ${jobId}] LaTeX generation successful (${result.latex.length} chars, mode: ${mode})`,
-		);
-
-		// 4. Decrement credit ONLY on success (using admin RPC with explicit user_id)
-		const { error: creditError } = await supabase.rpc(
-			"adjust_credits_for_user",
+		const response = await fetch(
+			`${supabaseUrl}/functions/v1/process-generation-job`,
 			{
-				p_user_id: userId,
-				p_delta: -1,
-				p_reason: "generation",
-				p_source: "system",
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${serviceKey}`,
+				},
+				body: JSON.stringify({ jobId }),
+				signal: controller.signal,
 			},
 		);
-
-		if (creditError) {
-			// Credit decrement failed - mark job as failed
-			console.error(
-				`[Job ${jobId}] Credit decrement failed:`,
-				creditError,
-			);
-			await supabase.rpc("update_job_status", {
-				p_job_id: jobId,
-				p_status: "failed",
-				p_error_message: "Credit processing failed. Please try again.",
-			});
-			return;
-		}
-
-		// 5. Mark job as succeeded with LaTeX output
-		await supabase.rpc("update_job_status", {
-			p_job_id: jobId,
-			p_status: "succeeded",
-			p_latex_text: result.latex,
-			p_pdf_url: null,
-		});
-
-		console.log(
-			`[Job ${jobId}] Job completed successfully (mode: ${mode})`,
-		);
+		clearTimeout(timeoutId);
+		console.log(`[Generate] Worker kick response: ${response.status}`);
 	} catch (error) {
-		console.error(`[Job ${jobId}] Job processing failed:`, error);
-
-		// Mark job as failed - DO NOT decrement credits
-		await supabase.rpc("update_job_status", {
-			p_job_id: jobId,
-			p_status: "failed",
-			p_error_message: "Generation failed. Please try again.",
-		});
+		clearTimeout(timeoutId);
+		// Best-effort - ignore failures, cron will pick up the job
+		console.warn(
+			"[Generate] Worker kick failed (will retry via cron):",
+			error,
+		);
 	}
 }
 
@@ -177,7 +111,12 @@ export async function POST(req: Request) {
 
 		// 3. Parse request body
 		const body = await req.json();
-		const { jdText, resumeObjectPath, focusPrompt } = body;
+		const {
+			jdText,
+			resumeObjectPath,
+			resumeText: providedResumeText,
+			focusPrompt,
+		} = body;
 		const mode: GenerationMode = body.mode || "quick";
 
 		// 4. Validate mode is valid
@@ -204,8 +143,9 @@ export async function POST(req: Request) {
 				"Job description must be at least 50 characters";
 		}
 
-		if (!resumeObjectPath || typeof resumeObjectPath !== "string") {
-			fieldErrors.resumeObjectPath = "Resume is required";
+		// Need either resumeText directly OR resumeObjectPath to extract from
+		if (!providedResumeText && !resumeObjectPath) {
+			fieldErrors.resumeText = "Resume is required";
 		}
 
 		if (Object.keys(fieldErrors).length > 0) {
@@ -215,45 +155,66 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// 6. Extract resume text from storage
+		// 6. Get resume text (from provided text or extract from storage)
 		let resumeText: string;
-		try {
-			resumeText = await getResumeText(resumeObjectPath);
-			console.log(
-				`Extracted resume text (${resumeText.length} chars) from ${resumeObjectPath}`,
-			);
+		if (
+			providedResumeText &&
+			typeof providedResumeText === "string" &&
+			providedResumeText.trim().length >= 100
+		) {
+			resumeText = providedResumeText;
+		} else if (resumeObjectPath) {
+			try {
+				resumeText = await getResumeText(resumeObjectPath);
+				console.log(
+					`Extracted resume text (${resumeText.length} chars) from ${resumeObjectPath}`,
+				);
 
-			// Validate resumeText length
-			if (resumeText.trim().length < 100) {
-				return NextResponse.json(
-					{
-						error: "Validation failed",
-						fieldErrors: {
-							resumeText:
-								"Resume content is too short. Please upload a valid resume.",
+				// Validate resumeText length
+				if (resumeText.trim().length < 100) {
+					return NextResponse.json(
+						{
+							error: "Validation failed",
+							fieldErrors: {
+								resumeText:
+									"Resume content is too short. Please upload a valid resume.",
+							},
 						},
-					},
-					{ status: 400 },
+						{ status: 400 },
+					);
+				}
+			} catch (err) {
+				console.error("Failed to extract resume text:", err);
+				return NextResponse.json(
+					{ error: "Failed to read resume file" },
+					{ status: 500 },
 				);
 			}
-		} catch (err) {
-			console.error("Failed to extract resume text:", err);
+		} else {
 			return NextResponse.json(
-				{ error: "Failed to read resume file" },
-				{ status: 500 },
+				{
+					error: "Validation failed",
+					fieldErrors: {
+						resumeText:
+							"Resume text is too short (minimum 100 characters)",
+					},
+				},
+				{ status: 400 },
 			);
 		}
 
-		// 7. Create job with status='pending' and mode
+		// 7. Create job with status='queued' (enqueue-only, no processing here)
 		const { data: job, error: insertError } = await supabase
 			.from("generation_jobs")
 			.insert({
 				user_id: user.id,
 				jd_text: jdText,
-				resume_object_path: resumeObjectPath,
+				resume_text: resumeText,
+				resume_object_path: resumeObjectPath || null,
 				focus_prompt: focusPrompt || null,
-				status: "pending",
-				// Note: If you want to store mode in DB, add a 'mode' column
+				mode: mode,
+				status: "queued",
+				progress_stage: "queued",
 			})
 			.select("id")
 			.single();
@@ -266,12 +227,15 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// 8. Start processing asynchronously with the selected mode
-		await processJob(job.id, user.id, jdText, resumeText, mode).catch(
-			(err) => {
-				console.error("Background job processing error:", err);
-			},
+		console.log(
+			`[Generate] Created job ${job.id} with status=queued, mode=${mode}`,
 		);
+
+		// 8. Best-effort kick to Edge Function (non-blocking)
+		// Don't await - let it run in background, response returns immediately
+		kickWorker(job.id).catch((err) => {
+			console.warn("[Generate] Background kick error:", err);
+		});
 
 		// 9. Return jobId immediately
 		return NextResponse.json({ jobId: job.id });
