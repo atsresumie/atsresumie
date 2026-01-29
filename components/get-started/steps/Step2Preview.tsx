@@ -152,7 +152,7 @@ export default function Step2Preview({
 					className="inline-flex w-full items-center justify-center rounded-xl bg-[#E9DDC7] px-4 py-3 text-sm font-medium text-[#2a1e18] shadow-[0_10px_30px_rgba(233,221,199,0.12)] hover:-translate-y-px hover:shadow-[0_16px_40px_rgba(233,221,199,0.16)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
 				>
 					<Download className="mr-2 h-4 w-4" />
-					{isExporting ? "Exporting…" : "Download PDF (1 credit)"}
+					{isExporting ? "Exporting…" : "Download PDF"}
 				</button>
 			</div>
 

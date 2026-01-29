@@ -1,10 +1,29 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { RotateCcw, User, LogOut, Coins } from "lucide-react";
+import {
+	RotateCcw,
+	LogOut,
+	Coins,
+	CreditCard,
+	ArrowUpCircle,
+	HelpCircle,
+	LayoutDashboard,
+} from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredits } from "@/hooks/useCredits";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TopNavProps {
 	onReset: () => void;
@@ -137,41 +156,112 @@ export default function TopNav({ onReset }: TopNavProps) {
 
 				{!isAuthenticated && (
 					<div className="rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-1 text-xs">
-						Preview free • Export uses credits
+						Preview (1 Credit) • Export free
 					</div>
 				)}
 
 				{/* User Menu */}
 				{isAuthenticated && (
-					<div className="relative z-50" ref={menuRef}>
-						<button
-							onClick={() => setShowMenu(!showMenu)}
-							className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] hover:bg-[rgba(233,221,199,0.12)] transition-colors"
-							title={user?.email || "Account"}
-						>
-							<User className="h-4 w-4" />
-						</button>
-
-						{showMenu && (
-							<div className="absolute right-0 top-full mt-2 w-48 z-50 rounded-xl border border-[rgba(233,221,199,0.15)] bg-[#1a120e] shadow-xl overflow-hidden">
-								<div className="px-4 py-3 border-b border-[rgba(233,221,199,0.1)]">
-									<p className="text-xs text-[rgba(233,221,199,0.6)]">
-										Signed in as
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<motion.button
+								className="rounded-full focus:outline-none focus:ring-2 focus:ring-[rgba(233,221,199,0.3)] focus:ring-offset-2 focus:ring-offset-[#1a120e]"
+								whileHover={{ scale: 1.05 }}
+								whileTap={{ scale: 0.95 }}
+								aria-label="User menu"
+							>
+								<Avatar className="h-9 w-9 cursor-pointer border-2 border-[rgba(233,221,199,0.15)] hover:border-[rgba(233,221,199,0.3)] transition-colors">
+									{user?.user_metadata?.avatar_url && (
+										<AvatarImage
+											src={user.user_metadata.avatar_url}
+											alt="User avatar"
+										/>
+									)}
+									<AvatarFallback className="bg-[rgba(233,221,199,0.1)] text-[#E9DDC7] text-sm font-medium">
+										{user?.email?.charAt(0).toUpperCase() ||
+											"U"}
+									</AvatarFallback>
+								</Avatar>
+							</motion.button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end" className="w-56">
+							{/* User Email */}
+							<DropdownMenuLabel className="font-normal">
+								<div className="flex flex-col space-y-1">
+									<p className="text-sm font-medium leading-none">
+										Account
 									</p>
-									<p className="text-sm truncate">
+									<p className="text-xs leading-none text-muted-foreground truncate">
 										{user?.email}
 									</p>
 								</div>
-								<button
-									onClick={handleSignOut}
-									className="flex w-full items-center gap-2 px-4 py-3 text-sm hover:bg-[rgba(233,221,199,0.06)] transition-colors"
-								>
-									<LogOut className="h-4 w-4" />
-									Sign out
-								</button>
+							</DropdownMenuLabel>
+
+							<DropdownMenuSeparator />
+
+							{/* Credits */}
+							<div className="px-2 py-1.5">
+								<div className="flex items-center justify-between">
+									<div className="flex items-center gap-2 text-sm">
+										<CreditCard
+											size={14}
+											className="text-muted-foreground"
+										/>
+										<span>Credits remaining</span>
+									</div>
+									<span className="text-sm font-medium">
+										<span
+											className={
+												credits === 0
+													? "text-destructive"
+													: credits !== null &&
+														  credits <= 1
+														? "text-yellow-500"
+														: ""
+											}
+										>
+											{credits ?? "—"}
+										</span>
+									</span>
+								</div>
 							</div>
-						)}
-					</div>
+
+							<DropdownMenuSeparator />
+
+							{/* Upgrade */}
+							<DropdownMenuItem
+								onClick={() => {
+									window.location.href = "/#pricing";
+								}}
+								className="cursor-pointer"
+							>
+								<ArrowUpCircle size={16} className="mr-2" />
+								Upgrade
+							</DropdownMenuItem>
+
+							{/* Support */}
+							<DropdownMenuItem
+								asChild
+								className="cursor-pointer"
+							>
+								<a href="mailto:support@atsresumie.com">
+									<HelpCircle size={16} className="mr-2" />
+									Support
+								</a>
+							</DropdownMenuItem>
+
+							<DropdownMenuSeparator />
+
+							{/* Logout */}
+							<DropdownMenuItem
+								onClick={handleSignOut}
+								className="cursor-pointer text-destructive focus:text-destructive"
+							>
+								<LogOut size={16} className="mr-2" />
+								Log out
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				)}
 			</div>
 		</div>

@@ -29,8 +29,8 @@ export default function SidePanel() {
 					Credits
 				</div>
 				<div className="mt-1 text-lg font-semibold">3 free credits</div>
-				<div className="mt-1 text-xs text-[rgba(233,221,199,0.6)]">
-					Preview is free. Download uses 1 credit.
+				<div className="mt-1 text-xs" style={{ color: "#FFA726" }}>
+					Preview costs 1 credit. Download is free.
 				</div>
 			</div>
 

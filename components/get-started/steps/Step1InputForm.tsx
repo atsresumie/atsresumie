@@ -249,8 +249,8 @@ export default function Step1InputForm({
 				onAnalyze={onAnalyze}
 			/>
 
-			<p className="text-xs text-[rgba(233,221,199,0.55)]">
-				Preview is free. Export to PDF uses credits after signup.
+			<p className="text-xs" style={{ color: "#FFA726" }}>
+				Preview costs 1 credit. Export to PDF is free after signup.
 			</p>
 		</section>
 	);

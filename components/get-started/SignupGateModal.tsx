@@ -91,8 +91,11 @@ export default function SignupGateModal({
 								</button>
 							</div>
 
-							<div className="mt-3 text-xs text-[rgba(233,221,199,0.55)]">
-								Preview is free • Export uses credits • LaTeX
+							<div
+								className="mt-3 text-xs"
+								style={{ color: "#FFA726" }}
+							>
+								Preview (1 Credit) • Export free • LaTeX
 								included
 							</div>
 						</motion.div>

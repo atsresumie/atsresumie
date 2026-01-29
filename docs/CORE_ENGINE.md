@@ -610,18 +610,6 @@ Frontend receives 'succeeded' → onSuccess callback → dispatch credits:refres
 TopNav listener → refetchCredits() → UI updates with new balance
 ```
 
----
-
-## Next Task (fixes and improvements)
-
-- Use a proper Job Queue for PDF generation instead of using vercel edge functions. Either use Supabase Edge Functions.
-
-- If there is compilation error, implement a feature to re-do the analysis with the same prev credit, no extra deduction because of latex compilation failure. (!important)
-
-- After fininshing this task, we will focus on the Dashboard page.
-
----
-
 ## Header Auth Controls System (2026-01-29)
 
 ### Overview
@@ -682,3 +670,67 @@ export function HeaderAuthControls({ onOpenAuthModal }: Props) {
 
 - **Hydration**: Uses `useAuth` loading state to prevent hydration mismatches. Shows Skeleton during initial load.
 - **Realtime Credits**: The dropdown uses the existing `useCredits` hook which subscribes to `user_profiles` changes, ensuring the credit count in the header is always in sync with the generation process.
+
+## UI Credit Model Update & Profile Dropdown Unification (2026-01-29)
+
+### Overview
+
+Updated the credit model text across the entire UI to reflect the correct business logic and unified the profile dropdown between the home page and get-started page.
+
+### Credit Model Change
+
+| Action                  | Before         | After              |
+| ----------------------- | -------------- | ------------------ |
+| **Preview/Analyze**     | Free           | **Costs 1 Credit** |
+| **Export/Download PDF** | Costs 1 Credit | **Free**           |
+
+### Files Modified
+
+| File                                                        | Change                                                                |
+| ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `components/get-started/steps/components/ActionButtons.tsx` | Button text: "Analyze & Preview" → **"Analyze & Preview (1 Credit)"** |
+| `components/get-started/steps/Step2Preview.tsx`             | Button text: "Download PDF (1 credit)" → "Download PDF"               |
+| `components/get-started/steps/Step1InputForm.tsx`           | Info text updated + **yellow-orange (#FFA726) highlighting**          |
+| `components/get-started/SidePanel.tsx`                      | Credit text updated + **yellow-orange highlighting**                  |
+| `components/get-started/TopNav.tsx`                         | Badge: "Preview (1 Credit) • Export free" + **unified dropdown**      |
+| `components/get-started/SignupGateModal.tsx`                | Text updated + **yellow-orange highlighting**                         |
+| `components/landing/CTA.tsx`                                | "Preview (1 Credit) • Export free • LaTeX included"                   |
+| `components/landing/FAQ.tsx`                                | Updated FAQ answer about credit costs                                 |
+| `components/landing/Pricing.tsx`                            | Features: "Preview uses 1 credit" / "Export is free"                  |
+
+### Profile Dropdown Unification
+
+`TopNav.tsx` now uses the same `DropdownMenu` and `Avatar` components as `HeaderAuthControls.tsx`:
+
+**Before:**
+
+- Simple `User` icon button with custom dropdown
+- Basic email display + sign out only
+
+**After:**
+
+- `Avatar` with user initials or Google profile photo
+- `DropdownMenu` with full features:
+    - Account info (email)
+    - Credits remaining (with color indicators)
+    - Upgrade button
+    - Support link
+    - Log out button
+
+### Visual Highlighting
+
+Key credit information now uses **yellow-orange (#FFA726)** color for visibility:
+
+- Step1InputForm credit text
+- SidePanel credit text
+- SignupGateModal credit text
+
+---
+
+## Next Task (fixes and improvements)
+
+- If there is compilation error, implement a feature to re-do the analysis with the same prev credit, no extra deduction because of latex compilation failure. (!important)
+
+- After fininshing this task, we will focus on the Dashboard page.
+
+_Last updated on \_2026-01-29_

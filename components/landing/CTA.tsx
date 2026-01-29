@@ -88,7 +88,7 @@ export const CTA = () => {
 						transition={{ delay: 0.4 }}
 						className="text-sm text-muted-foreground"
 					>
-						Preview free • Export with credits • LaTeX included
+						Preview (1 Credit) • Export free • LaTeX included
 					</motion.p>
 				</motion.div>
 			</div>
