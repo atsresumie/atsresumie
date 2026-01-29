@@ -578,6 +578,40 @@ Return signed URL (10 min expiry)
     - Checks `pdf_object_path` before compiling
     - If exists → generates fresh signed URL immediately (no recompile)
 
+---
+
+## Credit Deduction Fix (2026-01-28)
+
+### Problem
+
+Credits were not being deducted after successful LaTeX generation. The `complete_job` RPC only updated job status but did not call `adjust_credits_for_user`.
+
+### Solution
+
+1. **Edge Function Update** (`supabase/functions/process-generation-job/index.ts`):
+    - Added call to `adjust_credits_for_user` RPC after successful `complete_job`
+    - Deducts 1 credit with reason `"generation"` and source `"edge_function"`
+    - Non-blocking: logs error but doesn't fail job if credit deduction fails
+
+2. **UI Credit Refresh** (`components/get-started/TopNav.tsx`):
+    - Added listener for custom `credits:refresh` event
+    - Calls `refetch()` from `useCredits` hook when event is received
+
+3. **Event Dispatch** (`components/get-started/hooks/useResumeForm.ts`):
+    - Dispatches `credits:refresh` CustomEvent in `onSuccess` callback after job succeeds
+
+### Flow
+
+```
+Job succeeds → complete_job RPC → adjust_credits_for_user(-1) → Realtime push
+                                                                      ↓
+Frontend receives 'succeeded' → onSuccess callback → dispatch credits:refresh
+                                                                      ↓
+TopNav listener → refetchCredits() → UI updates with new balance
+```
+
+---
+
 ## Next Task (fixes and improvements)
 
 - Use a proper Job Queue for PDF generation instead of using vercel edge functions. Either use Supabase Edge Functions.

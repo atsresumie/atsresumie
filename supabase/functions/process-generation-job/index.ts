@@ -765,7 +765,31 @@ Deno.serve(async (req) => {
 			p_latex_text: result.latex,
 		});
 
-		// 8. BACKGROUND: Generate PDF (Improve UX)
+		// 8. DEDUCT CREDIT on successful generation
+		console.log(`[Worker] Deducting 1 credit for user ${job.user_id}`);
+		const { data: newBalance, error: creditError } = await supabase.rpc(
+			"adjust_credits_for_user",
+			{
+				p_user_id: job.user_id,
+				p_delta: -1,
+				p_reason: "generation",
+				p_source: "edge_function",
+			},
+		);
+
+		if (creditError) {
+			// Log but don't fail the job - credits are secondary
+			console.error(
+				`[Worker] Failed to deduct credit for user ${job.user_id}:`,
+				creditError.message,
+			);
+		} else {
+			console.log(
+				`[Worker] Credit deducted. User ${job.user_id} new balance: ${newBalance}`,
+			);
+		}
+
+		// 9. BACKGROUND: Generate PDF (Improve UX)
 		// We deliberately do this AFTER marking succeeded so the user sees preview immediately
 		console.log(
 			`[Worker] Starting background PDF generation for ${job.id}`,

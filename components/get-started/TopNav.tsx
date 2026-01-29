@@ -12,9 +12,22 @@ interface TopNavProps {
 
 export default function TopNav({ onReset }: TopNavProps) {
 	const { user, isAuthenticated, signOut } = useAuth();
-	const { credits } = useCredits();
+	const { credits, refetch: refetchCredits } = useCredits();
 	const [showMenu, setShowMenu] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
+
+	// Listen for custom event to refresh credits (fired after successful job)
+	useEffect(() => {
+		const handleCreditsRefresh = () => {
+			console.log("[TopNav] Refreshing credits after job success");
+			refetchCredits();
+		};
+
+		window.addEventListener("credits:refresh", handleCreditsRefresh);
+		return () => {
+			window.removeEventListener("credits:refresh", handleCreditsRefresh);
+		};
+	}, [refetchCredits]);
 
 	// Close menu when clicking outside
 	useEffect(() => {
