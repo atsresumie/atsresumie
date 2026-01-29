@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:local": "act -j ci"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

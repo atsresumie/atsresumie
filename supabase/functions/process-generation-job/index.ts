@@ -517,7 +517,7 @@ async function generateAndUploadPDF(
 	jobId: string,
 	userId: string,
 	latexText: string,
-	supabase: any,
+	supabase: ReturnType<typeof createClient>,
 ): Promise<string | null> {
 	if (latexText.length > MAX_LATEX_LENGTH) {
 		console.warn(
