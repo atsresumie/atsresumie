@@ -221,6 +221,31 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 ---
 
+### 2026-01-29: Auth Gate for Preview & Analyze
+
+**Feature**: Gate the "Preview & Analyze" action behind authentication. Unauthenticated users now must sign in before generating a resume preview.
+
+**Changes**:
+
+- **`useResumeForm.ts`**:
+    - Added auth check at the start of `runAnalyze` function
+    - Shows toast warning: "Sign in required - Please sign in to preview and generate your resume."
+    - Opens `SignupGateModal` when unauthenticated
+
+- **`SignupGateModal.tsx`**:
+    - Updated modal title from "Create an account to download" → "Create an account to continue"
+    - Updated description to be more generic (works for both preview and export)
+
+**User Flow**:
+
+1. Unauthenticated user fills JD + uploads resume
+2. Clicks "Preview & Analyze"
+3. Toast appears: "Sign in required"
+4. Signup modal opens
+5. After successful auth, user can run analysis
+
+---
+
 ## Next Task
 
 - Claude API integration (real generation)

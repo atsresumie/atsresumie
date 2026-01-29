@@ -491,11 +491,24 @@ export function useResumeForm() {
 		},
 	});
 
+	// Use real auth state from useAuth hook
+	const { isAuthenticated } = useAuth();
+
 	// Ref to track if analyze request has been cancelled/timed out
 	const analyzeAbortRef = useRef<AbortController | null>(null);
 	const analyzeTimedOutRef = useRef(false);
 
 	const runAnalyze = useCallback(async () => {
+		// Gate preview behind login
+		if (!isAuthenticated) {
+			toast.warning("Sign in required", {
+				description:
+					"Please sign in to preview and generate your resume.",
+			});
+			setShowGate(true);
+			return;
+		}
+
 		// Check if we have a resume - either fresh upload or from server
 		if (!resumeFile && !uploadedResume) {
 			toast.warning("Resume file required", {
@@ -643,6 +656,7 @@ export function useResumeForm() {
 		}
 		// Note: setIsAnalyzing(false) is handled by Realtime callbacks
 	}, [
+		isAuthenticated,
 		mode,
 		jobDescription,
 		resumeFile,
@@ -654,8 +668,7 @@ export function useResumeForm() {
 		subscribeToJob,
 	]);
 
-	// Use real auth state from useAuth hook
-	const { isAuthenticated } = useAuth();
+	// Note: isAuthenticated is obtained from useAuth() hook above runAnalyze
 
 	// Realtime subscription for export job (separate from preview job)
 	const { subscribe: subscribeToExportJob, status: exportJobStatus } =
