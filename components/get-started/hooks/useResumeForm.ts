@@ -480,8 +480,7 @@ export function useResumeForm() {
 			toast.success("Resume generated!", {
 				description: "Your tailored resume is ready for preview.",
 			});
-			// Trigger credit refresh in TopNav
-			window.dispatchEvent(new CustomEvent("credits:refresh"));
+			// Credits now update automatically via Supabase Realtime subscription
 		},
 		onError: (msg) => {
 			console.error("[Realtime] Job failed:", msg);

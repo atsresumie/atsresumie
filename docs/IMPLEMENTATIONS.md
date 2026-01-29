@@ -252,4 +252,31 @@ Users can start using the app without signing up. Session is tracked via `ats_on
 
 ---
 
+### Realtime Credit Updates (2026-01-28)
+
+**Purpose:** Ensure user credits update instantly in the UI when deducted on the server, without requiring page refresh.
+
+**Problem:**
+Previously, credits were fetched only on mount. When the Edge Function deducted credits after job completion, the UI was stale until a manual refresh.
+
+**Solution:**
+
+1. **Edge Function:** `process-generation-job` now calls `adjust_credits_for_user` RPC immediately after successful generation.
+2. **Realtime Hook:** `useCredits` was rewritten to subscribe to Supabase Realtime changes on the `user_profiles` table.
+3. **UI Animation:** Added `TopNav` visual effects (floating "-1", pulse ring) that trigger automatically when the credit count decreases.
+
+**Technical Flow:**
+
+```
+Edge Function (Deduct) → Postgres (Update) → Supabase Realtime → Client Subscription → UI Update + Animation
+```
+
+**Key Files:**
+
+- `hooks/useCredits.ts`: Added Realtime subscription
+- `components/get-started/TopNav.tsx`: Added deduction animation logic
+- `supabase/functions/process-generation-job/index.ts`: Added credit deduction logic
+
+---
+
 _Last updated: 2026-01-28_
