@@ -619,3 +619,66 @@ TopNav listener → refetchCredits() → UI updates with new balance
 - If there is compilation error, implement a feature to re-do the analysis with the same prev credit, no extra deduction because of latex compilation failure. (!important)
 
 - After fininshing this task, we will focus on the Dashboard page.
+
+---
+
+## Header Auth Controls System (2026-01-29)
+
+### Overview
+
+Implemented a shared, Supabase-style authentication header component (`HeaderAuthControls`) that handles both authenticated and unauthenticated states with a premium UI feel.
+
+### Features
+
+#### Authenticated State
+
+- **Dashboard Button**: Primary button linking to `/dashboard`. Automatically switches to outline/disabled state when already on the dashboard to prevent redundant navigation.
+- **Avatar Dropdown**:
+    - Displays user avatar (from Google OAuth) or initials fallback
+    - **Account Info**: Shows user email
+    - **Credits Display**: Live-updating credits count via `useCredits` hook (Realtime)
+    - **Quick Actions**:
+        - Upgrade (scrolls to pricing)
+        - Support (mailto link)
+        - Logout (clears session and redirects to home)
+
+#### Unauthenticated State
+
+- **Sign In**: Text button opening the existing `AuthModal`
+- **Get Started**: Primary action button linking to `/get-started`
+
+### Component Architecture
+
+```typescript
+// components/landing/HeaderAuthControls.tsx
+
+export function HeaderAuthControls({ onOpenAuthModal }: Props) {
+  // Hooks
+  const { user, isAuthenticated } = useAuth();
+  const { credits } = useCredits(); // Realtime updates via Supabase
+  const pathname = usePathname();
+
+  if (isLoading) return <Skeleton />;
+
+  if (!isAuthenticated) {
+    return <UnauthView onSignIn={() => onOpenAuthModal('signin')} />;
+  }
+
+  return (
+    <div className="flex gap-3">
+      <DashboardButton active={pathname === '/dashboard'} />
+      <AvatarDropdown user={user} credits={credits} />
+    </div>
+  );
+}
+```
+
+### Integration
+
+1. **Navbar (`components/landing/Navbar.tsx`)**: Replaced inline auth buttons with `<HeaderAuthControls />`.
+2. **Mobile Menu**: Kept separate implementation for better mobile UX but verified consistent behavior.
+
+### Critical Considerations
+
+- **Hydration**: Uses `useAuth` loading state to prevent hydration mismatches. Shows Skeleton during initial load.
+- **Realtime Credits**: The dropdown uses the existing `useCredits` hook which subscribes to `user_profiles` changes, ensuring the credit count in the header is always in sync with the generation process.

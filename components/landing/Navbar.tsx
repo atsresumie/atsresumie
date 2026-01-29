@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Menu, X, LogOut, User } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/auth/AuthModal";
+import { HeaderAuthControls } from "./HeaderAuthControls";
 
 const navLinks = [
 	{ label: "Pricing", href: "#pricing" },
@@ -16,19 +17,21 @@ const navLinks = [
 export const Navbar = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [showAuthModal, setShowAuthModal] = useState(false);
-	const [authModalTab, setAuthModalTab] = useState<"signin" | "signup">("signin");
+	const [authModalTab, setAuthModalTab] = useState<"signin" | "signup">(
+		"signin",
+	);
 	const { user, isAuthenticated, isLoading, signOut } = useAuth();
 
 	const { scrollY } = useScroll();
 	const backgroundColor = useTransform(
 		scrollY,
 		[0, 100],
-		["hsla(24, 28%, 12%, 0)", "hsla(24, 28%, 12%, 0.95)"]
+		["hsla(24, 28%, 12%, 0)", "hsla(24, 28%, 12%, 0.95)"],
 	);
 	const backdropBlur = useTransform(
 		scrollY,
 		[0, 100],
-		["blur(0px)", "blur(12px)"]
+		["blur(0px)", "blur(12px)"],
 	);
 
 	useEffect(() => {
@@ -97,58 +100,13 @@ export const Navbar = () => {
 								</motion.button>
 							))}
 
-							{/* Auth Buttons */}
-							{!isLoading && (
-								<>
-									{isAuthenticated ? (
-										<div className="flex items-center gap-3">
-											<div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(233,221,199,0.08)]">
-												<User size={16} className="text-muted-foreground" />
-												<span className="text-sm text-foreground max-w-[120px] truncate">
-													{user?.email?.split("@")[0]}
-												</span>
-											</div>
-											<motion.button
-												onClick={handleSignOut}
-												className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-												whileHover={{ y: -1 }}
-												whileTap={{ y: 0 }}
-											>
-												<LogOut size={16} />
-												Sign out
-											</motion.button>
-										</div>
-									) : (
-										<>
-											<motion.button
-												onClick={openSignIn}
-												className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-												whileHover={{ y: -1 }}
-												whileTap={{ y: 0 }}
-											>
-												Sign in
-											</motion.button>
-											<motion.button
-												onClick={openSignUp}
-												className="px-4 py-2 bg-[rgba(233,221,199,0.1)] text-foreground font-medium text-sm rounded-xl border border-[rgba(233,221,199,0.15)] hover:bg-[rgba(233,221,199,0.15)] transition-all"
-												whileHover={{ scale: 1.02, y: -1 }}
-												whileTap={{ scale: 0.98 }}
-											>
-												Sign up
-											</motion.button>
-										</>
-									)}
-								</>
-							)}
-
-							<motion.button
-								onClick={() => scrollToSection("#start")}
-								className="px-5 py-2.5 bg-secondary text-secondary-foreground font-medium text-sm rounded-xl shadow-soft hover:shadow-glow transition-all"
-								whileHover={{ scale: 1.02, y: -1 }}
-								whileTap={{ scale: 0.98 }}
-							>
-								<Link href="/get-started">Get Started</Link>
-							</motion.button>
+							{/* Auth Controls */}
+							<HeaderAuthControls
+								onOpenAuthModal={(tab) => {
+									setAuthModalTab(tab);
+									setShowAuthModal(true);
+								}}
+							/>
 						</div>
 
 						{/* Mobile Menu Button */}
@@ -186,7 +144,7 @@ export const Navbar = () => {
 											opacity: 1,
 											y: 0,
 											transition: { delay: i * 0.1 },
-									  }
+										}
 									: { opacity: 0, y: 20 }
 							}
 						>
@@ -204,7 +162,11 @@ export const Navbar = () => {
 									initial={{ opacity: 0, y: 20 }}
 									animate={
 										isOpen
-											? { opacity: 1, y: 0, transition: { delay: 0.3 } }
+											? {
+													opacity: 1,
+													y: 0,
+													transition: { delay: 0.3 },
+												}
 											: { opacity: 0, y: 20 }
 									}
 								>
@@ -219,7 +181,13 @@ export const Navbar = () => {
 										initial={{ opacity: 0, y: 20 }}
 										animate={
 											isOpen
-												? { opacity: 1, y: 0, transition: { delay: 0.3 } }
+												? {
+														opacity: 1,
+														y: 0,
+														transition: {
+															delay: 0.3,
+														},
+													}
 												: { opacity: 0, y: 20 }
 										}
 									>
@@ -231,7 +199,13 @@ export const Navbar = () => {
 										initial={{ opacity: 0, y: 20 }}
 										animate={
 											isOpen
-												? { opacity: 1, y: 0, transition: { delay: 0.35 } }
+												? {
+														opacity: 1,
+														y: 0,
+														transition: {
+															delay: 0.35,
+														},
+													}
 												: { opacity: 0, y: 20 }
 										}
 									>
@@ -252,7 +226,7 @@ export const Navbar = () => {
 										opacity: 1,
 										y: 0,
 										transition: { delay: 0.4 },
-								  }
+									}
 								: { opacity: 0, y: 20 }
 						}
 					>
@@ -270,4 +244,3 @@ export const Navbar = () => {
 		</>
 	);
 };
-

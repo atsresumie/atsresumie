@@ -246,6 +246,35 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 ---
 
+### 2026-01-29: Header Auth Controls (Supabase-Style)
+
+**Feature**: Supabase-style header with Dashboard button and profile avatar dropdown.
+
+**New Files:**
+
+- `components/landing/HeaderAuthControls.tsx` - Auth controls component
+
+**Modified Files:**
+
+- `components/landing/Navbar.tsx` - Integrated HeaderAuthControls
+
+**Authenticated State:**
+
+- Dashboard button (primary, outline when on /dashboard)
+- Avatar dropdown with:
+    - User email label
+    - Credits remaining (via `useCredits()` hook)
+    - Upgrade → scrolls to #pricing
+    - Support → mailto:support@atsresumie.com
+    - Log out → signOut() + redirect to /
+
+**Unauthenticated State:**
+
+- "Sign in" button → opens AuthModal
+- "Get Started" button → /get-started
+
+---
+
 ## Next Task
 
 - Claude API integration (real generation)
