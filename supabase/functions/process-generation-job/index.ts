@@ -34,6 +34,11 @@ interface ClaimedJob {
 
 type GenerationMode = "quick" | "deep" | "scratch";
 
+// PDF Generation Constants
+const LATEX_ONLINE_URL = "https://latexonline.cc/compile";
+const MAX_LATEX_LENGTH = 30000;
+const PDF_BUCKET = "generated-pdfs";
+
 // ==========================================================
 // PROMPT TEMPLATES (Ported from lib/llm/prompts.ts)
 // ==========================================================
@@ -505,6 +510,71 @@ async function callClaudeAPI(
 }
 
 // ==========================================================
+// PDF GENERATION (via latexonline.cc)
+// ==========================================================
+
+async function generateAndUploadPDF(
+	jobId: string,
+	userId: string,
+	latexText: string,
+	supabase: any,
+): Promise<string | null> {
+	if (latexText.length > MAX_LATEX_LENGTH) {
+		console.warn(
+			`[PDF] LaTeX too long for conversion (${latexText.length} chars)`,
+		);
+		return null;
+	}
+
+	try {
+		console.log(`[PDF] Compiling PDF for job ${jobId}...`);
+
+		const compileUrl = new URL(LATEX_ONLINE_URL);
+		compileUrl.searchParams.set("text", latexText);
+		compileUrl.searchParams.set("force", "true");
+		compileUrl.searchParams.set("command", "pdflatex");
+
+		// Fetch binary PDF
+		const response = await fetch(compileUrl.toString(), {
+			method: "GET",
+			headers: { Accept: "application/pdf" },
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error(
+				`[PDF] Compilation failed: ${errorText.slice(0, 200)}`,
+			);
+			return null;
+		}
+
+		const pdfBuffer = await response.arrayBuffer();
+		const pdfBytes = new Uint8Array(pdfBuffer);
+		console.log(`[PDF] Compiled (${pdfBytes.length} bytes)`);
+
+		// Upload to Storage
+		const objectPath = `${userId}/${jobId}.pdf`;
+		const { error: uploadError } = await supabase.storage
+			.from(PDF_BUCKET)
+			.upload(objectPath, pdfBytes, {
+				contentType: "application/pdf",
+				upsert: true,
+			});
+
+		if (uploadError) {
+			console.error(`[PDF] Upload failed: ${uploadError.message}`);
+			return null;
+		}
+
+		console.log(`[PDF] Uploaded to ${objectPath}`);
+		return objectPath;
+	} catch (error) {
+		console.error(`[PDF] Generation error:`, error);
+		return null;
+	}
+}
+
+// ==========================================================
 // MAIN HANDLER
 // ==========================================================
 
@@ -685,21 +755,51 @@ Deno.serve(async (req) => {
 			);
 		}
 
-		// 7. Success - save result
+		// 7. Success - save result (UNBLOCK UI FIRST)
 		console.log(
-			`[Worker] Job ${job.id} succeeded, latex length: ${result.latex.length}`,
+			`[Worker] Job ${job.id} succeeded (LaTeX ready), latex length: ${result.latex.length}`,
 		);
 		await supabase.rpc("complete_job", {
 			p_job_id: job.id,
-			p_status: "succeeded",
+			p_status: "succeeded", // This triggers UI preview
 			p_latex_text: result.latex,
 		});
+
+		// 8. BACKGROUND: Generate PDF (Improve UX)
+		// We deliberately do this AFTER marking succeeded so the user sees preview immediately
+		console.log(
+			`[Worker] Starting background PDF generation for ${job.id}`,
+		);
+
+		const pdfObjectPath = await generateAndUploadPDF(
+			job.id,
+			job.user_id,
+			result.latex,
+			supabase,
+		);
+
+		if (pdfObjectPath) {
+			// Update job with PDF path
+			await supabase
+				.from("generation_jobs")
+				.update({
+					pdf_object_path: pdfObjectPath,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id", job.id);
+			console.log(`[Worker] PDF path saved for ${job.id}`);
+		} else {
+			console.warn(
+				`[Worker] PDF background generation failed (user can retry via download button)`,
+			);
+		}
 
 		return new Response(
 			JSON.stringify({
 				processed: true,
 				jobId: job.id,
 				status: "succeeded",
+				pdfGenerated: !!pdfObjectPath,
 			}),
 			{
 				status: 200,
