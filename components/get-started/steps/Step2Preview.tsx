@@ -1,9 +1,10 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Lock } from "lucide-react";
 import AtsRing from "@/components/ats/AtsRing";
 import KeywordBars from "@/components/ats/KeywordBars";
 import { AnalyzeResult, ExportResult } from "../types";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Step2PreviewProps {
 	analysis: AnalyzeResult | null;
@@ -22,6 +23,8 @@ export default function Step2Preview({
 	onEditInputs,
 	onExport,
 }: Step2PreviewProps) {
+	const { isAuthenticated } = useAuth();
+
 	// Use latexText from generation job, fallback to analysis.latexPreview for backward compat
 	const displayLatex = latexText || analysis?.latexPreview || "";
 
@@ -86,22 +89,52 @@ export default function Step2Preview({
 				</>
 			)}
 
-			{/* LaTeX preview */}
+			{/* LaTeX preview - gated behind authentication */}
 			<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.03)] p-4">
 				<div className="flex items-center justify-between">
 					<div className="text-sm font-medium">Generated LaTeX</div>
 					<button
 						onClick={() =>
+							isAuthenticated &&
 							navigator.clipboard.writeText(displayLatex)
 						}
-						className="rounded-lg border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-2 py-1 text-xs hover:bg-[rgba(233,221,199,0.10)]"
+						disabled={!isAuthenticated}
+						className={`rounded-lg border px-2 py-1 text-xs ${
+							isAuthenticated
+								? "border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] hover:bg-[rgba(233,221,199,0.10)]"
+								: "border-[rgba(233,221,199,0.08)] bg-[rgba(233,221,199,0.03)] text-[rgba(233,221,199,0.4)] cursor-not-allowed"
+						}`}
 					>
-						Copy
+						{isAuthenticated ? "Copy" : "Copy (Sign in required)"}
 					</button>
 				</div>
-				<pre className="mt-3 max-h-80 overflow-auto rounded-lg bg-[rgba(0,0,0,0.35)] p-3 text-xs text-[rgba(233,221,199,0.75)] font-mono">
-					{displayLatex || "Generating LaTeX..."}
-				</pre>
+				<div className="relative mt-3">
+					<pre
+						className={`max-h-80 overflow-auto rounded-lg bg-[rgba(0,0,0,0.35)] p-3 text-xs text-[rgba(233,221,199,0.75)] font-mono ${
+							!isAuthenticated
+								? "blur-sm select-none pointer-events-none"
+								: ""
+						}`}
+					>
+						{displayLatex || "Generating LaTeX..."}
+					</pre>
+
+					{/* Overlay for non-authenticated users */}
+					{!isAuthenticated && displayLatex && (
+						<div className="absolute inset-0 flex items-center justify-center bg-[rgba(26,18,14,0.7)] rounded-lg backdrop-blur-sm">
+							<div className="text-center px-4">
+								<Lock className="h-8 w-8 mx-auto mb-2 text-[rgba(233,221,199,0.6)]" />
+								<p className="text-sm font-medium text-[rgba(233,221,199,0.9)]">
+									Sign in to view and copy LaTeX code
+								</p>
+								<p className="text-xs text-[rgba(233,221,199,0.6)] mt-1">
+									Click &quot;Download PDF&quot; below to
+									authenticate
+								</p>
+							</div>
+						</div>
+					)}
+				</div>
 			</div>
 
 			{/* Action buttons */}

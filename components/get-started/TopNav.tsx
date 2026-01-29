@@ -26,8 +26,10 @@ export default function TopNav({ onReset }: TopNavProps) {
 		if (credits !== null && prevCreditsRef.current !== null) {
 			if (credits < prevCreditsRef.current) {
 				// Credit was deducted - trigger animation
-				setIsAnimating(true);
-				setShowDeduction(true);
+				setTimeout(() => {
+					setIsAnimating(true);
+					setShowDeduction(true);
+				}, 0);
 
 				// Hide the "-1" after animation completes
 				const deductionTimer = setTimeout(() => {
