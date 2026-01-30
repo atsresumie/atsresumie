@@ -10,6 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * Response:
  * - id: string
  * - status: 'pending' | 'running' | 'succeeded' | 'failed'
+ * - latexText: string | null
  * - pdfUrl: string | null
  * - errorMessage: string | null
  * - createdAt: string
@@ -49,7 +50,7 @@ export async function GET(
 		const { data: job, error: jobError } = await supabase
 			.from("generation_jobs")
 			.select(
-				"id, status, pdf_url, error_message, created_at, updated_at, started_at, completed_at",
+				"id, status, latex_text, pdf_url, error_message, created_at, updated_at, started_at, completed_at",
 			)
 			.eq("id", id)
 			.single();
@@ -78,6 +79,7 @@ export async function GET(
 		return NextResponse.json({
 			id: job.id,
 			status: job.status,
+			latexText: job.latex_text,
 			pdfUrl: job.pdf_url,
 			errorMessage: job.error_message,
 			createdAt: job.created_at,

@@ -86,10 +86,14 @@ Client                          Server                      Database
   │                               ├──INSERT onboarding_drafts──▶│
   │◀────── { draftId } ───────────│                            │
   │                               │                            │
-  ├──POST /api/analyze────────────▶│                            │
-  │  { mode, jobDescription,      │ Extract text, run AI       │
-  │    resumeFile, focusPrompt }  │                            │
-  │◀────── AnalyzeResult ─────────│                            │
+  ├──POST /api/generate──────────▶│                            │
+  │  { mode, purpose: 'preview' } │ Create job                 │
+  │◀────── { jobId } ─────────────│                            │
+  │                               │                            │
+  ├──Subscribe Realtime (jobId)──▶│                            │
+  │◀────── Status Updates ────────│                            │
+  │      (queued -> processing    │                            │
+  │        -> succeeded)          │                            │
 ```
 
 ### 4. Session Claim & Export (After Signup)
@@ -111,50 +115,50 @@ Client                          Server                      Database
 
 ## API Routes
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/onboarding/start` | POST | Create/resume session |
-| `/api/onboarding/session-status` | GET | Get session + draft data |
-| `/api/onboarding/resume-upload-url` | POST | Get signed upload URL |
-| `/api/onboarding/save-draft` | POST | Save JD + resume metadata |
-| `/api/onboarding/delete-resume` | DELETE | Delete resume from storage |
-| `/api/onboarding/claim` | POST | Claim session after signup |
-| `/api/analyze` | POST | Run ATS analysis on resume |
-| `/api/export` | POST | Generate downloadable PDF |
-| `/api/jobs/[id]` | GET | Poll job status |
+| Route                               | Method | Purpose                                |
+| ----------------------------------- | ------ | -------------------------------------- |
+| `/api/onboarding/start`             | POST   | Create/resume session                  |
+| `/api/onboarding/session-status`    | GET    | Get session + draft data               |
+| `/api/onboarding/resume-upload-url` | POST   | Get signed upload URL                  |
+| `/api/onboarding/save-draft`        | POST   | Save JD + resume metadata              |
+| `/api/onboarding/delete-resume`     | DELETE | Delete resume from storage             |
+| `/api/onboarding/claim`             | POST   | Claim session after signup             |
+| `/api/generate`                     | POST   | Create generation job (preview/export) |
+| `/api/export-pdf`                   | POST   | Compile PDF from generated LaTeX       |
+| `/api/jobs/[id]`                    | GET    | Fetch job status (Realtime preferred)  |
 
 ---
 
 ## Database Tables
 
-| Table | Purpose |
-|-------|---------|
-| `onboarding_sessions` | Anonymous session tracking |
-| `onboarding_drafts` | User input drafts (JD, resume metadata) |
-| `generation_jobs` | Background job queue for PDF generation |
-| `tailored_outputs` | Generated resume results |
+| Table                 | Purpose                                 |
+| --------------------- | --------------------------------------- |
+| `onboarding_sessions` | Anonymous session tracking              |
+| `onboarding_drafts`   | User input drafts (JD, resume metadata) |
+| `generation_jobs`     | Background job queue for PDF generation |
+| `tailored_outputs`    | Generated resume results                |
 
 ---
 
 ## Key Components
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `useResumeForm` | `components/get-started/hooks/` | Central form state management |
-| `Step0ModeSelection` | `components/get-started/steps/` | Mode picker UI |
-| `Step1InputForm` | `components/get-started/steps/` | JD + Resume input UI |
-| `Step2Preview` | `components/get-started/steps/` | Results display UI |
+| Component            | Location                        | Purpose                       |
+| -------------------- | ------------------------------- | ----------------------------- |
+| `useResumeForm`      | `components/get-started/hooks/` | Central form state management |
+| `Step0ModeSelection` | `components/get-started/steps/` | Mode picker UI                |
+| `Step1InputForm`     | `components/get-started/steps/` | JD + Resume input UI          |
+| `Step2Preview`       | `components/get-started/steps/` | Results display UI            |
 
 ---
 
 ## Session States
 
-| State | `isEditable` | Description |
-|-------|--------------|-------------|
-| `active` | ✅ true | User can input and modify data |
-| `claimed` | ❌ false | Session linked to user, locked |
-| `expired` | ❌ false | Session past expiration |
+| State     | `isEditable` | Description                    |
+| --------- | ------------ | ------------------------------ |
+| `active`  | ✅ true      | User can input and modify data |
+| `claimed` | ❌ false     | Session linked to user, locked |
+| `expired` | ❌ false     | Session past expiration        |
 
 ---
 
-*Last updated: 2026-01-19*
+_Last updated: 2026-01-19_

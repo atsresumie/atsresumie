@@ -1,318 +1,845 @@
+// ==========================================================
 // Supabase Edge Function: process-generation-job
-// Processes queued resume tailoring jobs
+// Worker that claims and processes resume generation jobs
+// ==========================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
+// ==========================================================
+// CORS & TYPES
+// ==========================================================
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Headers":
+		"authorization, x-client-info, apikey, content-type",
 };
 
 interface JobPayload {
-  jobId: string;
+	jobId?: string;
 }
+
+interface ClaimedJob {
+	id: string;
+	user_id: string;
+	jd_text: string;
+	resume_text: string | null;
+	resume_object_path: string | null;
+	focus_prompt: string | null;
+	mode: string | null;
+	status: string;
+	progress_stage: string;
+	lock_id: string;
+}
+
+type GenerationMode = "quick" | "deep" | "scratch";
+
+// PDF Generation Constants
+const LATEX_ONLINE_URL = "https://latexonline.cc/compile";
+const MAX_LATEX_LENGTH = 30000;
+const PDF_BUCKET = "generated-pdfs";
+
+// ==========================================================
+// PROMPT TEMPLATES (Ported from lib/llm/prompts.ts)
+// ==========================================================
+
+const QUICK_SYSTEM_PROMPT = `You are ATSResumie LaTeX Resume Generator.
+
+OUTPUT RULES
+- Output ONLY valid LaTeX source code. No markdown, no commentary.
+- Must compile with pdflatex using common packages only.
+- ATS-friendly: single column, no tables, no icons, no graphics.
+- Truth-first: do not invent employers, titles, dates, degrees, or metrics.
+- Aim for 1 page. Keep bullets concise with action verbs.`;
+
+const DEEP_SYSTEM_PROMPT = `You are ATSResumie LaTeX Resume Generator (DEEP PREMIUM).
+You are BOTH a senior resume strategist and an expert LaTeX typesetter.
+
+NON-NEGOTIABLE OUTPUT RULES
+- Output ONLY valid LaTeX source code. No markdown, no commentary, no JSON.
+- Must compile with pdflatex using only common packages (no shell-escape, no external files, no images).
+- ATS-friendly: single column, no tables/tabular*, no text boxes, no icons, no graphics, no multi-column.
+- Truth-first: NEVER invent employers, titles, dates, degrees, credentials, or metrics.
+
+DEEP MODE TYPESETTING CONTRACT (STRICT)
+Your output must look professionally typeset with consistent rhythm and spacing.
+
+1) Fonts (pdflatex-safe)
+- Use one of these options only:
+  A) \\usepackage{lmodern} (default), OR
+  B) \\usepackage[scaled]{helvet} and \\renewcommand{\\familydefault}{\\sfdefault}
+- Do NOT require XeLaTeX/LuaLaTeX. Do NOT use fontspec.
+
+2) Page + spacing defaults
+- article 10pt or 11pt
+- geometry margins 0.6–0.8in
+- \\pagenumbering{gobble}, \\setlength{\\parindent}{0pt}, tight but readable \\parskip
+- Use enumitem for bullet spacing control.
+
+3) Section headings MUST follow this pattern:
+- Heading text (uppercase/bold)
+- small vertical padding (~3pt)
+- \\hrule directly beneath
+- small vertical padding (~6pt) after hrule before content
+- Consistent spacing across ALL sections (no random vspace values)
+
+Implement a macro like:
+\\newcommand{\\sectionheader}[1]{\\vspace{10pt}\\textbf{\\large #1}\\vspace{3pt}\\hrule\\vspace{6pt}}
+and use it for every section heading.
+
+4) Indentation + alignment (strict)
+- Consistent alignment for role/company/location/date lines.
+- Bullets must have consistent left margin and itemsep using enumitem.
+- No large gaps; no cramped overlapping lines.
+
+CONTENT RULES
+- Reorder sections for best JD match:
+  SUMMARY (3–4 lines) → SKILLS → EXPERIENCE → PROJECTS (if real) → EDUCATION → CERTIFICATIONS (if real)
+- Bullet quality:
+  - Most relevant role: 4–6 bullets
+  - Others: 2–4 bullets
+  - Action verb + scope + outcome (quantify ONLY if in source)
+- Integrate keywords naturally. No keyword stuffing.
+
+FINAL CHECKLIST
+- Compiles with pdflatex
+- Single-column, no tables, no images
+- Every heading uses \\hrule with consistent spacing
+- Clean indentation, consistent bullets, professional look
+- Output ONLY LaTeX`;
+
+const SCRATCH_SYSTEM_PROMPT = `You are ATSResumie LaTeX Resume Generator (FROM SCRATCH).
+Your task is to BUILD a completely fresh resume structure from the provided content.
+
+OUTPUT RULES
+- Output ONLY valid LaTeX source code. No markdown, no commentary.
+- Must compile with pdflatex using common packages only.
+- ATS-friendly: single column, no tables, no icons, no graphics.
+- Truth-first: extract and reorganize ONLY what exists in the source. Do not invent.
+
+SCRATCH MODE APPROACH
+- Parse the source resume content to extract: contact info, skills, experience, education, projects.
+- Rebuild the resume with a clean, professional structure.
+- You may reorganize, reword, and improve bullets—but stay truthful to the source.
+- Create a professional SUMMARY based on extracted experience and target JD.
+- Group and categorize skills logically.
+- Format experience entries with clear role/company/dates and impactful bullets.
+
+TEMPLATE
+- Use article class 10pt or 11pt
+- geometry with 0.6–0.8in margins
+- enumitem for compact bullets
+- Clean section headings (can use \\hrule or simple bold headers)
+- Prefer 1 page unless content requires 2.
+
+FINAL OUTPUT
+Return ONLY valid LaTeX code.`;
+
+const SYSTEM_PROMPTS: Record<GenerationMode, string> = {
+	quick: QUICK_SYSTEM_PROMPT,
+	deep: DEEP_SYSTEM_PROMPT,
+	scratch: SCRATCH_SYSTEM_PROMPT,
+};
+
+// ==========================================================
+// USER PROMPT TEMPLATES
+// ==========================================================
+
+const QUICK_MODE_TEMPLATE = `MODE: QUICK OPTIMIZE
+
+TASK
+Generate an ATS-safe LaTeX resume optimized for the job description using the provided resume content.
+Make minimal structural changes: keep the candidate's existing sections and ordering where reasonable, but improve bullets and skills to match the JD.
+
+INPUTS
+- Job Description:
+{{JD_TEXT}}
+
+- Candidate Resume Content:
+{{RESUME_TEXT}}
+
+INSTRUCTIONS
+1) Preserve factual info from the resume. Do not invent missing roles, dates, companies, degrees, or credentials.
+2) Improve "EXPERIENCE" bullets for relevance to JD:
+   - 3–6 bullets per role
+   - action verb + task + outcome
+   - add numbers ONLY if present in resume text
+3) Create/clean "SKILLS" section:
+   - prioritize skills appearing in JD that the candidate plausibly has based on resume
+   - group skills into 3–5 categories (e.g., Languages, Frameworks, Tools, Concepts)
+4) Keep it concise:
+   - aim for 1 page
+   - remove irrelevant or redundant bullets
+5) If key standard sections are missing in resume but implied by content, you may add the section (e.g., PROJECTS) only if you can populate it from the resume text.
+
+OUTPUT
+Return ONLY LaTeX.`;
+
+const DEEP_MODE_TEMPLATE = `MODE: DEEP TAILOR (Premium)
+
+TASK
+Generate an ATS-safe LaTeX resume deeply tailored to the job description.
+Apply strict professional typesetting as per system instructions.
+
+INPUTS
+- Job Description:
+{{JD_TEXT}}
+
+- Candidate Resume Content:
+{{RESUME_TEXT}}
+
+- Target Role (inferred): {{TARGET_TITLE}}
+- Key Keywords to Include: {{MUST_INCLUDE_KEYWORDS}}
+
+INSTRUCTIONS
+1) Truth-first: do not invent experience, tools, employers, dates, degrees, certifications, or metrics not present in inputs.
+2) Reorder sections for best JD relevance:
+   - SUMMARY (3–4 lines, role-aligned, keyword-rich but natural)
+   - SKILLS (JD-aligned categories)
+   - EXPERIENCE (most relevant roles first)
+   - PROJECTS (only if real content exists)
+   - EDUCATION (and CERTIFICATIONS if present)
+3) Bullet quality bar:
+   - 4–6 bullets for most relevant role, 2–4 for others
+   - Each bullet should map to a JD requirement where possible
+   - Avoid vague filler ("worked on", "helped with")
+4) Integrate keywords naturally. No keyword stuffing.
+5) Apply strict typesetting: section headers with \\hrule, consistent spacing, professional fonts.
+
+OUTPUT
+Return ONLY LaTeX.`;
+
+const SCRATCH_MODE_TEMPLATE = `MODE: FROM SCRATCH (Rebuild)
+
+TASK
+Build a completely fresh ATS-safe LaTeX resume from the provided resume content, tailored to the job description.
+Extract all relevant information and restructure it professionally.
+
+INPUTS
+- Job Description:
+{{JD_TEXT}}
+
+- Source Resume Content (to extract from):
+{{RESUME_TEXT}}
+
+INSTRUCTIONS
+1) EXTRACT from source resume:
+   - Contact info: name, email, phone, location, LinkedIn/GitHub/portfolio links
+   - Skills: technical and soft skills mentioned
+   - Experience: companies, titles, dates, responsibilities, achievements
+   - Education: schools, degrees, dates
+   - Projects: names, technologies, outcomes
+   - Certifications: if any
+2) REBUILD with fresh structure:
+   - Write a strong SUMMARY (3–4 lines) aligned to JD
+   - Group SKILLS by category, ordered by JD relevance
+   - Format EXPERIENCE with clear role/company/dates and 3–6 impactful bullets per role
+   - Include PROJECTS only if real content exists
+   - Include EDUCATION and CERTIFICATIONS if present
+3) Do NOT invent anything not in the source. If info is missing, omit it.
+4) Keep ATS-safe: single column, no tables, no icons.
+5) Prefer 1 page.
+
+OUTPUT
+Return ONLY LaTeX.`;
+
+// ==========================================================
+// TOKEN LIMITS (prevent bloat)
+// ==========================================================
+
+const TOKEN_LIMITS: Record<
+	GenerationMode,
+	{ jdText: number; resumeText: number }
+> = {
+	quick: { jdText: 6000, resumeText: 8000 },
+	deep: { jdText: 10000, resumeText: 15000 },
+	scratch: { jdText: 8000, resumeText: 12000 },
+};
+
+function truncateText(text: string, maxChars: number): string {
+	if (text.length <= maxChars) return text;
+	return (
+		text.slice(0, maxChars) + "\n\n[... content truncated for length ...]"
+	);
+}
+
+// ==========================================================
+// HELPER FUNCTIONS
+// ==========================================================
+
+function deriveTargetTitle(jdText: string): string {
+	const patterns = [
+		/(?:job\s*title|position|role)\s*[:\-]\s*(.+)/i,
+		/(?:we\s*(?:are|'re)\s*(?:looking|hiring)\s*(?:for|a)\s*)(.+?)(?:\.|,|to\s+join)/i,
+		/^(.+?(?:engineer|developer|manager|analyst|designer|architect|lead|specialist|consultant|coordinator|director|vp|head))/im,
+	];
+
+	for (const pattern of patterns) {
+		const match = jdText.match(pattern);
+		if (match && match[1]) {
+			return match[1].trim().slice(0, 80);
+		}
+	}
+
+	const firstLine = jdText.split("\n").find((l) => l.trim().length > 5);
+	if (firstLine && firstLine.length < 100) {
+		return firstLine.trim();
+	}
+
+	return "";
+}
+
+function deriveKeywords(jdText: string): string {
+	const lowerJd = jdText.toLowerCase();
+	const techKeywords = [
+		"javascript",
+		"typescript",
+		"python",
+		"java",
+		"c#",
+		"c++",
+		"go",
+		"rust",
+		"ruby",
+		"php",
+		"swift",
+		"kotlin",
+		"scala",
+		"react",
+		"angular",
+		"vue",
+		"next.js",
+		"node.js",
+		"express",
+		"django",
+		"flask",
+		"spring",
+		".net",
+		"rails",
+		"sql",
+		"postgresql",
+		"mysql",
+		"mongodb",
+		"redis",
+		"elasticsearch",
+		"dynamodb",
+		"aws",
+		"azure",
+		"gcp",
+		"docker",
+		"kubernetes",
+		"terraform",
+		"jenkins",
+		"ci/cd",
+		"github actions",
+		"microservices",
+		"rest api",
+		"graphql",
+		"agile",
+		"scrum",
+		"tdd",
+		"machine learning",
+		"ai",
+		"data science",
+		"leadership",
+		"communication",
+		"problem-solving",
+		"collaboration",
+	];
+
+	const foundKeywords: string[] = [];
+	for (const kw of techKeywords) {
+		if (lowerJd.includes(kw) && foundKeywords.length < 15) {
+			foundKeywords.push(kw);
+		}
+	}
+
+	const expMatch = jdText.match(/(\d+\+?\s*years?)/gi);
+	if (expMatch) {
+		foundKeywords.push(...expMatch.slice(0, 2));
+	}
+
+	return foundKeywords.join(", ");
+}
+
+function buildUserPrompt(
+	mode: GenerationMode,
+	jdText: string,
+	resumeText: string,
+): string {
+	switch (mode) {
+		case "quick":
+			return QUICK_MODE_TEMPLATE.replace("{{JD_TEXT}}", jdText).replace(
+				"{{RESUME_TEXT}}",
+				resumeText,
+			);
+		case "deep":
+			return DEEP_MODE_TEMPLATE.replace("{{JD_TEXT}}", jdText)
+				.replace("{{RESUME_TEXT}}", resumeText)
+				.replace(
+					"{{TARGET_TITLE}}",
+					deriveTargetTitle(jdText) || "(infer from JD)",
+				)
+				.replace(
+					"{{MUST_INCLUDE_KEYWORDS}}",
+					deriveKeywords(jdText) || "(extract from JD)",
+				);
+		case "scratch":
+			return SCRATCH_MODE_TEMPLATE.replace("{{JD_TEXT}}", jdText).replace(
+				"{{RESUME_TEXT}}",
+				resumeText,
+			);
+		default:
+			return QUICK_MODE_TEMPLATE.replace("{{JD_TEXT}}", jdText).replace(
+				"{{RESUME_TEXT}}",
+				resumeText,
+			);
+	}
+}
+
+// ==========================================================
+// ANTHROPIC API CALL (via fetch)
+// ==========================================================
+
+async function callClaudeAPI(
+	systemPrompt: string,
+	userPrompt: string,
+	maxTokens: number,
+	apiKey: string,
+): Promise<{ success: boolean; latex?: string; error?: string }> {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
+	try {
+		const response = await fetch("https://api.anthropic.com/v1/messages", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": apiKey,
+				"anthropic-version": "2023-06-01",
+			},
+			body: JSON.stringify({
+				model: "claude-sonnet-4-20250514",
+				max_tokens: maxTokens,
+				system: systemPrompt,
+				messages: [
+					{
+						role: "user",
+						content: userPrompt,
+					},
+				],
+			}),
+			signal: controller.signal,
+		});
+
+		clearTimeout(timeoutId);
+
+		if (!response.ok) {
+			const errorBody = await response.text();
+			console.error("Claude API error:", response.status, errorBody);
+
+			if (response.status === 401) {
+				return {
+					success: false,
+					error: "Claude API authentication failed",
+				};
+			}
+			if (response.status === 429) {
+				return {
+					success: false,
+					error: "Claude API rate limit exceeded. Please try again shortly.",
+				};
+			}
+			if (response.status >= 500) {
+				return {
+					success: false,
+					error: "Claude API is temporarily unavailable. Please try again.",
+				};
+			}
+			return {
+				success: false,
+				error: `Claude API error: ${response.status}`,
+			};
+		}
+
+		const data = await response.json();
+
+		const textBlock = data.content?.find(
+			(block: { type: string }) => block.type === "text",
+		);
+		if (!textBlock || textBlock.type !== "text") {
+			return { success: false, error: "Claude returned no text content" };
+		}
+
+		let latex = textBlock.text.trim();
+
+		// Basic validation
+		if (!latex || !latex.includes("\\documentclass")) {
+			return {
+				success: false,
+				error: "Generated output does not appear to be valid LaTeX (missing \\documentclass)",
+			};
+		}
+
+		// Clean up markdown fences if present
+		if (latex.startsWith("```")) {
+			latex = latex.replace(/^```\w*\n?/, "");
+		}
+		if (latex.endsWith("```")) {
+			latex = latex.replace(/\n?```$/, "");
+		}
+
+		return { success: true, latex: latex.trim() };
+	} catch (error) {
+		clearTimeout(timeoutId);
+
+		if (error instanceof Error) {
+			if (error.name === "AbortError") {
+				return {
+					success: false,
+					error: "Claude API request timed out",
+				};
+			}
+			return { success: false, error: error.message.slice(0, 500) };
+		}
+		return {
+			success: false,
+			error: "Unknown error during Claude API call",
+		};
+	}
+}
+
+// ==========================================================
+// PDF GENERATION (via latexonline.cc)
+// ==========================================================
+
+async function generateAndUploadPDF(
+	jobId: string,
+	userId: string,
+	latexText: string,
+	supabase: ReturnType<typeof createClient>,
+): Promise<string | null> {
+	if (latexText.length > MAX_LATEX_LENGTH) {
+		console.warn(
+			`[PDF] LaTeX too long for conversion (${latexText.length} chars)`,
+		);
+		return null;
+	}
+
+	try {
+		console.log(`[PDF] Compiling PDF for job ${jobId}...`);
+
+		const compileUrl = new URL(LATEX_ONLINE_URL);
+		compileUrl.searchParams.set("text", latexText);
+		compileUrl.searchParams.set("force", "true");
+		compileUrl.searchParams.set("command", "pdflatex");
+
+		// Fetch binary PDF
+		const response = await fetch(compileUrl.toString(), {
+			method: "GET",
+			headers: { Accept: "application/pdf" },
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error(
+				`[PDF] Compilation failed: ${errorText.slice(0, 200)}`,
+			);
+			return null;
+		}
+
+		const pdfBuffer = await response.arrayBuffer();
+		const pdfBytes = new Uint8Array(pdfBuffer);
+		console.log(`[PDF] Compiled (${pdfBytes.length} bytes)`);
+
+		// Upload to Storage
+		const objectPath = `${userId}/${jobId}.pdf`;
+		const { error: uploadError } = await supabase.storage
+			.from(PDF_BUCKET)
+			.upload(objectPath, pdfBytes, {
+				contentType: "application/pdf",
+				upsert: true,
+			});
+
+		if (uploadError) {
+			console.error(`[PDF] Upload failed: ${uploadError.message}`);
+			return null;
+		}
+
+		console.log(`[PDF] Uploaded to ${objectPath}`);
+		return objectPath;
+	} catch (error) {
+		console.error(`[PDF] Generation error:`, error);
+		return null;
+	}
+}
+
+// ==========================================================
+// MAIN HANDLER
+// ==========================================================
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+	// Handle CORS preflight
+	if (req.method === "OPTIONS") {
+		return new Response("ok", { headers: corsHeaders });
+	}
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+	try {
+		const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+		const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+		const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
-    // Parse request body
-    const { jobId } = (await req.json()) as JobPayload;
+		if (!anthropicApiKey) {
+			console.error("ANTHROPIC_API_KEY not set");
+			return new Response(
+				JSON.stringify({
+					error: "Server configuration error: missing API key",
+				}),
+				{
+					status: 500,
+					headers: {
+						...corsHeaders,
+						"Content-Type": "application/json",
+					},
+				},
+			);
+		}
 
-    if (!jobId) {
-      return new Response(
-        JSON.stringify({ error: "jobId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+		const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`Processing job: ${jobId}`);
+		// Parse request body
+		let payload: JobPayload = {};
+		try {
+			const text = await req.text();
+			if (text) {
+				payload = JSON.parse(text);
+			}
+		} catch {
+			// Empty body is OK - will claim next job
+		}
 
-    // 1. Fetch job and validate
-    const { data: job, error: jobError } = await supabase
-      .from("generation_jobs")
-      .select("*, onboarding_drafts(*), onboarding_sessions(*)")
-      .eq("id", jobId)
-      .single();
+		console.log(
+			`[Worker] Processing job request, jobId: ${payload.jobId || "next"}`,
+		);
 
-    if (jobError || !job) {
-      console.error("Job not found:", jobError);
-      return new Response(
-        JSON.stringify({ error: "Job not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+		// 1. Claim job
+		let claimResult;
+		if (payload.jobId) {
+			claimResult = await supabase.rpc("claim_generation_job", {
+				p_job_id: payload.jobId,
+			});
+		} else {
+			claimResult = await supabase.rpc("claim_next_generation_job");
+		}
 
-    if (job.status !== "queued") {
-      return new Response(
-        JSON.stringify({ error: `Job is not queued (status: ${job.status})` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+		if (claimResult.error) {
+			console.error("Claim error:", claimResult.error);
+			return new Response(
+				JSON.stringify({
+					processed: false,
+					error: claimResult.error.message,
+				}),
+				{
+					status: 500,
+					headers: {
+						...corsHeaders,
+						"Content-Type": "application/json",
+					},
+				},
+			);
+		}
 
-    // 2. Mark job as running
-    await supabase
-      .from("generation_jobs")
-      .update({ 
-        status: "running", 
-        started_at: new Date().toISOString(),
-        progress: 10 
-      })
-      .eq("id", jobId);
+		const jobs = claimResult.data as ClaimedJob[];
+		if (!jobs || jobs.length === 0) {
+			console.log("[Worker] No jobs to process");
+			return new Response(
+				JSON.stringify({
+					processed: false,
+					message: "No jobs in queue",
+				}),
+				{
+					status: 200,
+					headers: {
+						...corsHeaders,
+						"Content-Type": "application/json",
+					},
+				},
+			);
+		}
 
-    const draft = job.onboarding_drafts;
-    if (!draft) {
-      throw new Error("No draft found for job");
-    }
+		const job = jobs[0];
+		console.log(`[Worker] Claimed job ${job.id}, mode: ${job.mode}`);
 
-    // 3. Download resume from storage
-    console.log(`Downloading resume from: ${draft.resume_bucket}/${draft.resume_object_path}`);
-    
-    const { data: resumeData, error: downloadError } = await supabase.storage
-      .from(draft.resume_bucket)
-      .download(draft.resume_object_path);
+		// 2. Validate we have required data
+		if (!job.jd_text || !job.resume_text) {
+			console.error(`[Worker] Job ${job.id} missing required data`);
+			await supabase.rpc("complete_job", {
+				p_job_id: job.id,
+				p_status: "failed",
+				p_error_message: "Job missing required jd_text or resume_text",
+			});
+			return new Response(
+				JSON.stringify({
+					processed: true,
+					jobId: job.id,
+					status: "failed",
+					error: "Missing data",
+				}),
+				{
+					status: 200,
+					headers: {
+						...corsHeaders,
+						"Content-Type": "application/json",
+					},
+				},
+			);
+		}
 
-    if (downloadError) {
-      throw new Error(`Failed to download resume: ${downloadError.message}`);
-    }
+		// 3. Update progress: calling_claude
+		await supabase.rpc("update_job_progress", {
+			p_job_id: job.id,
+			p_progress_stage: "calling_claude",
+		});
 
-    // Update progress
-    await supabase
-      .from("generation_jobs")
-      .update({ progress: 30 })
-      .eq("id", jobId);
+		// 4. Prepare inputs with token limits
+		const mode: GenerationMode = (job.mode as GenerationMode) || "quick";
+		const limits = TOKEN_LIMITS[mode];
+		const jdText = truncateText(job.jd_text, limits.jdText);
+		const resumeText = truncateText(job.resume_text, limits.resumeText);
 
-    // 4. Extract text from resume (simplified - in production use a proper extraction service)
-    const resumeText = await extractTextFromBlob(resumeData, draft.resume_mime_type);
-    console.log(`Extracted ${resumeText.length} chars from resume`);
+		const systemPrompt = SYSTEM_PROMPTS[mode];
+		const userPrompt = buildUserPrompt(mode, jdText, resumeText);
+		const maxTokens =
+			mode === "quick" ? 6000 : mode === "deep" ? 10000 : 8000;
 
-    // Update progress
-    await supabase
-      .from("generation_jobs")
-      .update({ progress: 50 })
-      .eq("id", jobId);
+		console.log(
+			`[Worker] Calling Claude API for job ${job.id} (mode: ${mode})`,
+		);
 
-    // 5. Generate tailored resume
-    // TODO: Replace with actual AI service call (OpenAI, Anthropic, etc.)
-    const tailoredResult = generateTailoredResume({
-      jobDescription: draft.jd_text,
-      resumeText,
-      jdTitle: draft.jd_title,
-      jdCompany: draft.jd_company,
-    });
+		// 5. Call Claude
+		const result = await callClaudeAPI(
+			systemPrompt,
+			userPrompt,
+			maxTokens,
+			anthropicApiKey,
+		);
 
-    // Update progress
-    await supabase
-      .from("generation_jobs")
-      .update({ progress: 70 })
-      .eq("id", jobId);
+		// 6. Update progress: validating
+		await supabase.rpc("update_job_progress", {
+			p_job_id: job.id,
+			p_progress_stage: "validating",
+		});
 
-    // 6. Generate PDF
-    // TODO: Replace with actual PDF generation (use a service like Puppeteer, jsPDF, or LaTeX compiler)
-    const pdfBlob = generatePdfPlaceholder(tailoredResult.latexContent);
-    
-    // Upload PDF to storage
-    const pdfObjectPath = `jobs/${jobId}/tailored-resume.pdf`;
-    const { error: uploadError } = await supabase.storage
-      .from("generated-resumes")
-      .upload(pdfObjectPath, pdfBlob, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
+		if (!result.success || !result.latex) {
+			console.error(`[Worker] Job ${job.id} failed:`, result.error);
+			await supabase.rpc("complete_job", {
+				p_job_id: job.id,
+				p_status: "failed",
+				p_error_message:
+					result.error?.slice(0, 2000) || "Generation failed",
+			});
+			return new Response(
+				JSON.stringify({
+					processed: true,
+					jobId: job.id,
+					status: "failed",
+					error: result.error,
+				}),
+				{
+					status: 200,
+					headers: {
+						...corsHeaders,
+						"Content-Type": "application/json",
+					},
+				},
+			);
+		}
 
-    if (uploadError) {
-      throw new Error(`Failed to upload PDF: ${uploadError.message}`);
-    }
+		// 7. Success - save result (UNBLOCK UI FIRST)
+		console.log(
+			`[Worker] Job ${job.id} succeeded (LaTeX ready), latex length: ${result.latex.length}`,
+		);
+		await supabase.rpc("complete_job", {
+			p_job_id: job.id,
+			p_status: "succeeded", // This triggers UI preview
+			p_latex_text: result.latex,
+		});
 
-    console.log(`PDF uploaded to: generated-resumes/${pdfObjectPath}`);
+		// 8. DEDUCT CREDIT on successful generation
+		console.log(`[Worker] Deducting 1 credit for user ${job.user_id}`);
+		const { data: newBalance, error: creditError } = await supabase.rpc(
+			"adjust_credits_for_user",
+			{
+				p_user_id: job.user_id,
+				p_delta: -1,
+				p_reason: "generation",
+				p_source: "edge_function",
+			},
+		);
 
-    // Update progress
-    await supabase
-      .from("generation_jobs")
-      .update({ progress: 90 })
-      .eq("id", jobId);
+		if (creditError) {
+			// Log but don't fail the job - credits are secondary
+			console.error(
+				`[Worker] Failed to deduct credit for user ${job.user_id}:`,
+				creditError.message,
+			);
+		} else {
+			console.log(
+				`[Worker] Credit deducted. User ${job.user_id} new balance: ${newBalance}`,
+			);
+		}
 
-    // 7. Create tailored_outputs record
-    const { error: outputError } = await supabase
-      .from("tailored_outputs")
-      .insert({
-        job_id: jobId,
-        user_id: job.user_id,
-        session_id: job.session_id,
-        tailored_resume_json: tailoredResult.json,
-        tailored_resume_text: tailoredResult.text,
-        pdf_bucket: "generated-resumes",
-        pdf_object_path: pdfObjectPath,
-      });
+		// 9. BACKGROUND: Generate PDF (Improve UX)
+		// We deliberately do this AFTER marking succeeded so the user sees preview immediately
+		console.log(
+			`[Worker] Starting background PDF generation for ${job.id}`,
+		);
 
-    if (outputError) {
-      throw new Error(`Failed to create output record: ${outputError.message}`);
-    }
+		const pdfObjectPath = await generateAndUploadPDF(
+			job.id,
+			job.user_id,
+			result.latex,
+			supabase,
+		);
 
-    // 8. Mark job as succeeded
-    await supabase
-      .from("generation_jobs")
-      .update({ 
-        status: "succeeded", 
-        progress: 100,
-        finished_at: new Date().toISOString(),
-      })
-      .eq("id", jobId);
+		if (pdfObjectPath) {
+			// Update job with PDF path
+			await supabase
+				.from("generation_jobs")
+				.update({
+					pdf_object_path: pdfObjectPath,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id", job.id);
+			console.log(`[Worker] PDF path saved for ${job.id}`);
+		} else {
+			console.warn(
+				`[Worker] PDF background generation failed (user can retry via download button)`,
+			);
+		}
 
-    console.log(`Job ${jobId} completed successfully`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        jobId,
-        pdfPath: `generated-resumes/${pdfObjectPath}`,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
-  } catch (error) {
-    console.error("Job processing error:", error);
-
-    // Try to mark job as failed
-    try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      
-      const { jobId } = await req.clone().json() as JobPayload;
-      if (jobId) {
-        await supabase
-          .from("generation_jobs")
-          .update({ 
-            status: "failed", 
-            error_message: error instanceof Error ? error.message : "Unknown error",
-            finished_at: new Date().toISOString(),
-          })
-          .eq("id", jobId);
-      }
-    } catch {
-      // Ignore errors when trying to update failed status
-    }
-
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+		return new Response(
+			JSON.stringify({
+				processed: true,
+				jobId: job.id,
+				status: "succeeded",
+				pdfGenerated: !!pdfObjectPath,
+			}),
+			{
+				status: 200,
+				headers: { ...corsHeaders, "Content-Type": "application/json" },
+			},
+		);
+	} catch (error) {
+		console.error("[Worker] Unexpected error:", error);
+		return new Response(
+			JSON.stringify({
+				error: error instanceof Error ? error.message : "Unknown error",
+			}),
+			{
+				status: 500,
+				headers: { ...corsHeaders, "Content-Type": "application/json" },
+			},
+		);
+	}
 });
-
-// Helper: Extract text from blob (simplified)
-async function extractTextFromBlob(blob: Blob, mimeType: string | null): Promise<string> {
-  // For PDFs and DOCX, you'd use a proper extraction library
-  // This is a placeholder - in production, use:
-  // - pdf-parse for PDFs
-  // - mammoth for DOCX
-  // Or call an external extraction API
-  
-  if (mimeType === "application/pdf") {
-    // TODO: Use pdf extraction library
-    return `[PDF content extracted - ${blob.size} bytes]`;
-  } else if (mimeType?.includes("wordprocessingml")) {
-    // TODO: Use mammoth or similar
-    return `[DOCX content extracted - ${blob.size} bytes]`;
-  } else {
-    // Plain text
-    return await blob.text();
-  }
-}
-
-// Helper: Generate tailored resume (mock implementation)
-function generateTailoredResume(params: {
-  jobDescription: string;
-  resumeText: string;
-  jdTitle?: string;
-  jdCompany?: string;
-}): { json: object; text: string; latexContent: string } {
-  // TODO: Replace with actual AI service call
-  // This is a placeholder that returns mock data
-  
-  const { jobDescription, resumeText, jdTitle, jdCompany } = params;
-  
-  // Mock tailored content
-  const json = {
-    summary: `Tailored professional summary for ${jdTitle || "the role"} at ${jdCompany || "the company"}`,
-    skills: ["Skill 1", "Skill 2", "Skill 3"],
-    experience: [
-      {
-        title: "Previous Role",
-        bullets: [
-          "Achievement aligned with job requirements",
-          "Quantified impact metric",
-        ],
-      },
-    ],
-  };
-
-  const text = `
-TAILORED RESUME
-===============
-${jdTitle ? `Target Role: ${jdTitle}` : ""}
-${jdCompany ? `Target Company: ${jdCompany}` : ""}
-
-SUMMARY
-${json.summary}
-
-SKILLS
-${json.skills.join(", ")}
-
-EXPERIENCE
-${json.experience.map(exp => `
-${exp.title}
-${exp.bullets.map(b => `• ${b}`).join("\n")}
-`).join("\n")}
-  `.trim();
-
-  const latexContent = `
-\\documentclass[11pt]{article}
-\\usepackage[margin=1in]{geometry}
-\\begin{document}
-
-\\section*{${jdTitle || "Professional"}}
-\\textit{Tailored for ${jdCompany || "Target Company"}}
-
-\\section*{Summary}
-${json.summary}
-
-\\section*{Skills}
-${json.skills.join(", ")}
-
-\\end{document}
-  `.trim();
-
-  return { json, text, latexContent };
-}
-
-// Helper: Generate PDF placeholder
-function generatePdfPlaceholder(latexContent: string): Blob {
-  // TODO: Replace with actual PDF generation
-  // Options:
-  // 1. Use a LaTeX compilation service
-  // 2. Use Puppeteer to render HTML to PDF
-  // 3. Use jsPDF
-  // 4. Use an external API like DocRaptor
-  
-  // For now, return a simple text file as placeholder
-  const placeholderContent = `
-This is a placeholder PDF.
-In production, this would contain the compiled LaTeX document.
-
-LaTeX Source:
-${latexContent}
-  `;
-  
-  return new Blob([placeholderContent], { type: "application/pdf" });
-}

@@ -66,11 +66,11 @@ export default function SignupGateModal({
 							}}
 						>
 							<div className="text-lg font-semibold">
-								Create an account to download
+								Create an account to continue
 							</div>
 							<p className="mt-2 text-sm text-[rgba(233,221,199,0.75)]">
-								Your preview is ready. Sign up to download the PDF
-								and save versions.
+								Sign up to generate and download your
+								ATS-optimized resume.
 								<span className="ml-1 rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-2 py-0.5 text-xs">
 									3 free credits
 								</span>
@@ -91,8 +91,11 @@ export default function SignupGateModal({
 								</button>
 							</div>
 
-							<div className="mt-3 text-xs text-[rgba(233,221,199,0.55)]">
-								Preview is free • Export uses credits • LaTeX
+							<div
+								className="mt-3 text-xs"
+								style={{ color: "#FFA726" }}
+							>
+								Preview (1 Credit) • Export free • LaTeX
 								included
 							</div>
 						</motion.div>
@@ -109,4 +112,3 @@ export default function SignupGateModal({
 		</>
 	);
 }
-

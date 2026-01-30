@@ -24,6 +24,7 @@ CREATE TABLE public.generation_jobs (
   status TEXT NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'running', 'succeeded', 'failed')),
   error_message TEXT,
+  progress INTEGER DEFAULT 0,
 
   -- Outputs
   latex_text TEXT,

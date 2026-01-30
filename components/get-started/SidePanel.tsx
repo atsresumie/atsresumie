@@ -17,7 +17,7 @@ export default function SidePanel() {
 			}}
 			className="rounded-2xl border border-[rgba(233,221,199,0.12)] bg-[rgba(20,14,11,0.45)] p-5 backdrop-blur"
 		>
-			<div className="text-sm font-medium">What you'll get</div>
+			<div className="text-sm font-medium">What you&apos;ll get</div>
 			<ul className="mt-3 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
 				<li>• ATS-friendly structure + keyword alignment</li>
 				<li>• Versioned results for each job posting</li>
@@ -29,14 +29,14 @@ export default function SidePanel() {
 					Credits
 				</div>
 				<div className="mt-1 text-lg font-semibold">3 free credits</div>
-				<div className="mt-1 text-xs text-[rgba(233,221,199,0.6)]">
-					Preview is free. Download uses 1 credit.
+				<div className="mt-1 text-xs" style={{ color: "#FFA726" }}>
+					Preview costs 1 credit. Download is free.
 				</div>
 			</div>
 
 			<div className="mt-4 text-xs text-[rgba(233,221,199,0.6)]">
-				Tip: Add measurable impact ("reduced latency by 32%") to boost
-				your score.
+				Tip: Add measurable impact (&ldquo;reduced latency by
+				32%&rdquo;) to boost your score.
 			</div>
 		</motion.div>
 	);
