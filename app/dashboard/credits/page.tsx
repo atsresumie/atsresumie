@@ -1,12 +1,12 @@
-export default function DashboardHomePage() {
+export default function CreditsPage() {
 	return (
 		<div className="p-6 md:p-8">
 			<h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-				Dashboard
+				Credits & Billing
 			</h1>
 			<p className="mt-4 text-muted-foreground">
-				Welcome to your dashboard. This is where you&apos;ll manage your
-				resume generations, saved job descriptions, and more.
+				View your credit balance, usage history, and billing
+				information.
 			</p>
 		</div>
 	);

@@ -1,12 +1,11 @@
-export default function DashboardHomePage() {
+export default function PastGenerationsPage() {
 	return (
 		<div className="p-6 md:p-8">
 			<h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-				Dashboard
+				Past Generations
 			</h1>
 			<p className="mt-4 text-muted-foreground">
-				Welcome to your dashboard. This is where you&apos;ll manage your
-				resume generations, saved job descriptions, and more.
+				View and manage your previously generated resumes.
 			</p>
 		</div>
 	);
