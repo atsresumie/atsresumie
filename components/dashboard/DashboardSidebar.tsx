@@ -58,7 +58,7 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 			{/* Sidebar */}
 			<aside
 				className={cn(
-					"fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-64 border-r border-border bg-background transition-transform duration-300 md:top-20 md:h-[calc(100vh-5rem)]",
+					"fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-64 border-r border-t border-border bg-background transition-transform duration-300 md:top-20 md:h-[calc(100vh-5rem)]",
 					"md:translate-x-0 md:transition-none",
 					isOpen ? "translate-x-0" : "-translate-x-full",
 				)}

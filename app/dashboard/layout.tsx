@@ -20,19 +20,34 @@ export default function DashboardLayout({
 	};
 
 	return (
-		<div className="min-h-screen bg-background">
-			{/* Header */}
+		<div
+			className="min-h-screen isolate"
+			style={{ backgroundColor: "hsl(24, 28%, 12%)" }}
+		>
+			{/* 
+				CLEAN SOLID BACKGROUND
+				- Uses 'isolate' to create stacking context
+				- Solid inline bg color prevents any inheritance issues
+				- NO gradient overlays or decorative elements
+				
+				The only visible lines are:
+				- Header's bottom border (horizontal line at top)
+				- Sidebar's right border (vertical line on left)
+				Together these form a clean -|---- pattern
+			*/}
+
+			{/* Header - has border-b */}
 			<DashboardHeader onToggleSidebar={handleToggleSidebar} />
 
-			{/* Sidebar */}
+			{/* Sidebar - has border-r */}
 			<DashboardSidebar
 				isOpen={isSidebarOpen}
 				onClose={handleCloseSidebar}
 			/>
 
-			{/* Main content area */}
-			<main className="pt-16 md:pt-20 md:pl-64">
-				<div className="min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] overflow-y-auto">
+			{/* Main content */}
+			<main className="relative pt-16 md:pt-20 md:pl-64">
+				<div className="min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
 					{children}
 				</div>
 			</main>
