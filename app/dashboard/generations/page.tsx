@@ -145,8 +145,11 @@ function PastGenerationsContent() {
 			// Find the job and open drawer
 			const job = jobs.find((j) => j.id === highlightId);
 			if (job) {
-				setSelectedJob(job);
-				setIsDrawerOpen(true);
+				// Defer state updates to avoid synchronous setState in effect
+				setTimeout(() => {
+					setSelectedJob(job);
+					setIsDrawerOpen(true);
+				}, 0);
 
 				// Clear the highlight param from URL
 				router.replace("/dashboard/generations", { scroll: false });

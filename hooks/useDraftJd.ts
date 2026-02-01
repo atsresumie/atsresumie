@@ -13,30 +13,33 @@ interface UseDraftJdReturn {
 }
 
 /**
+ * Get initial JD text from localStorage (runs only on client)
+ */
+function getInitialJdText(): string {
+	if (typeof window === "undefined") return "";
+	try {
+		return localStorage.getItem(STORAGE_KEY) || "";
+	} catch {
+		return "";
+	}
+}
+
+/**
  * Hook for autosaving JD text to localStorage with debounce.
  * Restores draft on mount and provides a clear function.
  */
 export function useDraftJd(): UseDraftJdReturn {
-	const [jdText, setJdTextState] = useState("");
-	const [isDraftSaved, setIsDraftSaved] = useState(false);
-	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-	const isInitializedRef = useRef(false);
-
-	// Restore draft on mount
-	useEffect(() => {
-		if (typeof window === "undefined") return;
-
+	// Use lazy initialization to restore from localStorage
+	const [jdText, setJdTextState] = useState(getInitialJdText);
+	const [isDraftSaved, setIsDraftSaved] = useState(() => {
+		if (typeof window === "undefined") return false;
 		try {
-			const saved = localStorage.getItem(STORAGE_KEY);
-			if (saved) {
-				setJdTextState(saved);
-				setIsDraftSaved(true);
-			}
-		} catch (err) {
-			console.warn("Failed to restore draft:", err);
+			return !!localStorage.getItem(STORAGE_KEY);
+		} catch {
+			return false;
 		}
-		isInitializedRef.current = true;
-	}, []);
+	});
+	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	// Debounced save to localStorage
 	const setJdText = useCallback((text: string) => {
