@@ -52,7 +52,10 @@ atsresumie/
 │   │       └── claim/           # Claim session after signup
 │   ├── auth/              # Authentication routes
 │   │   └── callback/      # OAuth callback handler
-│   ├── dashboard/         # User dashboard (placeholder)
+│   ├── dashboard/         # User dashboard
+│   │   ├── generate/      # Generate page (JD input, resume selector)
+│   │   ├── generations/   # Past generations list
+│   │   └── ...
 │   ├── get-started/       # Main onboarding page
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Landing page
@@ -60,6 +63,10 @@ atsresumie/
 │
 ├── components/
 │   ├── auth/              # Authentication components
+│   ├── dashboard/         # Dashboard components
+│   │   ├── generate/      # Generate page components (Pickers, Indicators)
+│   │   ├── generations/   # Generations list components (Row, Drawer, Filters)
+│   │   └── ...
 │   ├── get-started/       # Onboarding wizard components
 │   │   ├── hooks/         # useResumeForm, useJobRealtime
 │   │   ├── steps/         # Step0, Step1, Step2 components
@@ -69,7 +76,10 @@ atsresumie/
 ├── hooks/                 # Global custom hooks
 │   ├── useAuth.ts         # Auth state hook
 │   ├── useCredits.ts      # Credits state hook
-│   └── useJobRealtime.ts  # Supabase Realtime subscription
+│   ├── useJobRealtime.ts  # Supabase Realtime subscription
+│   ├── useGenerations.ts  # Dashboard generations data + realtime
+│   ├── useDraftJd.ts      # Autosave hook for Generate page
+│   └── useUserResume.ts   # Fetch user's latest resume hook
 │
 ├── lib/                   # Utility libraries
 │   ├── llm/               # AI Logic
@@ -162,14 +172,15 @@ Now serves as the source of truth for Realtime updates:
 - **PDF Export**: Working compilation pipeline via `latex-online.cc`.
 - **Credit System**: Atomic decrements on generation success only.
 - **Auth**: Full Google/Email auth flow with gate for export.
+- **Dashboard**: Core features implemented (Home, Past Generations Library, Generate).
 
 ### 🚧 Missing / In Progress
 
 - **Deep/Scratch Mode UI**: Frontend forms to collect extra inputs (Target Title, Skills, etc.) are missing.
 - **API Mode Switching**: `/api/generate` is currently hardcoded to `mode: "quick"`.
-- **Dashboard**: User dashboard page is still a placeholder.
 - **Stripe**: Payment integration is not yet started.
+- **Advanced Dashboard**: Saved JDs, Resume Versions, and Tags are pending.
 
 ---
 
-_Last updated: 2026-01-26_
+_Last updated: 2026-02-01_

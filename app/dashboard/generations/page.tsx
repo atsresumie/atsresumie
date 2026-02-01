@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Suspense, useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -106,8 +106,12 @@ function NoResultsState() {
 	);
 }
 
-export default function PastGenerationsPage() {
+/**
+ * Inner content component that uses useSearchParams
+ */
+function PastGenerationsContent() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const { jobs, isLoading, error, refetch, deleteJob, isDeleting } =
 		useGenerations();
 
@@ -128,6 +132,27 @@ export default function PastGenerationsPage() {
 		null,
 	);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+	// Track if we've handled highlight param
+	const hasHandledHighlightRef = useRef(false);
+
+	// Handle highlight query param (from generate page redirect)
+	useEffect(() => {
+		const highlightId = searchParams.get("highlight");
+		if (highlightId && !hasHandledHighlightRef.current && jobs.length > 0) {
+			hasHandledHighlightRef.current = true;
+
+			// Find the job and open drawer
+			const job = jobs.find((j) => j.id === highlightId);
+			if (job) {
+				setSelectedJob(job);
+				setIsDrawerOpen(true);
+
+				// Clear the highlight param from URL
+				router.replace("/dashboard/generations", { scroll: false });
+			}
+		}
+	}, [searchParams, jobs, router]);
 
 	// Filter jobs client-side
 	const filteredJobs = useMemo(() => {
@@ -178,17 +203,7 @@ export default function PastGenerationsPage() {
 	};
 
 	return (
-		<div className="p-6 md:p-8">
-			{/* Header */}
-			<div className="mb-6">
-				<h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-					Past Generations
-				</h1>
-				<p className="mt-2 text-muted-foreground">
-					View and manage your previously generated resumes.
-				</p>
-			</div>
-
+		<>
 			{/* Filters */}
 			<div className="mb-6">
 				<GenerationsFilters
@@ -245,6 +260,48 @@ export default function PastGenerationsPage() {
 					jobToDelete ? deriveJobLabel(jobToDelete.jd_text) : ""
 				}
 			/>
+		</>
+	);
+}
+
+/**
+ * Loading fallback for Suspense
+ */
+function PageSkeleton() {
+	return (
+		<>
+			<div className="mb-6 flex gap-3">
+				<Skeleton className="h-10 flex-1" />
+				<Skeleton className="h-10 w-40" />
+			</div>
+			<div className="space-y-3">
+				<JobRowSkeleton />
+				<JobRowSkeleton />
+				<JobRowSkeleton />
+			</div>
+		</>
+	);
+}
+
+/**
+ * Main page component with Suspense boundary
+ */
+export default function PastGenerationsPage() {
+	return (
+		<div className="p-6 md:p-8">
+			{/* Header */}
+			<div className="mb-6">
+				<h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+					Past Generations
+				</h1>
+				<p className="mt-2 text-muted-foreground">
+					View and manage your previously generated resumes.
+				</p>
+			</div>
+
+			<Suspense fallback={<PageSkeleton />}>
+				<PastGenerationsContent />
+			</Suspense>
 		</div>
 	);
 }
