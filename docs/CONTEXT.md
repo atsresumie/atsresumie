@@ -79,7 +79,8 @@ atsresumie/
 │   ├── useJobRealtime.ts  # Supabase Realtime subscription
 │   ├── useGenerations.ts  # Dashboard generations data + realtime
 │   ├── useDraftJd.ts      # Autosave hook for Generate page
-│   └── useUserResume.ts   # Fetch user's latest resume hook
+│   ├── useUserResume.ts   # Fetch user's latest resume hook
+│   └── useCreditHistory.ts # Credit history derived from generations
 │
 ├── lib/                   # Utility libraries
 │   ├── llm/               # AI Logic

@@ -309,7 +309,7 @@ Recommended order:
 2. Dashboard Home (overview + links) ✅ Completed
 3. Past Generations (MVP) ✅ Completed
 4. Generate More (MVP) ✅ Completed
-5. Credits & Billing (MVP)
+5. Credits & Billing (MVP) ✅ Completed
 6. Saved JDs
 7. Resume Versions
 8. Download Center
