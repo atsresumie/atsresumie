@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./useAuth";
 import { supabaseBrowser } from "@/lib/supabase/browser";
-import { deriveJobLabel, getRelativeTime } from "./useGenerations";
+import { deriveJobLabel } from "./useGenerations";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface CreditEvent {
 	id: string;
@@ -22,9 +23,12 @@ interface UseCreditHistoryReturn {
 	refetch: () => Promise<void>;
 }
 
+const MAX_EVENTS = 10;
+
 /**
  * Hook to fetch credit history derived from generation jobs.
  * Since there's no dedicated ledger table, we infer history from succeeded generations.
+ * Includes Supabase Realtime subscription for instant updates.
  */
 export function useCreditHistory(): UseCreditHistoryReturn {
 	const { isAuthenticated, isLoading: authLoading, user } = useAuth();
@@ -32,6 +36,25 @@ export function useCreditHistory(): UseCreditHistoryReturn {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [usageThisMonth, setUsageThisMonth] = useState(0);
+
+	const channelRef = useRef<RealtimeChannel | null>(null);
+
+	// Transform a job row to a credit event
+	const jobToCreditEvent = useCallback(
+		(job: {
+			id: string;
+			jd_text: string | null;
+			completed_at: string | null;
+		}): CreditEvent => ({
+			id: job.id,
+			event_type: "generation" as const,
+			amount: -1,
+			created_at: job.completed_at || new Date().toISOString(),
+			job_id: job.id,
+			job_label: deriveJobLabel(job.jd_text),
+		}),
+		[],
+	);
 
 	const fetchHistory = useCallback(async () => {
 		if (!isAuthenticated || !user?.id) {
@@ -51,20 +74,14 @@ export function useCreditHistory(): UseCreditHistoryReturn {
 				.eq("user_id", user.id)
 				.eq("status", "succeeded")
 				.order("completed_at", { ascending: false })
-				.limit(10);
+				.limit(MAX_EVENTS);
 
 			if (fetchError) throw fetchError;
 
 			// Transform to credit events
-			const creditEvents: CreditEvent[] = (data || []).map((job) => ({
-				id: job.id,
-				event_type: "generation" as const,
-				amount: -1, // Each generation costs 1 credit
-				created_at: job.completed_at || new Date().toISOString(),
-				job_id: job.id,
-				job_label: deriveJobLabel(job.jd_text),
-			}));
-
+			const creditEvents: CreditEvent[] = (data || []).map(
+				jobToCreditEvent,
+			);
 			setEvents(creditEvents);
 
 			// Calculate usage this month
@@ -89,7 +106,7 @@ export function useCreditHistory(): UseCreditHistoryReturn {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [isAuthenticated, user?.id]);
+	}, [isAuthenticated, user?.id, jobToCreditEvent]);
 
 	// Initial fetch when auth is ready
 	useEffect(() => {
@@ -97,6 +114,85 @@ export function useCreditHistory(): UseCreditHistoryReturn {
 			fetchHistory();
 		}
 	}, [authLoading, fetchHistory]);
+
+	// Subscribe to Realtime updates on generation_jobs table
+	useEffect(() => {
+		if (!isAuthenticated || !user?.id) {
+			return;
+		}
+
+		const supabase = supabaseBrowser();
+
+		// Create a channel for credit history updates
+		const channel = supabase
+			.channel(`credit_history:${user.id}`)
+			.on(
+				"postgres_changes",
+				{
+					event: "UPDATE",
+					schema: "public",
+					table: "generation_jobs",
+					filter: `user_id=eq.${user.id}`,
+				},
+				(payload) => {
+					const newJob = payload.new as {
+						id: string;
+						status: string;
+						jd_text: string | null;
+						completed_at: string | null;
+						user_id: string;
+					};
+
+					// Only care about jobs that just succeeded
+					if (newJob.status === "succeeded") {
+						console.log(
+							"[useCreditHistory] Job succeeded, updating history:",
+							newJob.id,
+						);
+
+						const newEvent = jobToCreditEvent(newJob);
+
+						setEvents((prev) => {
+							// Check if this event already exists
+							const exists = prev.some(
+								(e) => e.id === newEvent.id,
+							);
+							if (exists) return prev;
+
+							// Add to front and trim to MAX_EVENTS
+							return [newEvent, ...prev].slice(0, MAX_EVENTS);
+						});
+
+						// Increment usage this month
+						setUsageThisMonth((prev) => prev + 1);
+					}
+				},
+			)
+			.subscribe((status) => {
+				if (status === "SUBSCRIBED") {
+					console.log(
+						"[useCreditHistory] Realtime channel subscribed",
+					);
+				} else if (status === "CHANNEL_ERROR") {
+					console.warn(
+						"[useCreditHistory] Realtime unavailable - live updates disabled",
+					);
+				}
+			});
+
+		channelRef.current = channel;
+
+		// Cleanup on unmount or when user changes
+		return () => {
+			if (channelRef.current) {
+				console.log(
+					"[useCreditHistory] Unsubscribing from Realtime channel",
+				);
+				supabase.removeChannel(channelRef.current);
+				channelRef.current = null;
+			}
+		};
+	}, [isAuthenticated, user?.id, jobToCreditEvent]);
 
 	return {
 		events,
