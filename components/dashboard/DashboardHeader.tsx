@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredits } from "@/hooks/useCredits";
@@ -50,8 +51,15 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
 						{/* Logo - links to dashboard */}
 						<Link
 							href="/"
-							className="font-display text-xl md:text-2xl font-semibold text-foreground hover:opacity-90 transition-opacity"
+							className="flex items-center gap-2 font-display text-xl md:text-2xl font-semibold text-foreground hover:opacity-90 transition-opacity"
 						>
+							<Image
+								src="/logo.png"
+								alt="atsresumie logo"
+								width={56}
+								height={56}
+								className="w-14 h-14"
+							/>
 							atsresumie
 						</Link>
 					</div>

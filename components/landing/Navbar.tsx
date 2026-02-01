@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Menu, X, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/auth/AuthModal";
 
@@ -82,8 +83,15 @@ export const Navbar = () => {
 						>
 							<Link
 								href="/"
-								className="font-display text-xl md:text-2xl font-semibold text-foreground"
+								className="flex items-center gap-2 font-display text-xl md:text-2xl font-semibold text-foreground"
 							>
+								<Image
+									src="/logo.png"
+									alt="atsresumie logo"
+									width={56}
+									height={56}
+									className="w-14 h-14"
+								/>
 								atsresumie
 							</Link>
 						</motion.div>
