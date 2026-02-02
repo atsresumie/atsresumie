@@ -193,11 +193,15 @@ Smart helpers:
 - Estimate credits before generate (based on mode)
 - Buy credits placeholder (Stripe later)
 
-### `/dashboard/saved-jds`
+### `/dashboard/saved-jds` ✅ Implemented
 
 - Save reusable JD snippets with:
-    - Label, company, link (optional), JD text
-- Use-to-generate (one click prefills Generate)
+    - Label (required), Company, Source URL (optional), JD text (required)
+- Use-to-generate (one click prefills Generate via localStorage)
+- Full CRUD: Create, Edit, Delete with confirmation
+- Search by label/company
+- Sort by Newest/Oldest
+- Realtime updates across tabs
 
 ### `/dashboard/resumes`
 
@@ -310,7 +314,7 @@ Recommended order:
 3. Past Generations (MVP) ✅ Completed
 4. Generate More (MVP) ✅ Completed
 5. Credits & Billing (MVP) ✅ Completed
-6. Saved JDs
+6. Saved JDs ✅ Completed
 7. Resume Versions
 8. Download Center
 9. Profile/Settings/Account pages via dropdown

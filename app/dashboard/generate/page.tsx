@@ -46,6 +46,24 @@ function GeneratePageContent() {
 		}
 	}, [searchParams, jobs, setJdText]);
 
+	// Handle prefill from saved JDs (via localStorage)
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+
+		const PREFILL_KEY = "atsresumie_generate_prefill_jd";
+		try {
+			const prefillJd = localStorage.getItem(PREFILL_KEY);
+			if (prefillJd) {
+				// Clear immediately to prevent re-prefilling on refresh
+				localStorage.removeItem(PREFILL_KEY);
+				setJdText(prefillJd);
+				console.log("[Generate] Prefilled JD from saved JDs");
+			}
+		} catch (err) {
+			console.warn("Failed to read prefill from localStorage:", err);
+		}
+	}, [setJdText]);
+
 	// Fetch JD from a specific job (for duplicate action)
 	const fetchJobJd = async (jobId: string) => {
 		try {
