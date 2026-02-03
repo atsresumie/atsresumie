@@ -1,4 +1,4 @@
-import { supabaseBrowser } from "@/lib/supabase/browser";
+// Client-side onboarding helpers
 
 /**
  * Client-side helpers for the onboarding flow.

@@ -11,6 +11,7 @@ import {
 	LayoutDashboard,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -92,7 +93,13 @@ export default function TopNav({ onReset }: TopNavProps) {
 	return (
 		<div className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
 			<div className="flex items-center gap-2">
-				<div className="h-8 w-8 rounded-xl bg-linear-to-br from-[#3B2A21] to-[#C8B08A] shadow-[0_0_0_1px_rgba(233,221,199,0.15)]" />
+				<Image
+					src="/logo.png"
+					alt="atsresumie logo"
+					width={56}
+					height={56}
+					className="h-14 w-14"
+				/>
 				<Link href="/" className="font-semibold tracking-tight">
 					atsresumie
 				</Link>

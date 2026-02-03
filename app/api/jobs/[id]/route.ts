@@ -95,3 +95,83 @@ export async function GET(
 		);
 	}
 }
+
+/**
+ * DELETE /api/jobs/[id]
+ *
+ * Delete a generation job.
+ * Requires authenticated user. Explicitly verifies ownership before deleting.
+ */
+export async function DELETE(
+	request: NextRequest,
+	{ params }: { params: Promise<{ id: string }> },
+) {
+	try {
+		const { id } = await params;
+
+		if (!id) {
+			return NextResponse.json(
+				{ error: "Job ID is required" },
+				{ status: 400 },
+			);
+		}
+
+		// Require authenticated user
+		const supabase = await createSupabaseServerClient();
+		const {
+			data: { user },
+			error: userError,
+		} = await supabase.auth.getUser();
+
+		if (userError || !user) {
+			return NextResponse.json(
+				{ error: "Unauthorized. Please sign in." },
+				{ status: 401 },
+			);
+		}
+
+		// First verify the job exists and belongs to this user (defense in depth)
+		const { data: job, error: fetchError } = await supabase
+			.from("generation_jobs")
+			.select("id, user_id")
+			.eq("id", id)
+			.single();
+
+		if (fetchError || !job) {
+			return NextResponse.json(
+				{ error: "Job not found" },
+				{ status: 404 },
+			);
+		}
+
+		// Explicit ownership check
+		if (job.user_id !== user.id) {
+			return NextResponse.json(
+				{ error: "Unauthorized" },
+				{ status: 403 },
+			);
+		}
+
+		// Delete the job
+		const { error: deleteError } = await supabase
+			.from("generation_jobs")
+			.delete()
+			.eq("id", id);
+
+		if (deleteError) {
+			console.error("Error deleting job:", deleteError);
+			return NextResponse.json(
+				{ error: "Failed to delete job" },
+				{ status: 500 },
+			);
+		}
+
+		return NextResponse.json({ success: true });
+	} catch (error) {
+		console.error("Error in DELETE /api/jobs/[id]:", error);
+		return NextResponse.json(
+			{ error: "Internal server error" },
+			{ status: 500 },
+		);
+	}
+}

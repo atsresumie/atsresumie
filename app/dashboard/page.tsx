@@ -1,37 +1,42 @@
-export default function DashboardPage() {
+"use client";
+
+import { QuickActionsGrid } from "@/components/dashboard/QuickActionsGrid";
+import { RecentGenerationsCard } from "@/components/dashboard/RecentGenerationsCard";
+import { CreditsCard } from "@/components/dashboard/CreditsCard";
+
+export default function DashboardHomePage() {
 	return (
-		<div className="min-h-screen bg-[#1a120e] text-[#E9DDC7]">
-			<div className="mx-auto max-w-4xl px-4 py-20">
-				<h1 className="text-3xl font-semibold tracking-tight">
+		<div className="p-6 md:p-8">
+			{/* Page Header */}
+			<div className="mb-8">
+				<h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
 					Dashboard
 				</h1>
-				<p className="mt-4 text-[rgba(233,221,199,0.75)]">
-					Your dashboard is coming soon. Here you&apos;ll be able to:
+				<p className="mt-2 text-muted-foreground">
+					Manage your generations, saved job descriptions, resumes,
+					and downloads.
 				</p>
-				<ul className="mt-6 space-y-3 text-[rgba(233,221,199,0.75)]">
-					<li className="flex items-center gap-2">
-						<span className="h-2 w-2 rounded-full bg-[#C8B08A]" />
-						View your remaining credits
-					</li>
-					<li className="flex items-center gap-2">
-						<span className="h-2 w-2 rounded-full bg-[#C8B08A]" />
-						See your generated resumes
-					</li>
-					<li className="flex items-center gap-2">
-						<span className="h-2 w-2 rounded-full bg-[#C8B08A]" />
-						Download previous exports
-					</li>
-					<li className="flex items-center gap-2">
-						<span className="h-2 w-2 rounded-full bg-[#C8B08A]" />
-						Manage your account settings
-					</li>
-				</ul>
-				<a
-					href="/get-started"
-					className="mt-10 inline-flex rounded-xl bg-[#C8B08A] px-6 py-3 text-sm font-medium text-[#1a120e] hover:bg-[#d4c4a8] transition-colors"
-				>
-					← Back to Resume Builder
-				</a>
+			</div>
+
+			{/* Quick Actions */}
+			<section className="mb-8">
+				<h2 className="mb-4 text-lg font-semibold text-foreground">
+					Quick Actions
+				</h2>
+				<QuickActionsGrid />
+			</section>
+
+			{/* Main Content Grid */}
+			<div className="grid gap-6 lg:grid-cols-3">
+				{/* Recent Generations - takes 2 columns on large screens */}
+				<div className="lg:col-span-2">
+					<RecentGenerationsCard />
+				</div>
+
+				{/* Credits Card - takes 1 column */}
+				<div className="lg:col-span-1">
+					<CreditsCard />
+				</div>
 			</div>
 		</div>
 	);

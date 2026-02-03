@@ -88,9 +88,13 @@ export function useCredits(): UseCreditsReturn {
 				},
 			)
 			.subscribe((status) => {
-				console.log(`[useCredits] Realtime channel status: ${status}`);
-				if (status === "CHANNEL_ERROR") {
-					console.error("[useCredits] Realtime channel error");
+				if (status === "SUBSCRIBED") {
+					console.log("[useCredits] Realtime channel subscribed");
+				} else if (status === "CHANNEL_ERROR") {
+					// Non-critical: credits still work via API, just no live updates
+					console.warn(
+						"[useCredits] Realtime unavailable - live updates disabled",
+					);
 				}
 			});
 

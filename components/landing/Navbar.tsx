@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import AuthModal from "@/components/auth/AuthModal";
-import { HeaderAuthControls } from "./HeaderAuthControls";
 
-const navLinks = [
+const marketingLinks = [
 	{ label: "Pricing", href: "#pricing" },
 	{ label: "How it works", href: "#how-it-works" },
 	{ label: "FAQ", href: "#faq" },
@@ -77,18 +77,28 @@ export const Navbar = () => {
 				<div className="container mx-auto">
 					<div className="flex items-center justify-between h-16 md:h-20">
 						{/* Logo */}
-						<motion.a
-							href="#"
-							className="font-display text-xl md:text-2xl font-semibold text-foreground"
+						<motion.div
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
 						>
-							atsresumie
-						</motion.a>
+							<Link
+								href="/"
+								className="flex items-center gap-2 font-display text-xl md:text-2xl font-semibold text-foreground"
+							>
+								<Image
+									src="/logo.png"
+									alt="atsresumie logo"
+									width={56}
+									height={56}
+									className="w-14 h-14"
+								/>
+								atsresumie
+							</Link>
+						</motion.div>
 
-						{/* Desktop Navigation */}
+						{/* Desktop Navigation - ALWAYS show marketing links */}
 						<div className="hidden md:flex items-center gap-6">
-							{navLinks.map((link) => (
+							{marketingLinks.map((link) => (
 								<motion.button
 									key={link.label}
 									onClick={() => scrollToSection(link.href)}
@@ -101,12 +111,57 @@ export const Navbar = () => {
 							))}
 
 							{/* Auth Controls */}
-							<HeaderAuthControls
-								onOpenAuthModal={(tab) => {
-									setAuthModalTab(tab);
-									setShowAuthModal(true);
-								}}
-							/>
+							{!isLoading && (
+								<>
+									{isAuthenticated ? (
+										<>
+											{/* Dashboard Button */}
+											<motion.div
+												whileHover={{
+													scale: 1.02,
+													y: -1,
+												}}
+												whileTap={{ scale: 0.98 }}
+											>
+												<Link
+													href="/dashboard"
+													className="px-4 py-2 font-medium text-sm rounded-xl transition-all inline-flex items-center gap-2 bg-secondary text-secondary-foreground shadow-soft hover:shadow-glow"
+												>
+													<LayoutDashboard
+														size={16}
+													/>
+													Dashboard
+												</Link>
+											</motion.div>
+										</>
+									) : (
+										<>
+											<motion.button
+												onClick={openSignIn}
+												className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+												whileHover={{ y: -1 }}
+												whileTap={{ y: 0 }}
+											>
+												Sign in
+											</motion.button>
+											<motion.button
+												whileHover={{
+													scale: 1.02,
+													y: -1,
+												}}
+												whileTap={{ scale: 0.98 }}
+											>
+												<Link
+													href="/get-started"
+													className="px-5 py-2.5 bg-secondary text-secondary-foreground font-medium text-sm rounded-xl shadow-soft hover:shadow-glow transition-all inline-block"
+												>
+													Get Started
+												</Link>
+											</motion.button>
+										</>
+									)}
+								</>
+							)}
 						</div>
 
 						{/* Mobile Menu Button */}
@@ -132,7 +187,7 @@ export const Navbar = () => {
 				style={{ pointerEvents: isOpen ? "auto" : "none" }}
 			>
 				<div className="flex flex-col items-center justify-center h-full gap-6">
-					{navLinks.map((link, i) => (
+					{marketingLinks.map((link, i) => (
 						<motion.button
 							key={link.label}
 							onClick={() => scrollToSection(link.href)}
@@ -156,9 +211,7 @@ export const Navbar = () => {
 					{!isLoading && (
 						<>
 							{isAuthenticated ? (
-								<motion.button
-									onClick={handleSignOut}
-									className="flex items-center gap-2 text-lg text-muted-foreground"
+								<motion.div
 									initial={{ opacity: 0, y: 20 }}
 									animate={
 										isOpen
@@ -170,9 +223,15 @@ export const Navbar = () => {
 											: { opacity: 0, y: 20 }
 									}
 								>
-									<LogOut size={20} />
-									Sign out ({user?.email?.split("@")[0]})
-								</motion.button>
+									<Link
+										href="/dashboard"
+										onClick={() => setIsOpen(false)}
+										className="px-6 py-3 bg-secondary text-secondary-foreground font-medium text-lg rounded-xl inline-flex items-center gap-2"
+									>
+										<LayoutDashboard size={20} />
+										Dashboard
+									</Link>
+								</motion.div>
 							) : (
 								<>
 									<motion.button

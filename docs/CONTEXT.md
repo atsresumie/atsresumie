@@ -52,7 +52,11 @@ atsresumie/
 │   │       └── claim/           # Claim session after signup
 │   ├── auth/              # Authentication routes
 │   │   └── callback/      # OAuth callback handler
-│   ├── dashboard/         # User dashboard (placeholder)
+│   ├── dashboard/         # User dashboard
+│   │   ├── generate/      # Generate page (JD input, resume selector)
+│   │   ├── generations/   # Past generations list
+│   │   ├── saved-jds/     # Saved job descriptions library
+│   │   └── ...
 │   ├── get-started/       # Main onboarding page
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Landing page
@@ -60,6 +64,10 @@ atsresumie/
 │
 ├── components/
 │   ├── auth/              # Authentication components
+│   ├── dashboard/         # Dashboard components
+│   │   ├── generate/      # Generate page components (Pickers, Indicators)
+│   │   ├── generations/   # Generations list components (Row, Drawer, Filters)
+│   │   └── ...
 │   ├── get-started/       # Onboarding wizard components
 │   │   ├── hooks/         # useResumeForm, useJobRealtime
 │   │   ├── steps/         # Step0, Step1, Step2 components
@@ -69,7 +77,12 @@ atsresumie/
 ├── hooks/                 # Global custom hooks
 │   ├── useAuth.ts         # Auth state hook
 │   ├── useCredits.ts      # Credits state hook
-│   └── useJobRealtime.ts  # Supabase Realtime subscription
+│   ├── useJobRealtime.ts  # Supabase Realtime subscription
+│   ├── useGenerations.ts  # Dashboard generations data + realtime
+│   ├── useSavedJds.ts     # Saved JDs CRUD + realtime
+│   ├── useDraftJd.ts      # Autosave hook for Generate page
+│   ├── useUserResume.ts   # Fetch user's latest resume hook
+│   └── useCreditHistory.ts # Credit history derived from generations
 │
 ├── lib/                   # Utility libraries
 │   ├── llm/               # AI Logic
@@ -150,6 +163,24 @@ Now serves as the source of truth for Realtime updates:
 - `pdf_object_path`: Stores path to compiled PDF (if exported)
 - `error_message`: Stores failure reasons
 
+### `saved_job_descriptions`
+
+- Stores reusable JDs for quick generation
+- `label`: User-defined name (required)
+- `company`, `source_url`: Optional metadata
+- `jd_text`: Full job description text (required)
+- **Realtime**: Enabled for instant cross-tab sync
+
+### `resume_versions`
+
+- Stores user resume files with version management
+- `label`, `file_name`, `file_type`: Resume metadata
+- `object_path`: Supabase Storage path
+- `resume_text`: Extracted text for AI processing
+- `is_default`: Exactly one default per user (enforced via RPC)
+- **Realtime**: Enabled for instant cross-tab sync
+- **RPC**: `set_default_resume(p_resume_id)` for atomic default switching
+
 ---
 
 ## Current Implementation Status
@@ -162,14 +193,14 @@ Now serves as the source of truth for Realtime updates:
 - **PDF Export**: Working compilation pipeline via `latex-online.cc`.
 - **Credit System**: Atomic decrements on generation success only.
 - **Auth**: Full Google/Email auth flow with gate for export.
+- **Dashboard**: Core features implemented (Home, Past Generations, Generate, Saved JDs, Resume Versions with duplicate detection, Download Center, Profile/Settings/Account pages).
 
 ### 🚧 Missing / In Progress
 
 - **Deep/Scratch Mode UI**: Frontend forms to collect extra inputs (Target Title, Skills, etc.) are missing.
 - **API Mode Switching**: `/api/generate` is currently hardcoded to `mode: "quick"`.
-- **Dashboard**: User dashboard page is still a placeholder.
 - **Stripe**: Payment integration is not yet started.
 
 ---
 
-_Last updated: 2026-01-26_
+_Last updated: 2026-02-02_
