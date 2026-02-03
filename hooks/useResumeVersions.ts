@@ -55,6 +55,82 @@ function getFileType(filename: string): string {
 }
 
 /**
+ * Normalize text for comparison: lowercase, collapse whitespace
+ */
+function normalizeText(text: string): string {
+	return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(a: string, b: string): number {
+	if (a.length === 0) return b.length;
+	if (b.length === 0) return a.length;
+
+	// Use two-row optimization for memory efficiency
+	let prevRow = Array.from({ length: b.length + 1 }, (_, i) => i);
+	let currRow = new Array(b.length + 1);
+
+	for (let i = 1; i <= a.length; i++) {
+		currRow[0] = i;
+		for (let j = 1; j <= b.length; j++) {
+			const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+			currRow[j] = Math.min(
+				currRow[j - 1] + 1, // insertion
+				prevRow[j] + 1, // deletion
+				prevRow[j - 1] + cost, // substitution
+			);
+		}
+		[prevRow, currRow] = [currRow, prevRow];
+	}
+
+	return prevRow[b.length];
+}
+
+/**
+ * Calculate similarity between two texts (0 to 1)
+ */
+function calculateTextSimilarity(a: string, b: string): number {
+	if (!a || !b) return 0;
+
+	const na = normalizeText(a);
+	const nb = normalizeText(b);
+
+	if (na === nb) return 1;
+	if (na.length === 0 || nb.length === 0) return 0;
+
+	// For very long texts, use chunk matching for performance
+	if (na.length > 5000 || nb.length > 5000) {
+		const shorter = na.length < nb.length ? na : nb;
+		const longer = na.length >= nb.length ? na : nb;
+
+		// Sample chunks and check containment
+		const chunkSize = 500;
+		const numChunks = Math.min(10, Math.ceil(shorter.length / chunkSize));
+		let matches = 0;
+
+		for (let i = 0; i < numChunks; i++) {
+			const start = Math.floor(
+				(i / numChunks) * (shorter.length - chunkSize),
+			);
+			const chunk = shorter.slice(start, start + chunkSize);
+			if (longer.includes(chunk)) matches++;
+		}
+
+		return matches / numChunks;
+	}
+
+	// For shorter texts, use Levenshtein-based similarity
+	const maxLen = Math.max(na.length, nb.length);
+	const distance = levenshteinDistance(na, nb);
+	return 1 - distance / maxLen;
+}
+
+const DUPLICATE_THRESHOLD = 0.95; // 95% similarity = duplicate
+const MIN_TEXT_LENGTH_FOR_COMPARISON = 100; // Skip comparison for very short texts
+
+/**
  * Returns relative time string
  */
 export function getRelativeTime(dateString: string): string {
@@ -176,14 +252,45 @@ export function useResumeVersions(): UseResumeVersionsReturn {
 					console.warn("Text extraction error:", extractErr);
 				}
 
-				// 3. Check if user has any resumes (to determine default)
+				// 3. Check for duplicate resume (if text was extracted)
+				if (
+					resumeText &&
+					resumeText.length >= MIN_TEXT_LENGTH_FOR_COMPARISON
+				) {
+					const duplicateResume = resumes.find((existing) => {
+						if (
+							!existing.resume_text ||
+							existing.resume_text.length <
+								MIN_TEXT_LENGTH_FOR_COMPARISON
+						) {
+							return false;
+						}
+						const similarity = calculateTextSimilarity(
+							resumeText,
+							existing.resume_text,
+						);
+						return similarity >= DUPLICATE_THRESHOLD;
+					});
+
+					if (duplicateResume) {
+						// Clean up uploaded file
+						await supabase.storage
+							.from("resumes")
+							.remove([objectPath]);
+						throw new Error(
+							`This resume appears identical to "${duplicateResume.label}". Please upload a different version.`,
+						);
+					}
+				}
+
+				// 4. Check if user has any resumes (to determine default)
 				const hasExisting = resumes.length > 0;
 
-				// 4. Generate label if not provided
+				// 5. Generate label if not provided
 				const finalLabel =
 					label?.trim() || `Resume v${resumes.length + 1}`;
 
-				// 5. Insert into database
+				// 6. Insert into database
 				const { data, error: insertError } = await supabase
 					.from("resume_versions")
 					.insert({

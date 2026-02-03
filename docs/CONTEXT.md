@@ -193,7 +193,7 @@ Now serves as the source of truth for Realtime updates:
 - **PDF Export**: Working compilation pipeline via `latex-online.cc`.
 - **Credit System**: Atomic decrements on generation success only.
 - **Auth**: Full Google/Email auth flow with gate for export.
-- **Dashboard**: Core features implemented (Home, Past Generations Library, Generate, Saved JDs, Resume Versions, Download Center).
+- **Dashboard**: Core features implemented (Home, Past Generations Library, Generate, Saved JDs, Resume Versions with duplicate detection, Download Center).
 
 ### 🚧 Missing / In Progress
 
