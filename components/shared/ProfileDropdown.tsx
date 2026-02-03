@@ -10,6 +10,8 @@ import {
 	History,
 	Settings,
 	HelpCircle,
+	User,
+	FileText,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredits } from "@/hooks/useCredits";
@@ -20,6 +22,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
+	DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 
 export function ProfileDropdown() {
@@ -78,7 +81,7 @@ export function ProfileDropdown() {
 				align="end"
 				className="w-64 bg-card/95 backdrop-blur-md border-border/50"
 			>
-				{/* Account Header */}
+				{/* Section A: Account Summary */}
 				<div className="px-3 py-3">
 					<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
 						Account
@@ -88,7 +91,7 @@ export function ProfileDropdown() {
 					</p>
 				</div>
 
-				{/* Credits Row - Clickable */}
+				{/* Section B: Credits Row - Clickable */}
 				<Link href="/dashboard/credits">
 					<div className="mx-2 px-3 py-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
 						<div className="flex items-center justify-between">
@@ -107,7 +110,11 @@ export function ProfileDropdown() {
 
 				<DropdownMenuSeparator className="my-2" />
 
-				{/* Navigation Links */}
+				{/* Section C: App Navigation */}
+				<DropdownMenuLabel className="text-xs text-muted-foreground px-3 py-1">
+					Navigation
+				</DropdownMenuLabel>
+
 				<DropdownMenuItem
 					asChild
 					className="cursor-pointer py-2.5 px-3"
@@ -144,25 +151,26 @@ export function ProfileDropdown() {
 					</Link>
 				</DropdownMenuItem>
 
+				<DropdownMenuSeparator className="my-2" />
+
+				{/* Section D: Account Pages */}
+				<DropdownMenuLabel className="text-xs text-muted-foreground px-3 py-1">
+					Account
+				</DropdownMenuLabel>
+
 				<DropdownMenuItem
 					asChild
 					className="cursor-pointer py-2.5 px-3"
 				>
 					<Link
-						href="/dashboard/credits"
+						href="/dashboard/profile"
 						className="flex items-center gap-3"
 					>
-						<CreditCard
-							size={16}
-							className="text-muted-foreground"
-						/>
-						<span>Credits & Billing</span>
+						<User size={16} className="text-muted-foreground" />
+						<span>Profile</span>
 					</Link>
 				</DropdownMenuItem>
 
-				<DropdownMenuSeparator className="my-2" />
-
-				{/* Account Links */}
 				<DropdownMenuItem
 					asChild
 					className="cursor-pointer py-2.5 px-3"
@@ -176,6 +184,22 @@ export function ProfileDropdown() {
 					</Link>
 				</DropdownMenuItem>
 
+				<DropdownMenuItem
+					asChild
+					className="cursor-pointer py-2.5 px-3"
+				>
+					<Link
+						href="/dashboard/account"
+						className="flex items-center gap-3"
+					>
+						<FileText size={16} className="text-muted-foreground" />
+						<span>Account Information</span>
+					</Link>
+				</DropdownMenuItem>
+
+				<DropdownMenuSeparator className="my-2" />
+
+				{/* Section E: Support */}
 				<DropdownMenuItem
 					asChild
 					className="cursor-pointer py-2.5 px-3"
@@ -194,7 +218,7 @@ export function ProfileDropdown() {
 
 				<DropdownMenuSeparator className="my-2" />
 
-				{/* Logout */}
+				{/* Section F: Logout */}
 				<DropdownMenuItem
 					onClick={handleSignOut}
 					className="cursor-pointer py-2.5 px-3 text-destructive focus:text-destructive focus:bg-destructive/10"

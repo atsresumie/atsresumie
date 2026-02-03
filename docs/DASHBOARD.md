@@ -317,7 +317,7 @@ Recommended order:
 6. Saved JDs ✅ Completed
 7. Resume Versions ✅ Completed
 8. Download Center ✅ Completed
-9. Profile/Settings/Account pages via dropdown
+9. Profile/Settings/Account pages via dropdown ✅ Completed
 10. Realtime polish + tags/notes/pins enhancements
 
 ---
