@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
@@ -8,26 +8,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-export default function ProfilePage() {
-	const { profile, isLoading, error, updateProfile, isSaving } = useProfile();
-
-	// Local form state
-	const [name, setName] = useState("");
-	const [roleTitle, setRoleTitle] = useState("");
-	const [location, setLocation] = useState("");
-	const [industries, setIndustries] = useState("");
-	const [skills, setSkills] = useState("");
-
-	// Sync form state with profile
-	useEffect(() => {
-		if (profile) {
-			setName(profile.name || "");
-			setRoleTitle(profile.role_title || "");
-			setLocation(profile.location || "");
-			setIndustries(profile.industries || "");
-			setSkills(profile.skills || "");
-		}
-	}, [profile]);
+/**
+ * Inner form component that receives profile as initial values
+ * This avoids calling setState in useEffect
+ */
+function ProfileForm({
+	initialName,
+	initialRoleTitle,
+	initialLocation,
+	initialIndustries,
+	initialSkills,
+	updateProfile,
+	isSaving,
+}: {
+	initialName: string;
+	initialRoleTitle: string;
+	initialLocation: string;
+	initialIndustries: string;
+	initialSkills: string;
+	updateProfile: (data: {
+		name: string | null;
+		role_title: string | null;
+		location: string | null;
+		industries: string | null;
+		skills: string | null;
+	}) => Promise<boolean>;
+	isSaving: boolean;
+}) {
+	const [name, setName] = useState(initialName);
+	const [roleTitle, setRoleTitle] = useState(initialRoleTitle);
+	const [location, setLocation] = useState(initialLocation);
+	const [industries, setIndustries] = useState(initialIndustries);
+	const [skills, setSkills] = useState(initialSkills);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -46,6 +58,100 @@ export default function ProfilePage() {
 			toast.error("Failed to save profile");
 		}
 	};
+
+	return (
+		<form onSubmit={handleSubmit} className="mt-8 space-y-6">
+			{/* Name */}
+			<div className="space-y-2">
+				<Label htmlFor="name">Full Name</Label>
+				<Input
+					id="name"
+					value={name}
+					onChange={(e) => setName(e.target.value)}
+					placeholder="John Doe"
+					disabled={isSaving}
+				/>
+			</div>
+
+			{/* Role/Title */}
+			<div className="space-y-2">
+				<Label htmlFor="roleTitle">Current Role / Title</Label>
+				<Input
+					id="roleTitle"
+					value={roleTitle}
+					onChange={(e) => setRoleTitle(e.target.value)}
+					placeholder="Senior Software Engineer"
+					disabled={isSaving}
+				/>
+				<p className="text-xs text-muted-foreground">
+					Your current or most recent job title
+				</p>
+			</div>
+
+			{/* Location */}
+			<div className="space-y-2">
+				<Label htmlFor="location">Location (optional)</Label>
+				<Input
+					id="location"
+					value={location}
+					onChange={(e) => setLocation(e.target.value)}
+					placeholder="San Francisco, CA"
+					disabled={isSaving}
+				/>
+			</div>
+
+			{/* Industries */}
+			<div className="space-y-2">
+				<Label htmlFor="industries">
+					Preferred Industries (optional)
+				</Label>
+				<Input
+					id="industries"
+					value={industries}
+					onChange={(e) => setIndustries(e.target.value)}
+					placeholder="Technology, Finance, Healthcare"
+					disabled={isSaving}
+				/>
+				<p className="text-xs text-muted-foreground">
+					Comma-separated list of industries you&apos;re targeting
+				</p>
+			</div>
+
+			{/* Skills */}
+			<div className="space-y-2">
+				<Label htmlFor="skills">Core Skills (optional)</Label>
+				<Input
+					id="skills"
+					value={skills}
+					onChange={(e) => setSkills(e.target.value)}
+					placeholder="React, TypeScript, Node.js, AWS"
+					disabled={isSaving}
+				/>
+				<p className="text-xs text-muted-foreground">
+					Comma-separated list of your key skills
+				</p>
+			</div>
+
+			{/* Submit */}
+			<Button type="submit" disabled={isSaving}>
+				{isSaving ? (
+					<>
+						<Loader2 size={16} className="mr-2 animate-spin" />
+						Saving...
+					</>
+				) : (
+					<>
+						<Save size={16} className="mr-2" />
+						Save Profile
+					</>
+				)}
+			</Button>
+		</form>
+	);
+}
+
+export default function ProfilePage() {
+	const { profile, isLoading, error, updateProfile, isSaving } = useProfile();
 
 	if (isLoading) {
 		return (
@@ -95,97 +201,17 @@ export default function ProfilePage() {
 					to your background.
 				</p>
 
-				{/* Form */}
-				<form onSubmit={handleSubmit} className="mt-8 space-y-6">
-					{/* Name */}
-					<div className="space-y-2">
-						<Label htmlFor="name">Full Name</Label>
-						<Input
-							id="name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							placeholder="John Doe"
-							disabled={isSaving}
-						/>
-					</div>
-
-					{/* Role/Title */}
-					<div className="space-y-2">
-						<Label htmlFor="roleTitle">Current Role / Title</Label>
-						<Input
-							id="roleTitle"
-							value={roleTitle}
-							onChange={(e) => setRoleTitle(e.target.value)}
-							placeholder="Senior Software Engineer"
-							disabled={isSaving}
-						/>
-						<p className="text-xs text-muted-foreground">
-							Your current or most recent job title
-						</p>
-					</div>
-
-					{/* Location */}
-					<div className="space-y-2">
-						<Label htmlFor="location">Location (optional)</Label>
-						<Input
-							id="location"
-							value={location}
-							onChange={(e) => setLocation(e.target.value)}
-							placeholder="San Francisco, CA"
-							disabled={isSaving}
-						/>
-					</div>
-
-					{/* Industries */}
-					<div className="space-y-2">
-						<Label htmlFor="industries">
-							Preferred Industries (optional)
-						</Label>
-						<Input
-							id="industries"
-							value={industries}
-							onChange={(e) => setIndustries(e.target.value)}
-							placeholder="Technology, Finance, Healthcare"
-							disabled={isSaving}
-						/>
-						<p className="text-xs text-muted-foreground">
-							Comma-separated list of industries you're targeting
-						</p>
-					</div>
-
-					{/* Skills */}
-					<div className="space-y-2">
-						<Label htmlFor="skills">Core Skills (optional)</Label>
-						<Input
-							id="skills"
-							value={skills}
-							onChange={(e) => setSkills(e.target.value)}
-							placeholder="React, TypeScript, Node.js, AWS"
-							disabled={isSaving}
-						/>
-						<p className="text-xs text-muted-foreground">
-							Comma-separated list of your key skills
-						</p>
-					</div>
-
-					{/* Submit */}
-					<Button type="submit" disabled={isSaving}>
-						{isSaving ? (
-							<>
-								<Loader2
-									size={16}
-									className="mr-2 animate-spin"
-								/>
-								Saving...
-							</>
-						) : (
-							<>
-								<Save size={16} className="mr-2" />
-								Save Profile
-							</>
-						)}
-					</Button>
-				</form>
+				{/* Form - use key to remount when profile changes */}
+				<ProfileForm
+					key={profile?.id}
+					initialName={profile?.name || ""}
+					initialRoleTitle={profile?.role_title || ""}
+					initialLocation={profile?.location || ""}
+					initialIndustries={profile?.industries || ""}
+					initialSkills={profile?.skills || ""}
+					updateProfile={updateProfile}
+					isSaving={isSaving}
+				/>
 			</div>
 		</div>
 	);

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Shield, Bell, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Shield, Bell, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
@@ -20,29 +20,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
-export default function SettingsPage() {
-	const { user } = useAuth();
-	const { profile, isLoading, updateProfile, isSaving } = useProfile();
-
-	const [emailOnComplete, setEmailOnComplete] = useState(true);
-
-	// Sync with profile
-	useEffect(() => {
-		if (profile) {
-			setEmailOnComplete(profile.email_on_complete ?? true);
-		}
-	}, [profile]);
-
-	// Determine auth provider
-	const getAuthProvider = () => {
-		if (!user) return null;
-
-		const provider = user.app_metadata?.provider;
-		if (provider === "google") return "Google";
-		if (provider === "email") return "Email / Password";
-		if (user.email) return "Email / Password";
-		return "Unknown";
-	};
+/**
+ * Inner component for the notification toggle that receives initial value as prop
+ * This avoids calling setState in useEffect
+ */
+function NotificationToggle({
+	initialValue,
+	updateProfile,
+	isSaving,
+}: {
+	initialValue: boolean;
+	updateProfile: (data: { email_on_complete: boolean }) => Promise<boolean>;
+	isSaving: boolean;
+}) {
+	const [emailOnComplete, setEmailOnComplete] = useState(initialValue);
 
 	const handleNotificationToggle = async (checked: boolean) => {
 		setEmailOnComplete(checked);
@@ -58,6 +49,44 @@ export default function SettingsPage() {
 			setEmailOnComplete(!checked);
 			toast.error("Failed to update notification settings");
 		}
+	};
+
+	return (
+		<div className="flex items-center justify-between">
+			<div className="space-y-1">
+				<Label
+					htmlFor="email-notifications"
+					className="text-sm font-medium"
+				>
+					Email me when generation completes
+				</Label>
+				<p className="text-xs text-muted-foreground">
+					Receive an email when your resume is ready
+				</p>
+			</div>
+			<Switch
+				id="email-notifications"
+				checked={emailOnComplete}
+				onCheckedChange={handleNotificationToggle}
+				disabled={isSaving}
+			/>
+		</div>
+	);
+}
+
+export default function SettingsPage() {
+	const { user } = useAuth();
+	const { profile, isLoading, updateProfile, isSaving } = useProfile();
+
+	// Determine auth provider
+	const getAuthProvider = () => {
+		if (!user) return null;
+
+		const provider = user.app_metadata?.provider;
+		if (provider === "google") return "Google";
+		if (provider === "email") return "Email / Password";
+		if (user.email) return "Email / Password";
+		return "Unknown";
 	};
 
 	const handleDeleteAccount = () => {
@@ -133,25 +162,13 @@ export default function SettingsPage() {
 								Notifications
 							</h2>
 						</div>
-						<div className="flex items-center justify-between">
-							<div className="space-y-1">
-								<Label
-									htmlFor="email-notifications"
-									className="text-sm font-medium"
-								>
-									Email me when generation completes
-								</Label>
-								<p className="text-xs text-muted-foreground">
-									Receive an email when your resume is ready
-								</p>
-							</div>
-							<Switch
-								id="email-notifications"
-								checked={emailOnComplete}
-								onCheckedChange={handleNotificationToggle}
-								disabled={isSaving}
-							/>
-						</div>
+						{/* Use key to remount when profile changes */}
+						<NotificationToggle
+							key={profile?.id}
+							initialValue={profile?.email_on_complete ?? true}
+							updateProfile={updateProfile}
+							isSaving={isSaving}
+						/>
 					</div>
 
 					{/* Privacy / Danger Zone */}

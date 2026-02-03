@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, RotateCcw, Loader2, Check, AlertCircle } from "lucide-react";
@@ -29,6 +29,29 @@ function GeneratePageContent() {
 	const [isNoCredits, setIsNoCredits] = useState(false);
 	const hasLoadedFromJobRef = useRef(false);
 
+	// Fetch JD from a specific job (for duplicate action)
+	const fetchJobJd = useCallback(
+		async (jobId: string) => {
+			try {
+				const { supabaseBrowser } =
+					await import("@/lib/supabase/browser");
+				const supabase = supabaseBrowser();
+				const { data: job } = await supabase
+					.from("generation_jobs")
+					.select("jd_text")
+					.eq("id", jobId)
+					.single();
+
+				if (job?.jd_text) {
+					setJdText(job.jd_text);
+				}
+			} catch (err) {
+				console.error("Failed to load job JD:", err);
+			}
+		},
+		[setJdText],
+	);
+
 	// Handle fromJobId query param for duplicate action
 	useEffect(() => {
 		const fromJobId = searchParams.get("fromJobId");
@@ -44,7 +67,7 @@ function GeneratePageContent() {
 				fetchJobJd(fromJobId);
 			}
 		}
-	}, [searchParams, jobs, setJdText]);
+	}, [searchParams, jobs, setJdText, fetchJobJd]);
 
 	// Handle prefill from saved JDs (via localStorage)
 	useEffect(() => {
@@ -63,25 +86,6 @@ function GeneratePageContent() {
 			console.warn("Failed to read prefill from localStorage:", err);
 		}
 	}, [setJdText]);
-
-	// Fetch JD from a specific job (for duplicate action)
-	const fetchJobJd = async (jobId: string) => {
-		try {
-			const { supabaseBrowser } = await import("@/lib/supabase/browser");
-			const supabase = supabaseBrowser();
-			const { data: job } = await supabase
-				.from("generation_jobs")
-				.select("jd_text")
-				.eq("id", jobId)
-				.single();
-
-			if (job?.jd_text) {
-				setJdText(job.jd_text);
-			}
-		} catch (err) {
-			console.error("Failed to load job JD:", err);
-		}
-	};
 
 	// Get most recent JD for "Use last JD" button
 	const lastJd = jobs.length > 0 ? jobs[0].jd_text : null;

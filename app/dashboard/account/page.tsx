@@ -34,7 +34,7 @@ export default function AccountPage() {
 									Free Plan
 								</span>
 								<p className="mt-3 text-sm text-muted-foreground">
-									You're on the free plan with limited
+									You&apos;re on the free plan with limited
 									credits.
 								</p>
 							</div>
