@@ -315,7 +315,7 @@ Recommended order:
 4. Generate More (MVP) ✅ Completed
 5. Credits & Billing (MVP) ✅ Completed
 6. Saved JDs ✅ Completed
-7. Resume Versions
+7. Resume Versions ✅ Completed
 8. Download Center
 9. Profile/Settings/Account pages via dropdown
 10. Realtime polish + tags/notes/pins enhancements

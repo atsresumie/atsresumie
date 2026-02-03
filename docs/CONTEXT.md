@@ -165,13 +165,21 @@ Now serves as the source of truth for Realtime updates:
 
 ### `saved_job_descriptions`
 
-Stores reusable JDs for quick generation:
-
-- `user_id`: Owner of the saved JD (RLS enforced)
+- Stores reusable JDs for quick generation
 - `label`: User-defined name (required)
 - `company`, `source_url`: Optional metadata
 - `jd_text`: Full job description text (required)
 - **Realtime**: Enabled for instant cross-tab sync
+
+### `resume_versions`
+
+- Stores user resume files with version management
+- `label`, `file_name`, `file_type`: Resume metadata
+- `object_path`: Supabase Storage path
+- `resume_text`: Extracted text for AI processing
+- `is_default`: Exactly one default per user (enforced via RPC)
+- **Realtime**: Enabled for instant cross-tab sync
+- **RPC**: `set_default_resume(p_resume_id)` for atomic default switching
 
 ---
 
@@ -185,14 +193,14 @@ Stores reusable JDs for quick generation:
 - **PDF Export**: Working compilation pipeline via `latex-online.cc`.
 - **Credit System**: Atomic decrements on generation success only.
 - **Auth**: Full Google/Email auth flow with gate for export.
-- **Dashboard**: Core features implemented (Home, Past Generations Library, Generate, Saved JDs).
+- **Dashboard**: Core features implemented (Home, Past Generations Library, Generate, Saved JDs, Resume Versions).
 
 ### 🚧 Missing / In Progress
 
 - **Deep/Scratch Mode UI**: Frontend forms to collect extra inputs (Target Title, Skills, etc.) are missing.
 - **API Mode Switching**: `/api/generate` is currently hardcoded to `mode: "quick"`.
 - **Stripe**: Payment integration is not yet started.
-- **Advanced Dashboard**: Resume Versions, Download Center, and Tags are pending.
+- **Advanced Dashboard**: Download Center and Tags are pending.
 
 ---
 

@@ -93,7 +93,9 @@ export function ResumeSelector({ onResumeChange }: ResumeSelectorProps) {
 							Resume to use
 						</p>
 						<p className="text-sm text-muted-foreground">
-							{resume.resumeFilename || "Your resume"}
+							{resume.resumeLabel ||
+								resume.resumeFilename ||
+								"Your resume"}
 						</p>
 					</div>
 				</div>

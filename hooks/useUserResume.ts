@@ -7,6 +7,7 @@ import { supabaseBrowser } from "@/lib/supabase/browser";
 interface UserResume {
 	resumeObjectPath: string;
 	resumeFilename: string | null;
+	resumeLabel: string | null;
 }
 
 interface UseUserResumeReturn {
@@ -17,8 +18,7 @@ interface UseUserResumeReturn {
 }
 
 /**
- * Hook to fetch the user's most recent resume from their generation jobs.
- * MVP: Uses resume_object_path from the most recent successful generation.
+ * Hook to fetch the user's default resume from the resume_versions table.
  */
 export function useUserResume(): UseUserResumeReturn {
 	const { isAuthenticated, isLoading: authLoading, user } = useAuth();
@@ -37,31 +37,27 @@ export function useUserResume(): UseUserResumeReturn {
 			setError(null);
 			const supabase = supabaseBrowser();
 
-			// Get the most recent generation job with a resume
+			// Get the default resume from resume_versions
 			const { data, error: fetchError } = await supabase
-				.from("generation_jobs")
-				.select("resume_object_path")
+				.from("resume_versions")
+				.select("object_path, file_name, label")
 				.eq("user_id", user.id)
-				.not("resume_object_path", "is", null)
-				.order("created_at", { ascending: false })
+				.eq("is_default", true)
 				.limit(1)
 				.single();
 
 			if (fetchError) {
-				// PGRST116 means no rows found - not an error
+				// PGRST116 means no rows found - not an error, user has no resume
 				if (fetchError.code === "PGRST116") {
 					setResume(null);
 				} else {
 					throw fetchError;
 				}
-			} else if (data?.resume_object_path) {
-				// Extract filename from path
-				const pathParts = data.resume_object_path.split("/");
-				const filename = pathParts[pathParts.length - 1] || null;
-
+			} else if (data?.object_path) {
 				setResume({
-					resumeObjectPath: data.resume_object_path,
-					resumeFilename: filename,
+					resumeObjectPath: data.object_path,
+					resumeFilename: data.file_name || null,
+					resumeLabel: data.label || null,
 				});
 			} else {
 				setResume(null);
