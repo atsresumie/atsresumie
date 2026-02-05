@@ -210,6 +210,10 @@ Now serves as the source of truth for Realtime updates:
 - **Credit System**: Atomic decrements on generation success only.
 - **Auth**: Full Google/Email auth flow with gate for export.
 - **Dashboard**: Core features implemented (Home, Past Generations, Generate, Saved JDs, Resume Versions with duplicate detection, Download Center, Profile/Settings/Account pages).
+- **Generate Page Enhancements** (Phase 10):
+    - Mode selector (Quick/Deep/From Scratch) - all modes supported
+    - Inline resume upload without navigation
+    - Resume dropdown with version selection
 - **Stripe Monthly Subscription** (Phase 9): Production-ready Stripe integration with:
     - Monthly subscription model ($10/month for 75 credits)
     - Server-authoritative credit pack configuration
@@ -222,8 +226,6 @@ Now serves as the source of truth for Realtime updates:
 
 ### 🚧 Missing / In Progress
 
-- **Deep/Scratch Mode UI**: Frontend forms to collect extra inputs (Target Title, Skills, etc.) are missing.
-- **API Mode Switching**: `/api/generate` is currently hardcoded to `mode: "quick"`.
 - **Subscription Renewals**: `invoice.paid` webhook handler for recurring credit grants.
 - **Subscription Management**: Customer portal for subscription changes/cancellations.
 
