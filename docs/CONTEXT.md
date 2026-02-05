@@ -145,6 +145,21 @@ Uses `latex-online.cc` to compile generated LaTeX into PDF.
 
 ---
 
+## Supabase Storage Buckets
+
+The application uses two storage buckets for resume files:
+
+| Bucket         | Purpose                              | Path Pattern                        |
+| -------------- | ------------------------------------ | ----------------------------------- |
+| `user-resumes` | Onboarding flow (anonymous sessions) | `sessions/{sessionId}/{filename}`   |
+| `resumes`      | Dashboard resume versions            | `resumes/{userId}/{resumeId}.{ext}` |
+
+### Cross-Bucket Download
+
+The `/api/generate` route's `getResumeText()` function extracts the bucket name dynamically from the URL, supporting both buckets seamlessly.
+
+---
+
 ## Database Schema Changes
 
 ### `onboarding_drafts` (Updated)
