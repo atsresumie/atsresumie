@@ -223,6 +223,12 @@ Now serves as the source of truth for Realtime updates:
     - Billing address collection for tax
     - Purchase history tracking and display
     - Homepage and dashboard pricing integration
+- **Auth Intent Preservation**: Login gate that preserves user's original action:
+    - Pre-auth check before protected actions (Buy Credits, Generate, Export)
+    - Intent saved to localStorage with 15-min expiry
+    - Centralized replay in `AuthModalContext.onAuthSuccess`
+    - Replay lock (30s) prevents double-execution on refresh
+    - Per-type payload validation for security
 
 ### 🚧 Missing / In Progress
 

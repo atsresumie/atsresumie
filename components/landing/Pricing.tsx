@@ -5,6 +5,8 @@ import { motion, useInView, useReducedMotion } from "framer-motion";
 import { Check, Zap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthModal } from "@/contexts/AuthModalContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useAuthIntent } from "@/hooks/useAuthIntent";
 
 const plans = [
 	{
@@ -44,6 +46,8 @@ export const Pricing = () => {
 	const isInView = useInView(containerRef, { once: true, margin: "-100px" });
 	const prefersReducedMotion = useReducedMotion();
 	const { openAuthModal } = useAuthModal();
+	const { isAuthenticated } = useAuth();
+	const { saveIntent } = useAuthIntent();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const scrollToStart = () => {
@@ -54,6 +58,19 @@ export const Pricing = () => {
 	const handleBuyPro = async () => {
 		if (isLoading) return;
 
+		console.log("[Pricing] handleBuyPro called", { isAuthenticated });
+
+		// Pre-auth check: save intent + open modal if not authenticated
+		if (!isAuthenticated) {
+			console.log("[Pricing] Not authenticated, saving intent...");
+			saveIntent({ type: "buy_credits", payload: { packId: "pro_75" } });
+			console.log("[Pricing] Intent saved, opening modal...");
+			toast.info("Please sign in to purchase credits");
+			openAuthModal("signin");
+			return;
+		}
+
+		// User is authenticated, proceed with checkout
 		setIsLoading(true);
 		try {
 			const res = await fetch("/api/stripe/checkout", {
@@ -65,9 +82,13 @@ export const Pricing = () => {
 			const data = await res.json();
 
 			if (!res.ok) {
-				// If not authenticated, show toast and open auth modal
+				// 401 fallback: session expired between check and API call
 				if (res.status === 401) {
-					toast.info("Please sign in to purchase credits");
+					saveIntent({
+						type: "buy_credits",
+						payload: { packId: "pro_75" },
+					});
+					toast.info("Session expired. Please sign in again.");
 					openAuthModal("signin");
 					setIsLoading(false);
 					return;

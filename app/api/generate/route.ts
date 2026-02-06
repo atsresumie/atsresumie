@@ -37,6 +37,16 @@ async function getResumeText(resumeObjectPathOrUrl: string): Promise<string> {
 		console.log(
 			`[getResumeText] Bucket: "${bucket}", Path: "${objectPath}"`,
 		);
+	} else {
+		// For object paths (not URLs), detect bucket based on path pattern
+		// Onboarding session paths: sessions/{sessionId}/...
+		// Dashboard resume paths: resumes/{userId}/...
+		if (objectPath.startsWith("sessions/")) {
+			bucket = "user-resumes";
+			console.log(
+				`[getResumeText] Detected session path, using "user-resumes" bucket`,
+			);
+		}
 	}
 
 	// Try primary bucket first
@@ -44,16 +54,20 @@ async function getResumeText(resumeObjectPathOrUrl: string): Promise<string> {
 		.from(bucket)
 		.download(objectPath);
 
-	// If failed and bucket was user-resumes, try resumes bucket as fallback
-	if ((error || !data) && bucket === "user-resumes") {
-		console.log(`[getResumeText] Fallback: trying "resumes" bucket`);
+	// If failed, try the other bucket as fallback
+	if (error || !data) {
+		const fallbackBucket =
+			bucket === "user-resumes" ? "resumes" : "user-resumes";
+		console.log(
+			`[getResumeText] Fallback: trying "${fallbackBucket}" bucket`,
+		);
 		const fallback = await supabase.storage
-			.from("resumes")
+			.from(fallbackBucket)
 			.download(objectPath);
 		data = fallback.data;
 		error = fallback.error;
 		if (!error && data) {
-			bucket = "resumes";
+			bucket = fallbackBucket;
 		}
 	}
 

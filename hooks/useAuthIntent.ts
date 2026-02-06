@@ -1,24 +1,20 @@
 "use client";
 
-import {
-	createContext,
-	useContext,
-	useState,
-	useCallback,
-	useRef,
-	type ReactNode,
-} from "react";
+import { useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import AuthModal from "@/components/auth/AuthModal";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Auth Intent Types (inline to avoid circular deps)
+// Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type AuthIntentType = "buy_credits" | "export_pdf" | "generate" | "navigate";
+export type AuthIntentType =
+	| "buy_credits"
+	| "export_pdf"
+	| "generate"
+	| "navigate";
 
-interface AuthIntent {
+export interface AuthIntent {
 	id: string;
 	type: AuthIntentType;
 	payload: Record<string, unknown>;
@@ -33,13 +29,68 @@ interface ReplayLock {
 	lockedAt: number;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
 const STORAGE_KEY = "auth_intent";
 const LOCK_KEY = "auth_intent_lock";
-const LOCK_TTL_MS = 30 * 1000;
+const INTENT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const LOCK_TTL_MS = 30 * 1000; // 30 seconds
+
+// Known valid pack IDs for validation
 const VALID_PACK_IDS = ["pro_75"];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Storage helpers
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function generateId(): string {
+	return crypto.randomUUID();
+}
+
+function isValidUUID(str: unknown): str is string {
+	if (typeof str !== "string") return false;
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+		str,
+	);
+}
+
+function isValidInternalPath(path: unknown): path is string {
+	if (typeof path !== "string") return false;
+	// Must start with "/" and not contain protocol
+	return path.startsWith("/") && !path.includes("://");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+function validatePayload(intent: AuthIntent): boolean {
+	switch (intent.type) {
+		case "buy_credits": {
+			const packId = intent.payload.packId;
+			if (typeof packId !== "string") return false;
+			if (!VALID_PACK_IDS.includes(packId)) return false;
+			return true;
+		}
+		case "export_pdf": {
+			const jobId = intent.payload.jobId;
+			return isValidUUID(jobId);
+		}
+		case "generate":
+			// No required payload
+			return true;
+		case "navigate": {
+			return isValidInternalPath(intent.returnTo);
+		}
+		default:
+			return false;
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Storage Operations
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getStoredIntent(): AuthIntent | null {
@@ -48,6 +99,7 @@ function getStoredIntent(): AuthIntent | null {
 		const raw = localStorage.getItem(STORAGE_KEY);
 		if (!raw) return null;
 		const intent = JSON.parse(raw) as AuthIntent;
+		// Check expiry
 		if (Date.now() > intent.expiresAt) {
 			localStorage.removeItem(STORAGE_KEY);
 			return null;
@@ -56,6 +108,11 @@ function getStoredIntent(): AuthIntent | null {
 	} catch {
 		return null;
 	}
+}
+
+function setStoredIntent(intent: AuthIntent): void {
+	if (typeof window === "undefined") return;
+	localStorage.setItem(STORAGE_KEY, JSON.stringify(intent));
 }
 
 function clearStoredIntent(): void {
@@ -84,92 +141,64 @@ function clearReplayLock(): void {
 	localStorage.removeItem(LOCK_KEY);
 }
 
-function isValidUUID(str: unknown): str is string {
-	if (typeof str !== "string") return false;
-	return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-		str,
-	);
-}
-
-function isValidInternalPath(path: unknown): path is string {
-	if (typeof path !== "string") return false;
-	return path.startsWith("/") && !path.includes("://");
-}
-
-function validatePayload(intent: AuthIntent): boolean {
-	switch (intent.type) {
-		case "buy_credits": {
-			const packId = intent.payload.packId;
-			return (
-				typeof packId === "string" && VALID_PACK_IDS.includes(packId)
-			);
-		}
-		case "export_pdf":
-			return isValidUUID(intent.payload.jobId);
-		case "generate":
-			return true;
-		case "navigate":
-			return isValidInternalPath(intent.returnTo);
-		default:
-			return false;
-	}
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Context
+// Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
-type AuthTab = "signin" | "signup";
-
-interface AuthModalContextType {
-	openAuthModal: (tab?: AuthTab) => void;
-	closeAuthModal: () => void;
-}
-
-const AuthModalContext = createContext<AuthModalContextType | null>(null);
-
-export function useAuthModal() {
-	const context = useContext(AuthModalContext);
-	if (!context) {
-		throw new Error("useAuthModal must be used within AuthModalProvider");
-	}
-	return context;
-}
-
-export function AuthModalProvider({ children }: { children: ReactNode }) {
+export function useAuthIntent() {
 	const router = useRouter();
-	const [isOpen, setIsOpen] = useState(false);
-	const [defaultTab, setDefaultTab] = useState<AuthTab>("signin");
 	const replayingRef = useRef(false);
 
-	const openAuthModal = useCallback((tab: AuthTab = "signin") => {
-		setDefaultTab(tab);
-		setIsOpen(true);
-	}, []);
+	/**
+	 * Save an intent to be replayed after authentication
+	 */
+	const saveIntent = useCallback(
+		(params: {
+			type: AuthIntentType;
+			payload?: Record<string, unknown>;
+			returnTo?: string;
+		}) => {
+			const now = Date.now();
+			const intent: AuthIntent = {
+				id: generateId(),
+				type: params.type,
+				payload: params.payload || {},
+				returnTo: params.returnTo,
+				createdAt: now,
+				expiresAt: now + INTENT_TTL_MS,
+				version: 1,
+			};
+			setStoredIntent(intent);
+			return intent;
+		},
+		[],
+	);
 
-	const closeAuthModal = useCallback(() => {
-		setIsOpen(false);
+	/**
+	 * Get the current valid intent (if any)
+	 */
+	const getIntent = useCallback((): AuthIntent | null => {
+		return getStoredIntent();
 	}, []);
 
 	/**
-	 * CENTRALIZED REPLAY: This is the ONLY place that replays auth intents
+	 * Clear the stored intent
 	 */
-	const handleAuthSuccess = useCallback(async () => {
-		console.log("[AuthModalContext] handleAuthSuccess called");
-		setIsOpen(false);
+	const clearIntent = useCallback(() => {
+		clearStoredIntent();
+		clearReplayLock();
+	}, []);
 
+	/**
+	 * Replay the stored intent after successful authentication
+	 * Returns true if an intent was replayed, false otherwise
+	 */
+	const replayIntent = useCallback(async (): Promise<boolean> => {
 		// Prevent concurrent replays
-		if (replayingRef.current) {
-			console.log("[AuthModalContext] Already replaying, skipping");
-			return;
-		}
+		if (replayingRef.current) return false;
 
 		const intent = getStoredIntent();
-		console.log("[AuthModalContext] Retrieved intent:", intent);
-		if (!intent) {
-			console.log("[AuthModalContext] No intent found");
-			return;
-		}
+		if (!intent) return false;
 
 		// Check replay lock
 		const lock = getReplayLock();
@@ -177,16 +206,19 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
 			lock?.intentId === intent.id &&
 			Date.now() - lock.lockedAt < LOCK_TTL_MS
 		) {
-			console.log("[AuthModalContext] Replay locked, skipping");
-			return; // Already being replayed
+			// Already being replayed
+			return false;
 		}
 
 		// Validate payload
 		if (!validatePayload(intent)) {
-			console.warn("[AuthIntent] Invalid payload, discarding:", intent);
+			console.warn(
+				"[AuthIntent] Invalid payload, discarding intent:",
+				intent,
+			);
 			clearStoredIntent();
 			clearReplayLock();
-			return;
+			return false;
 		}
 
 		// Set lock
@@ -197,8 +229,7 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
 			switch (intent.type) {
 				case "buy_credits": {
 					const packId = intent.payload.packId as string;
-
-					// Navigate to credits page for context
+					// Navigate to credits page first for context
 					router.push("/dashboard/credits");
 
 					// Create checkout session
@@ -212,32 +243,34 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
 
 					if (!res.ok || !data.url) {
 						toast.error(data.error || "Failed to start checkout");
+						// Fallback: stay on credits page
 						clearStoredIntent();
 						clearReplayLock();
-						return;
+						return true;
 					}
 
 					// Redirect to Stripe
 					clearStoredIntent();
 					clearReplayLock();
 					window.location.href = data.url;
-					return;
+					return true;
 				}
 
 				case "export_pdf": {
 					const jobId = intent.payload.jobId as string;
+					// Navigate to the generation page with the job
 					router.push(`/dashboard/generate?jobId=${jobId}`);
 					clearStoredIntent();
 					clearReplayLock();
 					toast.info("Resuming your export...");
-					return;
+					return true;
 				}
 
 				case "generate": {
 					router.push("/dashboard/generate");
 					clearStoredIntent();
 					clearReplayLock();
-					return;
+					return true;
 				}
 
 				case "navigate": {
@@ -249,28 +282,29 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
 					}
 					clearStoredIntent();
 					clearReplayLock();
-					return;
+					return true;
 				}
+
+				default:
+					clearStoredIntent();
+					clearReplayLock();
+					return false;
 			}
 		} catch (error) {
 			console.error("[AuthIntent] Replay failed:", error);
 			toast.error("Failed to continue your action. Please try again.");
 			clearStoredIntent();
 			clearReplayLock();
+			return false;
 		} finally {
 			replayingRef.current = false;
 		}
 	}, [router]);
 
-	return (
-		<AuthModalContext.Provider value={{ openAuthModal, closeAuthModal }}>
-			{children}
-			<AuthModal
-				open={isOpen}
-				onClose={closeAuthModal}
-				onAuthSuccess={handleAuthSuccess}
-				defaultTab={defaultTab}
-			/>
-		</AuthModalContext.Provider>
-	);
+	return {
+		saveIntent,
+		getIntent,
+		clearIntent,
+		replayIntent,
+	};
 }
