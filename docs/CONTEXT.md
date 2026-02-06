@@ -226,9 +226,11 @@ Now serves as the source of truth for Realtime updates:
 - **Auth Intent Preservation**: Login gate that preserves user's original action:
     - Pre-auth check before protected actions (Buy Credits, Generate, Export)
     - Intent saved to localStorage with 15-min expiry
-    - Centralized replay in `AuthModalContext.onAuthSuccess`
+    - **OAuth-compatible replay in `AuthContext.onAuthStateChange`** (works across page reloads)
     - Replay lock (30s) prevents double-execution on refresh
     - Per-type payload validation for security
+    - Get-started → redirects back with session preserved
+    - Pricing → redirects to Stripe checkout after login
 
 ### 🚧 Missing / In Progress
 
@@ -237,4 +239,18 @@ Now serves as the source of truth for Realtime updates:
 
 ---
 
-_Last updated: 2026-02-04_
+---
+
+## Development Scripts
+
+| Script               | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
+| `pnpm dev`           | Start Next.js + Stripe webhook listener (requires Stripe CLI) |
+| `pnpm dev:next`      | Start Next.js only                                            |
+| `pnpm stripe:listen` | Start Stripe webhook listener only                            |
+| `pnpm build`         | Production build                                              |
+| `pnpm start`         | Start production server                                       |
+
+---
+
+_Last updated: 2026-02-05_

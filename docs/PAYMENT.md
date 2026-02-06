@@ -232,11 +232,14 @@ brew install stripe/stripe-cli/stripe
 # Login
 stripe login
 
-# Forward webhooks to local
-stripe listen --forward-to localhost:3000/api/stripe/webhook
+# Option 1: Run dev server + webhook listener together (recommended)
+pnpm dev
 
-# Note the webhook signing secret output and set STRIPE_WEBHOOK_SECRET
+# Option 2: Run manually in separate terminals
+stripe listen --forward-to localhost:3000/api/stripe/webhook
 ```
+
+> **Note:** `pnpm dev` uses `concurrently` to run both Next.js and Stripe CLI together. The webhook signing secret from `STRIPE_WEBHOOK_SECRET` in `.env` is used automatically.
 
 ### Manual Test Checklist
 
@@ -289,4 +292,20 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 ---
 
-_Last updated: 2026-02-04_
+---
+
+## Development Scripts
+
+The following scripts are available for payment development:
+
+| Script               | Description                                      |
+| -------------------- | ------------------------------------------------ |
+| `pnpm dev`           | Start Next.js + Stripe webhook listener together |
+| `pnpm dev:next`      | Start Next.js only (no webhooks)                 |
+| `pnpm stripe:listen` | Start Stripe webhook listener only               |
+
+> **Requirement:** Stripe CLI must be installed (`brew install stripe/stripe-cli/stripe`) and logged in (`stripe login`).
+
+---
+
+_Last updated: 2026-02-05_

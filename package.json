@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently --kill-others \"next dev\" \"stripe listen --forward-to localhost:3000/api/stripe/webhook\"",
+    "dev:next": "next dev",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -73,6 +75,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.2",
     "postcss": "^8.5.6",
