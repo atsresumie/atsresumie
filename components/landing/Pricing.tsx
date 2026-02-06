@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
-import { Check, Zap, Loader2, ShoppingCart } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Check, Zap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthModal } from "@/contexts/AuthModalContext";
 
 const plans = [
 	{
@@ -43,7 +43,7 @@ export const Pricing = () => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const isInView = useInView(containerRef, { once: true, margin: "-100px" });
 	const prefersReducedMotion = useReducedMotion();
-	const router = useRouter();
+	const { openAuthModal } = useAuthModal();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const scrollToStart = () => {
@@ -65,10 +65,11 @@ export const Pricing = () => {
 			const data = await res.json();
 
 			if (!res.ok) {
-				// If not authenticated, redirect to login
+				// If not authenticated, show toast and open auth modal
 				if (res.status === 401) {
 					toast.info("Please sign in to purchase credits");
-					router.push("/get-started");
+					openAuthModal("signin");
+					setIsLoading(false);
 					return;
 				}
 				throw new Error(data.error || "Failed to start checkout");

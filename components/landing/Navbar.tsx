@@ -6,7 +6,7 @@ import { Menu, X, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import AuthModal from "@/components/auth/AuthModal";
+import { useAuthModal } from "@/contexts/AuthModalContext";
 
 const marketingLinks = [
 	{ label: "Pricing", href: "#pricing" },
@@ -16,10 +16,7 @@ const marketingLinks = [
 
 export const Navbar = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [showAuthModal, setShowAuthModal] = useState(false);
-	const [authModalTab, setAuthModalTab] = useState<"signin" | "signup">(
-		"signin",
-	);
+	const { openAuthModal } = useAuthModal();
 	const { user, isAuthenticated, isLoading, signOut } = useAuth();
 
 	const { scrollY } = useScroll();
@@ -52,14 +49,12 @@ export const Navbar = () => {
 	};
 
 	const openSignIn = () => {
-		setAuthModalTab("signin");
-		setShowAuthModal(true);
+		openAuthModal("signin");
 		setIsOpen(false);
 	};
 
 	const openSignUp = () => {
-		setAuthModalTab("signup");
-		setShowAuthModal(true);
+		openAuthModal("signup");
 		setIsOpen(false);
 	};
 
@@ -293,13 +288,6 @@ export const Navbar = () => {
 					</motion.button>
 				</div>
 			</motion.div>
-
-			{/* Auth Modal */}
-			<AuthModal
-				open={showAuthModal}
-				onClose={() => setShowAuthModal(false)}
-				defaultTab={authModalTab}
-			/>
 		</>
 	);
 };
