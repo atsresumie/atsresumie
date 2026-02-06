@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, FileRejection } from "react-dropzone";
 import { Upload, X, FileText, Loader2, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ export function QuickUploadModal({
 	onClose,
 	onUploadSuccess,
 }: QuickUploadModalProps) {
-	const { uploadResume, isMutating } = useResumeVersions();
+	const { uploadResume } = useResumeVersions();
 	const [file, setFile] = useState<File | null>(null);
 	const [label, setLabel] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export function QuickUploadModal({
 	const [uploadComplete, setUploadComplete] = useState(false);
 
 	const onDrop = useCallback(
-		(acceptedFiles: File[], rejectedFiles: any[]) => {
+		(acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
 			setError(null);
 
 			if (rejectedFiles.length > 0) {
