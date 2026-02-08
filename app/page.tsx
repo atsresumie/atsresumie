@@ -1,4 +1,5 @@
 "use client";
+import { AuthModalProvider } from "@/contexts/AuthModalContext";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
@@ -11,18 +12,20 @@ import { Footer } from "@/components/landing/Footer";
 
 export default function Home() {
 	return (
-		<div className="relative min-h-screen bg-background">
-			<Navbar />
-			<main>
-				<Hero />
-				<HowItWorks />
-				<Features />
-				<BeforeAfter />
-				<Pricing />
-				<FAQ />
-				<CTA />
-			</main>
-			<Footer />
-		</div>
+		<AuthModalProvider>
+			<div className="relative min-h-screen bg-background">
+				<Navbar />
+				<main>
+					<Hero />
+					<HowItWorks />
+					<Features />
+					<BeforeAfter />
+					<Pricing />
+					<FAQ />
+					<CTA />
+				</main>
+				<Footer />
+			</div>
+		</AuthModalProvider>
 	);
 }

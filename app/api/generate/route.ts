@@ -6,25 +6,82 @@ import type { GenerationMode } from "@/lib/llm/claudeLatex";
 
 /**
  * Extract resume text from Supabase Storage
+ * Handles both object paths (resumes/user-id/file.pdf) and full URLs
+ * Supports both "user-resumes" and "resumes" buckets with fallback
  */
-async function getResumeText(
-	resumeObjectPath: string,
-	bucket: string = "user-resumes",
-): Promise<string> {
+async function getResumeText(resumeObjectPathOrUrl: string): Promise<string> {
 	const supabase = supabaseAdmin();
 
-	const { data, error } = await supabase.storage
+	let bucket = "resumes"; // default - dashboard resumes
+	let objectPath = resumeObjectPathOrUrl;
+
+	if (resumeObjectPathOrUrl.startsWith("http")) {
+		// URL format: https://xxx.supabase.co/storage/v1/object/{bucket}/{path}
+		// Extract bucket and path from URL
+		const match = resumeObjectPathOrUrl.match(
+			/\/storage\/v1\/object\/([^/]+)\/(.+)$/,
+		);
+		if (match) {
+			bucket = match[1];
+			objectPath = match[2];
+		} else {
+			// Try signed URL format
+			const signedMatch = resumeObjectPathOrUrl.match(
+				/\/storage\/v1\/object\/sign\/([^/]+)\/(.+?)\?/,
+			);
+			if (signedMatch) {
+				bucket = signedMatch[1];
+				objectPath = signedMatch[2];
+			}
+		}
+		console.log(
+			`[getResumeText] Bucket: "${bucket}", Path: "${objectPath}"`,
+		);
+	} else {
+		// For object paths (not URLs), detect bucket based on path pattern
+		// Onboarding session paths: sessions/{sessionId}/...
+		// Dashboard resume paths: resumes/{userId}/...
+		if (objectPath.startsWith("sessions/")) {
+			bucket = "user-resumes";
+			console.log(
+				`[getResumeText] Detected session path, using "user-resumes" bucket`,
+			);
+		}
+	}
+
+	// Try primary bucket first
+	let { data, error } = await supabase.storage
 		.from(bucket)
-		.download(resumeObjectPath);
+		.download(objectPath);
+
+	// If failed, try the other bucket as fallback
+	if (error || !data) {
+		const fallbackBucket =
+			bucket === "user-resumes" ? "resumes" : "user-resumes";
+		console.log(
+			`[getResumeText] Fallback: trying "${fallbackBucket}" bucket`,
+		);
+		const fallback = await supabase.storage
+			.from(fallbackBucket)
+			.download(objectPath);
+		data = fallback.data;
+		error = fallback.error;
+		if (!error && data) {
+			bucket = fallbackBucket;
+		}
+	}
 
 	if (error || !data) {
-		throw new Error(`Failed to download resume: ${error?.message}`);
+		console.error("[getResumeText] Download error:", error);
+		throw new Error(
+			`Failed to download resume: ${error?.message || "Unknown error"}`,
+		);
 	}
 
 	// Convert blob to File for extraction
 	const storedFile = new File(
 		[data],
-		resumeObjectPath.split("/").pop() || "resume",
+		objectPath.split("/").pop() || "resume",
 		{
 			type: data.type,
 		},

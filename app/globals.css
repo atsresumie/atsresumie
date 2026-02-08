@@ -81,6 +81,14 @@
 	--color-input: var(--input);
 	--color-ring: var(--ring);
 
+	/* Custom brand colors */
+	--color-coffee: var(--coffee);
+	--color-coffee-light: var(--coffee-light);
+	--color-beige: var(--beige);
+	--color-beige-dark: var(--beige-dark);
+	--color-sand: var(--sand);
+	--color-cream: var(--cream);
+
 	/* Radius scale (keeps your old v3 behavior) */
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);

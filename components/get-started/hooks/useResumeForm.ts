@@ -18,6 +18,7 @@ import {
 	UploadProgress,
 } from "@/lib/onboarding/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthIntent } from "@/hooks/useAuthIntent";
 import { useJobRealtime } from "@/hooks/useJobRealtime";
 
 interface UploadedResume {
@@ -493,14 +494,20 @@ export function useResumeForm() {
 
 	// Use real auth state from useAuth hook
 	const { isAuthenticated } = useAuth();
+	const { saveIntent } = useAuthIntent();
 
 	// Ref to track if analyze request has been cancelled/timed out
 	const analyzeAbortRef = useRef<AbortController | null>(null);
 	const analyzeTimedOutRef = useRef(false);
 
 	const runAnalyze = useCallback(async () => {
-		// Gate preview behind login
+		// Gate preview behind login - save intent for replay after OAuth
 		if (!isAuthenticated) {
+			// Save intent so AuthContext can replay after login
+			saveIntent({
+				type: "generate",
+				returnTo: "/get-started",
+			});
 			toast.warning("Sign in required", {
 				description:
 					"Please sign in to preview and generate your resume.",

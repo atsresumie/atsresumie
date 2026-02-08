@@ -3,25 +3,17 @@
 import {
 	createContext,
 	useContext,
-	useEffect,
 	useState,
 	useCallback,
 	useRef,
-	ReactNode,
+	type ReactNode,
 } from "react";
-import { User, Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { supabaseBrowser } from "@/lib/supabase/browser";
-import {
-	signUpWithEmail,
-	signInWithEmail,
-	signInWithGoogle,
-	signOut as authSignOut,
-} from "./auth";
+import AuthModal from "@/components/auth/AuthModal";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Auth Intent Types & Helpers (inline to avoid circular deps)
+// Auth Intent Types (inline to avoid circular deps)
 // ─────────────────────────────────────────────────────────────────────────────
 
 type AuthIntentType = "buy_credits" | "export_pdf" | "generate" | "navigate";
@@ -45,6 +37,10 @@ const STORAGE_KEY = "auth_intent";
 const LOCK_KEY = "auth_intent_lock";
 const LOCK_TTL_MS = 30 * 1000;
 const VALID_PACK_IDS = ["pro_75"];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Storage helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 function getStoredIntent(): AuthIntent | null {
 	if (typeof window === "undefined") return null;
@@ -120,41 +116,60 @@ function validatePayload(intent: AuthIntent): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Auth Context
+// Context
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface AuthContextType {
-	user: User | null;
-	session: Session | null;
-	isLoading: boolean;
-	isAuthenticated: boolean;
-	signUp: (email: string, password: string) => Promise<void>;
-	signIn: (email: string, password: string) => Promise<void>;
-	signInWithGoogle: (redirectTo?: string) => Promise<void>;
-	signOut: () => Promise<void>;
+type AuthTab = "signin" | "signup";
+
+interface AuthModalContextType {
+	openAuthModal: (tab?: AuthTab) => void;
+	closeAuthModal: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthModalContext = createContext<AuthModalContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function useAuthModal() {
+	const context = useContext(AuthModalContext);
+	if (!context) {
+		throw new Error("useAuthModal must be used within AuthModalProvider");
+	}
+	return context;
+}
+
+export function AuthModalProvider({ children }: { children: ReactNode }) {
 	const router = useRouter();
-	const [user, setUser] = useState<User | null>(null);
-	const [session, setSession] = useState<Session | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
+	const [isOpen, setIsOpen] = useState(false);
+	const [defaultTab, setDefaultTab] = useState<AuthTab>("signin");
 	const replayingRef = useRef(false);
-	const hasReplayedRef = useRef(false);
+
+	const openAuthModal = useCallback((tab: AuthTab = "signin") => {
+		setDefaultTab(tab);
+		setIsOpen(true);
+	}, []);
+
+	const closeAuthModal = useCallback(() => {
+		setIsOpen(false);
+	}, []);
 
 	/**
-	 * Replay stored auth intent after successful login
+	 * CENTRALIZED REPLAY: This is the ONLY place that replays auth intents
 	 */
-	const replayIntent = useCallback(async () => {
-		// Only replay once per session
-		if (hasReplayedRef.current) return;
-		if (replayingRef.current) return;
+	const handleAuthSuccess = useCallback(async () => {
+		console.log("[AuthModalContext] handleAuthSuccess called");
+		setIsOpen(false);
+
+		// Prevent concurrent replays
+		if (replayingRef.current) {
+			console.log("[AuthModalContext] Already replaying, skipping");
+			return;
+		}
 
 		const intent = getStoredIntent();
-		console.log("[AuthContext] Checking for intent:", intent);
-		if (!intent) return;
+		console.log("[AuthModalContext] Retrieved intent:", intent);
+		if (!intent) {
+			console.log("[AuthModalContext] No intent found");
+			return;
+		}
 
 		// Check replay lock
 		const lock = getReplayLock();
@@ -162,13 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			lock?.intentId === intent.id &&
 			Date.now() - lock.lockedAt < LOCK_TTL_MS
 		) {
-			console.log("[AuthContext] Intent locked, skipping");
-			return;
+			console.log("[AuthModalContext] Replay locked, skipping");
+			return; // Already being replayed
 		}
 
 		// Validate payload
 		if (!validatePayload(intent)) {
-			console.warn("[AuthContext] Invalid payload, discarding:", intent);
+			console.warn("[AuthIntent] Invalid payload, discarding:", intent);
 			clearStoredIntent();
 			clearReplayLock();
 			return;
@@ -176,17 +191,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		// Set lock
 		replayingRef.current = true;
-		hasReplayedRef.current = true;
 		setReplayLock({ intentId: intent.id, lockedAt: Date.now() });
-
-		console.log("[AuthContext] Replaying intent:", intent.type);
 
 		try {
 			switch (intent.type) {
 				case "buy_credits": {
 					const packId = intent.payload.packId as string;
-					toast.info("Continuing to checkout...");
 
+					// Navigate to credits page for context
+					router.push("/dashboard/credits");
+
+					// Create checkout session
 					const res = await fetch("/api/stripe/checkout", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
@@ -199,10 +214,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						toast.error(data.error || "Failed to start checkout");
 						clearStoredIntent();
 						clearReplayLock();
-						router.push("/dashboard/credits");
 						return;
 					}
 
+					// Redirect to Stripe
 					clearStoredIntent();
 					clearReplayLock();
 					window.location.href = data.url;
@@ -219,16 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				}
 
 				case "generate": {
-					// Redirect back to get-started to continue with the existing session
-					// The onboarding session and uploaded resume are preserved there
-					toast.info(
-						"Welcome back! Continue generating your resume.",
-						{
-							description:
-								"Your session and resume have been preserved.",
-						},
-					);
-					router.push("/get-started");
+					router.push("/dashboard/generate");
 					clearStoredIntent();
 					clearReplayLock();
 					return;
@@ -247,7 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				}
 			}
 		} catch (error) {
-			console.error("[AuthContext] Replay failed:", error);
+			console.error("[AuthIntent] Replay failed:", error);
 			toast.error("Failed to continue your action. Please try again.");
 			clearStoredIntent();
 			clearReplayLock();
@@ -256,89 +262,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	}, [router]);
 
-	useEffect(() => {
-		const supabase = supabaseBrowser();
-
-		// Get initial session
-		supabase.auth.getSession().then(({ data: { session } }) => {
-			setSession(session);
-			setUser(session?.user ?? null);
-			setIsLoading(false);
-
-			// If user is already authenticated on mount, check for pending intent
-			if (session?.user) {
-				replayIntent();
-			}
-		});
-
-		// Listen for auth changes
-		const {
-			data: { subscription },
-		} = supabase.auth.onAuthStateChange((event, session) => {
-			console.log(
-				"[AuthContext] Auth state changed:",
-				event,
-				!!session?.user,
-			);
-			setSession(session);
-			setUser(session?.user ?? null);
-			setIsLoading(false);
-
-			// Replay intent when user signs in
-			if (event === "SIGNED_IN" && session?.user) {
-				replayIntent();
-			}
-		});
-
-		return () => {
-			subscription.unsubscribe();
-		};
-	}, [replayIntent]);
-
-	const handleSignUp = useCallback(
-		async (email: string, password: string) => {
-			await signUpWithEmail(email, password);
-		},
-		[],
-	);
-
-	const handleSignIn = useCallback(
-		async (email: string, password: string) => {
-			await signInWithEmail(email, password);
-		},
-		[],
-	);
-
-	const handleSignInWithGoogle = useCallback(async (redirectTo?: string) => {
-		await signInWithGoogle(redirectTo);
-	}, []);
-
-	const handleSignOut = useCallback(async () => {
-		await authSignOut();
-		// Reset replay tracking on sign out
-		hasReplayedRef.current = false;
-	}, []);
-
-	const value: AuthContextType = {
-		user,
-		session,
-		isLoading,
-		isAuthenticated: !!user,
-		signUp: handleSignUp,
-		signIn: handleSignIn,
-		signInWithGoogle: handleSignInWithGoogle,
-		signOut: handleSignOut,
-	};
-
 	return (
-		<AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+		<AuthModalContext.Provider value={{ openAuthModal, closeAuthModal }}>
+			{children}
+			<AuthModal
+				open={isOpen}
+				onClose={closeAuthModal}
+				onAuthSuccess={handleAuthSuccess}
+				defaultTab={defaultTab}
+			/>
+		</AuthModalContext.Provider>
 	);
-}
-
-export function useAuthContext() {
-	const context = useContext(AuthContext);
-	if (context === undefined) {
-		throw new Error("useAuthContext must be used within an AuthProvider");
-	}
-	return context;
 }

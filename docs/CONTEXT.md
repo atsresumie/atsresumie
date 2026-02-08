@@ -28,6 +28,7 @@
 | AI Model        | **Claude 3.5 Sonnet** (via Anthropic SDK)          |
 | Realtime        | **Supabase Realtime** (WebSockets)                 |
 | PDF Engine      | **latex-online.cc** (External Compilation Service) |
+| Payments        | **Stripe** (Subscriptions + Checkout)              |
 | Package Manager | pnpm                                               |
 
 ---
@@ -144,6 +145,21 @@ Uses `latex-online.cc` to compile generated LaTeX into PDF.
 
 ---
 
+## Supabase Storage Buckets
+
+The application uses two storage buckets for resume files:
+
+| Bucket         | Purpose                              | Path Pattern                        |
+| -------------- | ------------------------------------ | ----------------------------------- |
+| `user-resumes` | Onboarding flow (anonymous sessions) | `sessions/{sessionId}/{filename}`   |
+| `resumes`      | Dashboard resume versions            | `resumes/{userId}/{resumeId}.{ext}` |
+
+### Cross-Bucket Download
+
+The `/api/generate` route's `getResumeText()` function extracts the bucket name dynamically from the URL, supporting both buckets seamlessly.
+
+---
+
 ## Database Schema Changes
 
 ### `onboarding_drafts` (Updated)
@@ -194,13 +210,47 @@ Now serves as the source of truth for Realtime updates:
 - **Credit System**: Atomic decrements on generation success only.
 - **Auth**: Full Google/Email auth flow with gate for export.
 - **Dashboard**: Core features implemented (Home, Past Generations, Generate, Saved JDs, Resume Versions with duplicate detection, Download Center, Profile/Settings/Account pages).
+- **Generate Page Enhancements** (Phase 10):
+    - Mode selector (Quick/Deep/From Scratch) - all modes supported
+    - Inline resume upload without navigation
+    - Resume dropdown with version selection
+- **Stripe Monthly Subscription** (Phase 9): Production-ready Stripe integration with:
+    - Monthly subscription model ($10/month for 75 credits)
+    - Server-authoritative credit pack configuration
+    - Secure webhook handling with signature verification
+    - Idempotent credit granting via INSERT-as-gate pattern
+    - Promotion code support
+    - Billing address collection for tax
+    - Purchase history tracking and display
+    - Homepage and dashboard pricing integration
+- **Auth Intent Preservation**: Login gate that preserves user's original action:
+    - Pre-auth check before protected actions (Buy Credits, Generate, Export)
+    - Intent saved to localStorage with 15-min expiry
+    - **OAuth-compatible replay in `AuthContext.onAuthStateChange`** (works across page reloads)
+    - Replay lock (30s) prevents double-execution on refresh
+    - Per-type payload validation for security
+    - Get-started → redirects back with session preserved
+    - Pricing → redirects to Stripe checkout after login
 
 ### 🚧 Missing / In Progress
 
-- **Deep/Scratch Mode UI**: Frontend forms to collect extra inputs (Target Title, Skills, etc.) are missing.
-- **API Mode Switching**: `/api/generate` is currently hardcoded to `mode: "quick"`.
-- **Stripe**: Payment integration is not yet started.
+- **Subscription Renewals**: `invoice.paid` webhook handler for recurring credit grants.
+- **Subscription Management**: Customer portal for subscription changes/cancellations.
 
 ---
 
-_Last updated: 2026-02-02_
+---
+
+## Development Scripts
+
+| Script               | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
+| `pnpm dev`           | Start Next.js + Stripe webhook listener (requires Stripe CLI) |
+| `pnpm dev:next`      | Start Next.js only                                            |
+| `pnpm stripe:listen` | Start Stripe webhook listener only                            |
+| `pnpm build`         | Production build                                              |
+| `pnpm start`         | Start production server                                       |
+
+---
+
+_Last updated: 2026-02-05_

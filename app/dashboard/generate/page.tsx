@@ -8,11 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDraftJd } from "@/hooks/useDraftJd";
-import { useUserResume } from "@/hooks/useUserResume";
+import { useResumeVersions } from "@/hooks/useResumeVersions";
 import { useGenerations } from "@/hooks/useGenerations";
 import { JdQualityIndicator } from "@/components/dashboard/generate/JdQualityIndicator";
 import { PastGenerationPicker } from "@/components/dashboard/generate/PastGenerationPicker";
 import { ResumeSelector } from "@/components/dashboard/generate/ResumeSelector";
+import {
+	ModeSelector,
+	type GenerationMode,
+} from "@/components/dashboard/generate/ModeSelector";
 
 /**
  * Inner component that uses useSearchParams
@@ -21,13 +25,48 @@ function GeneratePageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { jdText, setJdText, clearDraft, isDraftSaved } = useDraftJd();
-	const { resume } = useUserResume();
+	const {
+		resumes,
+		defaultResume,
+		isLoading: resumesLoading,
+	} = useResumeVersions();
 	const { jobs } = useGenerations();
 
+	// State
+	const [selectedResumeId, setSelectedResumeId] = useState<string | null>(
+		null,
+	);
+	const [selectedObjectPath, setSelectedObjectPath] = useState<string | null>(
+		null,
+	);
+	const [mode, setMode] = useState<GenerationMode>("quick");
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [isNoCredits, setIsNoCredits] = useState(false);
 	const hasLoadedFromJobRef = useRef(false);
+
+	// Auto-select default resume when loaded
+	useEffect(() => {
+		if (!selectedResumeId && defaultResume) {
+			setSelectedResumeId(defaultResume.id);
+			setSelectedObjectPath(defaultResume.object_path);
+		}
+	}, [defaultResume, selectedResumeId]);
+
+	// Handle resume selection
+	const handleResumeChange = (
+		resumeId: string | null,
+		objectPath: string | null,
+	) => {
+		setSelectedResumeId(resumeId);
+		// If objectPath is null, find it from resumes list
+		if (resumeId && !objectPath) {
+			const resume = resumes.find((r) => r.id === resumeId);
+			setSelectedObjectPath(resume?.object_path || null);
+		} else {
+			setSelectedObjectPath(objectPath);
+		}
+	};
 
 	// Fetch JD from a specific job (for duplicate action)
 	const fetchJobJd = useCallback(
@@ -112,8 +151,8 @@ function GeneratePageContent() {
 			return;
 		}
 
-		if (!resume?.resumeObjectPath) {
-			setError("Please upload a resume first");
+		if (!selectedObjectPath) {
+			setError("Please select a resume first");
 			return;
 		}
 
@@ -127,8 +166,8 @@ function GeneratePageContent() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					jdText: jdText.trim(),
-					resumeObjectPath: resume.resumeObjectPath,
-					mode: "quick",
+					resumeObjectPath: selectedObjectPath,
+					mode: mode,
 				}),
 			});
 
@@ -156,20 +195,33 @@ function GeneratePageContent() {
 	};
 
 	const canGenerate =
-		jdText.trim().length >= 50 &&
-		!!resume?.resumeObjectPath &&
-		!isGenerating;
+		jdText.trim().length >= 50 && !!selectedObjectPath && !isGenerating;
 
 	return (
 		<>
 			{/* Main Card */}
 			<div className="rounded-xl border border-border/50 bg-card/50 p-6">
+				{/* Mode Selector */}
+				<div className="mb-6">
+					<label className="mb-2 block text-sm font-medium text-foreground">
+						Generation Mode
+					</label>
+					<ModeSelector
+						value={mode}
+						onChange={setMode}
+						disabled={isGenerating}
+					/>
+				</div>
+
 				{/* Resume Selector */}
 				<div className="mb-6">
 					<label className="mb-2 block text-sm font-medium text-foreground">
 						Resume
 					</label>
-					<ResumeSelector />
+					<ResumeSelector
+						selectedId={selectedResumeId}
+						onResumeChange={handleResumeChange}
+					/>
 				</div>
 
 				{/* JD Textarea */}

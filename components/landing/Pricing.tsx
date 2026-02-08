@@ -1,36 +1,42 @@
-import { useRef } from "react";
+"use client";
+
+import { useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuthModal } from "@/contexts/AuthModalContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useAuthIntent } from "@/hooks/useAuthIntent";
 
 const plans = [
 	{
+		id: "free",
 		name: "Free",
 		description: "Get started with 3 credits",
 		price: "$0",
 		period: "",
 		features: [
-			"3 credits included",
-			"Preview uses 1 credit",
-			"Export is free",
-			"PDF download",
-			"LaTeX source included",
+			"3 credits on signup",
+			"1 credit per generation",
+			"Export is always free",
+			"PDF download included",
 		],
 		cta: "Get Started",
 		popular: false,
 	},
 	{
+		id: "pro_75",
 		name: "Pro",
-		description: "For serious job seekers",
-		price: "$19",
-		period: "/month",
+		description: "75 credits every month",
+		price: "$10",
+		period: "/mo",
 		features: [
-			"Unlimited credits",
-			"Unlimited versions",
-			"Premium templates",
-			"Priority processing",
-			"Version history",
+			"75 credits per month",
+			"Unlimited PDF exports",
+			"Priority support",
+			"Cancel anytime",
 		],
-		cta: "Go Pro",
+		cta: "Subscribe",
 		popular: true,
 	},
 ];
@@ -39,10 +45,80 @@ export const Pricing = () => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const isInView = useInView(containerRef, { once: true, margin: "-100px" });
 	const prefersReducedMotion = useReducedMotion();
+	const { openAuthModal } = useAuthModal();
+	const { isAuthenticated } = useAuth();
+	const { saveIntent } = useAuthIntent();
+	const [isLoading, setIsLoading] = useState(false);
 
 	const scrollToStart = () => {
 		const element = document.querySelector("#start");
 		element?.scrollIntoView({ behavior: "smooth" });
+	};
+
+	const handleBuyPro = async () => {
+		if (isLoading) return;
+
+		console.log("[Pricing] handleBuyPro called", { isAuthenticated });
+
+		// Pre-auth check: save intent + open modal if not authenticated
+		if (!isAuthenticated) {
+			console.log("[Pricing] Not authenticated, saving intent...");
+			saveIntent({ type: "buy_credits", payload: { packId: "pro_75" } });
+			console.log("[Pricing] Intent saved, opening modal...");
+			toast.info("Please sign in to purchase credits");
+			openAuthModal("signin");
+			return;
+		}
+
+		// User is authenticated, proceed with checkout
+		setIsLoading(true);
+		try {
+			const res = await fetch("/api/stripe/checkout", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ packId: "pro_75" }),
+			});
+
+			const data = await res.json();
+
+			if (!res.ok) {
+				// 401 fallback: session expired between check and API call
+				if (res.status === 401) {
+					saveIntent({
+						type: "buy_credits",
+						payload: { packId: "pro_75" },
+					});
+					toast.info("Session expired. Please sign in again.");
+					openAuthModal("signin");
+					setIsLoading(false);
+					return;
+				}
+				throw new Error(data.error || "Failed to start checkout");
+			}
+
+			if (!data.url) {
+				throw new Error("No checkout URL returned");
+			}
+
+			// Redirect to Stripe Checkout
+			window.location.href = data.url;
+		} catch (error) {
+			console.error("Checkout error:", error);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to start checkout",
+			);
+			setIsLoading(false);
+		}
+	};
+
+	const handleCTA = (planId: string) => {
+		if (planId === "pro_75") {
+			handleBuyPro();
+		} else {
+			scrollToStart();
+		}
 	};
 
 	return (
@@ -59,7 +135,7 @@ export const Pricing = () => {
 						Simple pricing
 					</h2>
 					<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-						Start free, upgrade when you need more
+						Start free, buy credits when you need more
 					</p>
 				</motion.div>
 
@@ -117,9 +193,9 @@ export const Pricing = () => {
 								{/* Popular badge */}
 								{plan.popular && (
 									<div className="absolute -top-3 left-1/2 -translate-x-1/2">
-										<div className="flex items-center gap-1.5 px-3 py-1 bg-sand text-secondary-foreground text-sm font-medium rounded-full">
+										<div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white text-sm font-semibold rounded-full shadow-lg">
 											<Zap size={12} />
-											Popular
+											Best Value
 										</div>
 									</div>
 								)}
@@ -166,16 +242,29 @@ export const Pricing = () => {
 
 								{/* CTA */}
 								<motion.button
-									onClick={scrollToStart}
-									className={`w-full py-3.5 px-4 font-medium rounded-xl transition-all ${
+									onClick={() => handleCTA(plan.id)}
+									disabled={plan.id === "pro_75" && isLoading}
+									className={`w-full py-3.5 px-4 font-medium rounded-xl transition-all flex items-center justify-center gap-2 ${
 										plan.popular
 											? "bg-secondary text-secondary-foreground shadow-soft hover:shadow-glow"
 											: "bg-muted/50 text-foreground hover:bg-muted"
-									}`}
-									whileHover={{ scale: 1.02, y: -2 }}
-									whileTap={{ scale: 0.98 }}
+									} ${isLoading && plan.id === "pro_75" ? "opacity-70 cursor-not-allowed" : ""}`}
+									whileHover={
+										!isLoading ? { scale: 1.02, y: -2 } : {}
+									}
+									whileTap={!isLoading ? { scale: 0.98 } : {}}
 								>
-									{plan.cta}
+									{plan.id === "pro_75" && isLoading ? (
+										<>
+											<Loader2
+												size={16}
+												className="animate-spin"
+											/>
+											Processing...
+										</>
+									) : (
+										plan.cta
+									)}
 								</motion.button>
 							</div>
 						</motion.div>
@@ -189,7 +278,7 @@ export const Pricing = () => {
 					transition={{ delay: 0.6 }}
 					className="text-center text-sm text-muted-foreground mt-8"
 				>
-					Need more credits? Buy additional credit packs anytime.
+					One-time purchase. No subscriptions, no hidden fees.
 				</motion.p>
 			</div>
 		</section>
