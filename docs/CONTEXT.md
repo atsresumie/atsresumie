@@ -21,7 +21,8 @@
 | --------------- | -------------------------------------------------- |
 | Framework       | Next.js 16 (App Router)                            |
 | Language        | TypeScript                                         |
-| Styling         | Tailwind CSS                                       |
+| Styling         | Tailwind CSS v4 + CSS Variables                    |
+| UI Components   | shadcn/ui (49 primitives)                          |
 | Database        | Supabase (PostgreSQL)                              |
 | Storage         | Supabase Storage                                   |
 | Auth            | **Supabase Auth** (Email/Password + Google OAuth)  |
@@ -29,6 +30,7 @@
 | Realtime        | **Supabase Realtime** (WebSockets)                 |
 | PDF Engine      | **latex-online.cc** (External Compilation Service) |
 | Payments        | **Stripe** (Subscriptions + Checkout)              |
+| Animation       | **Framer Motion** (for landing/onboarding)         |
 | Package Manager | pnpm                                               |
 
 ---
@@ -41,24 +43,41 @@ atsresumie/
 │   ├── api/               # API Routes
 │   │   ├── analyze/       # ATS analysis endpoint
 │   │   ├── credits/       # Get user credits
+│   │   ├── export/        # Export endpoint
 │   │   ├── export-pdf/    # PDF compilation proxy
+│   │   ├── feedback/      # User feedback submission
 │   │   ├── generate/      # Create generation job (Claude)
 │   │   ├── jobs/[id]/     # Job status & details
-│   │   └── onboarding/    # Anonymous session management
-│   │       ├── commit-resume/   # Soft-commit resume
-│   │       ├── session-status/  # Get session + draft data
-│   │       ├── resume-upload-url/ # Signed URL for upload
-│   │       ├── save-draft/      # Save JD + resume metadata
-│   │       ├── delete-resume/   # Delete resume from storage
-│   │       └── claim/           # Claim session after signup
+│   │   ├── onboarding/    # Anonymous session management
+│   │   │   ├── claim/           # Claim session after signup
+│   │   │   ├── commit-resume/   # Soft-commit resume
+│   │   │   ├── delete-resume/   # Delete resume from storage
+│   │   │   ├── resume-upload-url/ # Signed URL for upload
+│   │   │   ├── save-draft/      # Save JD + resume metadata
+│   │   │   └── session-status/  # Get session + draft data
+│   │   ├── resumes/       # Resume management API
+│   │   └── stripe/        # Stripe integration
+│   │       ├── checkout/  # Create checkout session
+│   │       └── webhook/   # Handle Stripe webhooks
+│   │
 │   ├── auth/              # Authentication routes
 │   │   └── callback/      # OAuth callback handler
-│   ├── dashboard/         # User dashboard
-│   │   ├── generate/      # Generate page (JD input, resume selector)
+│   │
+│   ├── dashboard/         # User dashboard (protected)
+│   │   ├── account/       # Account information page
+│   │   ├── credits/       # Credits & billing page
+│   │   ├── downloads/     # Download center
+│   │   ├── generate/      # Generate new resume
 │   │   ├── generations/   # Past generations list
-│   │   ├── saved-jds/     # Saved job descriptions library
-│   │   └── ...
-│   ├── get-started/       # Main onboarding page
+│   │   ├── profile/       # User profile page
+│   │   ├── resumes/       # Resume versions management
+│   │   ├── saved-jds/     # Saved job descriptions
+│   │   ├── settings/      # User settings
+│   │   ├── layout.tsx     # Dashboard layout (header + sidebar)
+│   │   └── page.tsx       # Dashboard home
+│   │
+│   ├── get-started/       # Onboarding wizard (public)
+│   ├── globals.css        # Design tokens & base styles
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Landing page
 │   └── providers.tsx      # React context providers
@@ -66,48 +85,125 @@ atsresumie/
 ├── components/
 │   ├── auth/              # Authentication components
 │   ├── dashboard/         # Dashboard components
-│   │   ├── generate/      # Generate page components (Pickers, Indicators)
-│   │   ├── generations/   # Generations list components (Row, Drawer, Filters)
-│   │   └── ...
+│   │   ├── generate/      # Generate page components
+│   │   │   ├── JdQualityIndicator.tsx
+│   │   │   ├── ModeSelector.tsx
+│   │   │   ├── PastGenerationPicker.tsx
+│   │   │   ├── QuickUploadModal.tsx
+│   │   │   └── ResumeSelector.tsx
+│   │   ├── generations/   # Generations list components
+│   │   │   ├── DeleteJobDialog.tsx
+│   │   │   ├── GenerationDetailsDrawer.tsx
+│   │   │   ├── GenerationJobRow.tsx
+│   │   │   └── GenerationsFilters.tsx
+│   │   ├── resumes/       # Resume management components
+│   │   ├── saved-jds/     # Saved JDs components
+│   │   ├── CreditsCard.tsx
+│   │   ├── DashboardHeader.tsx
+│   │   ├── DashboardSidebar.tsx
+│   │   ├── FeedbackModal.tsx
+│   │   ├── QuickActionCard.tsx
+│   │   ├── QuickActionsGrid.tsx
+│   │   └── RecentGenerationsCard.tsx
+│   │
 │   ├── get-started/       # Onboarding wizard components
-│   │   ├── hooks/         # useResumeForm, useJobRealtime
+│   │   ├── hooks/         # useResumeForm
 │   │   ├── steps/         # Step0, Step1, Step2 components
-│   │   └── ...
-│   └── ui/                # shadcn/ui components
+│   │   ├── AnimatedBackground.tsx
+│   │   ├── ModeCards.tsx
+│   │   ├── SidePanel.tsx
+│   │   ├── SignupGateModal.tsx
+│   │   ├── Stepper.tsx
+│   │   └── TopNav.tsx
+│   │
+│   ├── landing/           # Landing page components
+│   │   ├── BeforeAfter.tsx
+│   │   ├── CTA.tsx
+│   │   ├── FAQ.tsx
+│   │   ├── Features.tsx
+│   │   ├── Footer.tsx
+│   │   ├── HeaderAuthControls.tsx
+│   │   ├── Hero.tsx
+│   │   ├── HowItWorks.tsx
+│   │   ├── Navbar.tsx
+│   │   └── Pricing.tsx
+│   │
+│   ├── shared/            # Shared components
+│   │   └── ProfileDropdown.tsx
+│   │
+│   └── ui/                # shadcn/ui components (49 files)
+│       ├── button.tsx
+│       ├── input.tsx
+│       ├── dialog.tsx
+│       ├── ... (46 more)
+│
+├── contexts/              # React contexts
+│   └── AuthModalContext.tsx
 │
 ├── hooks/                 # Global custom hooks
 │   ├── useAuth.ts         # Auth state hook
-│   ├── useCredits.ts      # Credits state hook
+│   ├── useAuthIntent.ts   # Auth intent preservation
+│   ├── useCredits.ts      # Credits state with realtime
+│   ├── useCreditHistory.ts # Credit history from generations
+│   ├── useDownloads.ts    # Download center data
+│   ├── useDraftJd.ts      # Autosave for Generate page
+│   ├── useGenerations.ts  # Dashboard generations + realtime
+│   ├── useJobPolling.ts   # Legacy polling (deprecated)
 │   ├── useJobRealtime.ts  # Supabase Realtime subscription
-│   ├── useGenerations.ts  # Dashboard generations data + realtime
+│   ├── useProfile.ts      # User profile data
+│   ├── usePurchaseHistory.ts # Stripe purchase history
+│   ├── useRecentGenerations.ts # Dashboard home widget
+│   ├── useResumeVersions.ts # Resume versions CRUD + realtime
 │   ├── useSavedJds.ts     # Saved JDs CRUD + realtime
-│   ├── useDraftJd.ts      # Autosave hook for Generate page
-│   ├── useUserResume.ts   # Fetch user's latest resume hook
-│   └── useCreditHistory.ts # Credit history derived from generations
+│   ├── useUserResume.ts   # Fetch user's latest resume
+│   ├── use-mobile.tsx     # Mobile detection
+│   └── use-toast.ts       # Toast notifications
 │
 ├── lib/                   # Utility libraries
+│   ├── ats/               # ATS-related utilities
+│   ├── auth/              # Auth helpers
+│   ├── jobs/              # Job-related utilities
 │   ├── llm/               # AI Logic
 │   │   ├── claudeLatex.ts # Claude integration & modes
 │   │   └── prompts.ts     # Prompt templates
-│   ├── onboarding/
+│   ├── onboarding/        # Onboarding helpers
 │   │   └── client.ts      # Client-side API helpers (XHR upload)
+│   ├── storage/           # Storage utilities
+│   ├── stripe/            # Stripe helpers
 │   ├── supabase/          # Supabase clients
-│   └── utils/             # Helpers
+│   │   ├── browser.ts     # Browser client
+│   │   ├── server.ts      # Server client
+│   │   └── middleware.ts  # Middleware client
+│   ├── utils/             # General helpers
+│   └── utils.ts           # cn() utility
 │
-└── public/                # Static assets
+├── public/                # Static assets
+│   └── logo.png
+│
+├── supabase/              # Supabase config & migrations
+│
+└── docs/                  # Documentation
+    ├── AUTH.md
+    ├── CONTEXT.md         # (this file)
+    ├── CORE_ENGINE.md
+    ├── DASHBOARD.md
+    ├── IMPLEMENTATIONS.md
+    ├── ONBOARDING.md
+    ├── PAYMENT.md
+    └── WORKFLOW.md
 ```
 
 ---
 
-## Core Engines
+## Core Features
 
 ### 1. Soft-Commit Resume Upload
 
-Implements a two-stage upload process to prevent orphan files and improve UX:
+Two-stage upload process to prevent orphan files:
 
-- **Stage 1 (Temp)**: File uploaded to `temp/` folder immediately on selection. Yellow badge.
-- **Stage 2 (Final)**: File moved to `final/` folder only when user confirms ("Preview & Analyze"). Green badge.
-- **Progress Tracking**: Uses XHR for real-time upload percentage and ETA.
+- **Stage 1 (Temp)**: File uploaded to `temp/` folder on selection. Yellow badge.
+- **Stage 2 (Final)**: File moved to `final/` folder on confirm. Green badge.
+- **Progress**: XHR for real-time percentage and ETA.
 
 ### 2. Claude LaTeX Generation
 
@@ -115,142 +211,126 @@ Uses **Claude 3.5 Sonnet** to generate ATS-safe LaTeX code.
 
 - **Engine**: `lib/llm/claudeLatex.ts`
 - **Prompts**: `lib/llm/prompts.ts`
-- **Modes Designed**:
-    1.  **Quick**: Minimal changes, speed optimized.
-    2.  **Deep**: Deep tailoring using questionnaire.
-    3.  **Scratch**: Build from structured profile.
+- **Modes**: Quick, Deep, From Scratch (all implemented)
 
-> **⚠️ IMPORTANT LIMITATION**: While the backend supports all 3 modes, the API and UI currently **only trigger Quick Mode**. Review `docs/MISSING_MODES_CONTEXT.md` for details.
+### 3. Realtime System
 
-### 3. Realtime Flow (No Polling)
+Supabase Realtime replaces polling for instant updates:
 
-Replaced polling with **Supabase Realtime** for instant feedback:
-
-1.  **Job Creation**: API returns `jobId` immediately (`status: pending`).
-2.  **Subscription**: Frontend subscribes to `generation_jobs` changes via `useJobRealtime`.
-3.  **Updates**: Backend helper `update_job_status` pushes changes (running -> succeeded/failed).
-4.  **Reaction**: Frontend auto-navigates or updates UI based on push events.
+1. Job created → `status: pending`
+2. Frontend subscribes via `useJobRealtime`
+3. Backend pushes updates (running → succeeded/failed)
+4. Frontend reacts immediately
 
 ### 4. PDF Compilation
 
-Uses `latex-online.cc` to compile generated LaTeX into PDF.
+External compilation via `latex-online.cc`:
 
-- **Endpoint**: `/api/export-pdf`
-- **Process**:
-    1.  Check if PDF already exists (idempotency).
-    2.  Send LaTeX to external compiler.
-    3.  Upload result to Supabase Storage (`generated-pdfs/`).
-    4.  Return signed URL (valid 10 mins).
-- **Cost**: PDF compilation is free; credits are only deducted during LaTeX generation.
+- Endpoint: `/api/export-pdf`
+- Uploads compiled PDF to Supabase Storage
+- Returns signed URL (10 min validity)
+- Credits deducted during generation, not PDF export
 
----
+### 5. Stripe Integration
 
-## Supabase Storage Buckets
+Full subscription system:
 
-The application uses two storage buckets for resume files:
-
-| Bucket         | Purpose                              | Path Pattern                        |
-| -------------- | ------------------------------------ | ----------------------------------- |
-| `user-resumes` | Onboarding flow (anonymous sessions) | `sessions/{sessionId}/{filename}`   |
-| `resumes`      | Dashboard resume versions            | `resumes/{userId}/{resumeId}.{ext}` |
-
-### Cross-Bucket Download
-
-The `/api/generate` route's `getResumeText()` function extracts the bucket name dynamically from the URL, supporting both buckets seamlessly.
+- Monthly plan: $10/month for 75 credits
+- Secure webhooks with signature verification
+- Idempotent credit granting
+- Promotion code support
+- Purchase history tracking
 
 ---
 
-## Database Schema Changes
+## Current Design System
 
-### `onboarding_drafts` (Updated)
+### Typography
 
-Added soft-commit tracking columns:
+- **Display**: Fraunces (serif) — headings
+- **Body**: Inter (sans-serif) — UI text
 
-- `resume_status`: 'temp' | 'final'
-- `resume_uploaded_at`: Timestamp
-- `resume_committed_at`: Timestamp
+### Color Palette
 
-### `generation_jobs`
+Warm dark theme with coffee/beige tones:
 
-Now serves as the source of truth for Realtime updates:
-
-- `status`: pending -> running -> succeeded/failed
-- `latex_text`: Stores the raw generated LaTeX
-- `pdf_object_path`: Stores path to compiled PDF (if exported)
-- `error_message`: Stores failure reasons
-
-### `saved_job_descriptions`
-
-- Stores reusable JDs for quick generation
-- `label`: User-defined name (required)
-- `company`, `source_url`: Optional metadata
-- `jd_text`: Full job description text (required)
-- **Realtime**: Enabled for instant cross-tab sync
-
-### `resume_versions`
-
-- Stores user resume files with version management
-- `label`, `file_name`, `file_type`: Resume metadata
-- `object_path`: Supabase Storage path
-- `resume_text`: Extracted text for AI processing
-- `is_default`: Exactly one default per user (enforced via RPC)
-- **Realtime**: Enabled for instant cross-tab sync
-- **RPC**: `set_default_resume(p_resume_id)` for atomic default switching
+| Token      | Value                    |
+| ---------- | ------------------------ |
+| background | `hsl(24 28% 12%)`        |
+| foreground | `hsl(36 30% 88%)`        |
+| primary    | `hsl(20 30% 18%)`        |
+| secondary  | `hsl(36 30% 85%)`        |
+| accent     | `hsl(32 28% 66%)` (sand) |
+| muted      | `hsl(24 20% 22%)`        |
+| border     | `hsl(24 20% 25%)`        |
 
 ---
 
-## Current Implementation Status
+## Database Schema
 
-### ✅ Implemented
+### Key Tables
 
-- **Claude Integration**: Full backend logic for LaTeX generation.
-- **Realtime System**: End-to-end WebSocket updates for generation and export.
-- **Soft-Commit Upload**: Complete temp/final storage logic with progress UI.
-- **PDF Export**: Working compilation pipeline via `latex-online.cc`.
-- **Credit System**: Atomic decrements on generation success only.
-- **Auth**: Full Google/Email auth flow with gate for export.
-- **Dashboard**: Core features implemented (Home, Past Generations, Generate, Saved JDs, Resume Versions with duplicate detection, Download Center, Profile/Settings/Account pages).
-- **Generate Page Enhancements** (Phase 10):
-    - Mode selector (Quick/Deep/From Scratch) - all modes supported
-    - Inline resume upload without navigation
-    - Resume dropdown with version selection
-- **Stripe Monthly Subscription** (Phase 9): Production-ready Stripe integration with:
-    - Monthly subscription model ($10/month for 75 credits)
-    - Server-authoritative credit pack configuration
-    - Secure webhook handling with signature verification
-    - Idempotent credit granting via INSERT-as-gate pattern
-    - Promotion code support
-    - Billing address collection for tax
-    - Purchase history tracking and display
-    - Homepage and dashboard pricing integration
-- **Auth Intent Preservation**: Login gate that preserves user's original action:
-    - Pre-auth check before protected actions (Buy Credits, Generate, Export)
-    - Intent saved to localStorage with 15-min expiry
-    - **OAuth-compatible replay in `AuthContext.onAuthStateChange`** (works across page reloads)
-    - Replay lock (30s) prevents double-execution on refresh
-    - Per-type payload validation for security
-    - Get-started → redirects back with session preserved
-    - Pricing → redirects to Stripe checkout after login
+| Table                    | Purpose                          |
+| ------------------------ | -------------------------------- |
+| `user_profiles`          | User data, credits, profile info |
+| `generation_jobs`        | Job status, LaTeX, PDF path      |
+| `saved_job_descriptions` | Reusable JDs                     |
+| `resume_versions`        | User resume files with versions  |
+| `onboarding_sessions`    | Anonymous session tracking       |
+| `onboarding_drafts`      | Draft data before signup         |
+| `credit_purchases`       | Stripe purchase records          |
 
-### 🚧 Missing / In Progress
+### Storage Buckets
 
-- **Subscription Renewals**: `invoice.paid` webhook handler for recurring credit grants.
-- **Subscription Management**: Customer portal for subscription changes/cancellations.
+| Bucket           | Purpose                              |
+| ---------------- | ------------------------------------ |
+| `user-resumes`   | Onboarding flow (anonymous sessions) |
+| `resumes`        | Dashboard resume versions            |
+| `generated-pdfs` | Compiled PDF exports                 |
 
 ---
+
+## Implementation Status
+
+### ✅ Fully Implemented
+
+- Claude integration with all 3 generation modes
+- Realtime system (WebSocket updates)
+- Soft-commit resume upload with progress
+- PDF export pipeline
+- Credit system with atomic decrements
+- Google/Email auth with gate for export
+- Complete dashboard:
+    - Home with quick actions
+    - Generate with mode/resume selection
+    - Past Generations with filters/drawer
+    - Saved JDs library
+    - Resume Versions with duplicate detection
+    - Download Center
+    - Credits & Billing
+    - Profile/Settings/Account
+- Stripe monthly subscription
+- Auth intent preservation
+- User feedback submission
+
+### 🚧 In Progress
+
+- Subscription renewals (`invoice.paid` webhook)
+- Subscription management (customer portal)
 
 ---
 
 ## Development Scripts
 
-| Script               | Description                                                   |
-| -------------------- | ------------------------------------------------------------- |
-| `pnpm dev`           | Start Next.js + Stripe webhook listener (requires Stripe CLI) |
-| `pnpm dev:next`      | Start Next.js only                                            |
-| `pnpm stripe:listen` | Start Stripe webhook listener only                            |
-| `pnpm build`         | Production build                                              |
-| `pnpm start`         | Start production server                                       |
+| Script               | Description                             |
+| -------------------- | --------------------------------------- |
+| `pnpm dev`           | Start Next.js + Stripe webhook listener |
+| `pnpm dev:next`      | Start Next.js only                      |
+| `pnpm stripe:listen` | Start Stripe webhook listener only      |
+| `pnpm build`         | Production build                        |
+| `pnpm start`         | Start production server                 |
+| `pnpm lint`          | Run ESLint                              |
 
 ---
 
-_Last updated: 2026-02-05_
+_Last updated: 2026-02-08_
