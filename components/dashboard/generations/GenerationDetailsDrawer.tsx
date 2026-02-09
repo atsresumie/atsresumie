@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
 	Download,
 	Copy,
@@ -9,6 +10,7 @@ import {
 	ChevronDown,
 	ChevronUp,
 	AlertCircle,
+	Pencil,
 } from "lucide-react";
 import {
 	Sheet,
@@ -231,6 +233,19 @@ export function GenerationDetailsDrawer({
 
 					{/* Actions */}
 					<div className="space-y-2 pt-4">
+						{job.status === "succeeded" && (
+							<Link href={`/dashboard/editor/${job.id}`}>
+								<Button
+									variant="outline"
+									className="w-full"
+									onClick={() => onOpenChange(false)}
+								>
+									<Pencil size={16} className="mr-2" />
+									Edit & Download
+								</Button>
+							</Link>
+						)}
+
 						<Button
 							className="w-full"
 							disabled={!hasPdf || isDownloading}

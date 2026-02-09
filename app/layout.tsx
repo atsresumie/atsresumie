@@ -1,6 +1,6 @@
 import "./globals.css";
 import Providers from "./providers";
-import { Manrope, DM_Sans } from "next/font/google";
+import { Manrope, DM_Sans, IBM_Plex_Mono } from "next/font/google";
 
 const displayFont = Manrope({
 	subsets: ["latin"],
@@ -17,7 +17,14 @@ const bodyFont = DM_Sans({
 	display: "swap",
 });
 
-export { displayFont, bodyFont };
+const monoFont = IBM_Plex_Mono({
+	subsets: ["latin"],
+	weight: ["400", "500", "600"],
+	variable: "--font-mono",
+	display: "swap",
+});
+
+export { displayFont, bodyFont, monoFont };
 
 export const jsonLd = {
 	"@context": "https://schema.org",
@@ -61,7 +68,7 @@ export default function RootLayout({
 		<html
 			lang="en"
 			suppressHydrationWarning
-			className={`${displayFont.variable} ${bodyFont.variable}`}
+			className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}
 		>
 			<body className="antialiased font-body">
 				<a

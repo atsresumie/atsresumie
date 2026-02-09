@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "lint:local": "act -j ci"
+    "lint:local": "act -j ci",
+    "postinstall": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/ 2>/dev/null || true"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -50,11 +51,14 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.26.2",
+    "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
+    "jspdf": "^4.1.0",
     "lucide-react": "^0.462.0",
     "mammoth": "^1.11.0",
     "next": "16.1.2",
     "next-themes": "^0.3.0",
+    "pdfjs-dist": "^4.0.379",
     "react": "19.2.3",
     "react-day-picker": "^8.10.1",
     "react-dom": "19.2.3",
