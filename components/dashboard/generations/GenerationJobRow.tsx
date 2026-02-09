@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, Download, Copy, Trash2, Loader2, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,12 +61,15 @@ export function GenerationJobRow({
 	onDuplicate,
 	onDelete,
 }: GenerationJobRowProps) {
+	const router = useRouter();
 	const [isDownloading, setIsDownloading] = useState(false);
 	const [downloadError, setDownloadError] = useState<string | null>(null);
 
 	const label = deriveJobLabel(job.jd_text);
 	const relativeTime = getRelativeTime(job.created_at);
 	const hasPdf = job.status === "succeeded" && !!job.pdf_object_path;
+	const hasRenderableContent =
+		!!job.resume_text?.trim() || !!job.resume_object_path;
 
 	const handleDownload = async () => {
 		if (!hasPdf) return;
@@ -133,6 +137,17 @@ export function GenerationJobRow({
 				>
 					<Eye size={16} />
 					<span className="ml-1 hidden sm:inline">View</span>
+				</Button>
+
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-8 px-2"
+					disabled={!hasRenderableContent}
+					onClick={() => router.push(`/dashboard/editor/${job.id}`)}
+				>
+					<span className="hidden sm:inline">Edit & Download</span>
+					<span className="sm:hidden">Edit</span>
 				</Button>
 
 				<Button

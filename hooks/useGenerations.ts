@@ -29,6 +29,8 @@ export interface GenerationJobFull {
 	id: string;
 	status: GenerationJobStatus;
 	jd_text: string | null;
+	resume_text: string | null;
+	resume_object_path: string | null;
 	pdf_object_path: string | null;
 	error_message: string | null;
 	created_at: string;
@@ -118,7 +120,7 @@ export function useGenerations(): UseGenerationsReturn {
 			const { data, error: fetchError } = await supabase
 				.from("generation_jobs")
 				.select(
-					"id, status, jd_text, pdf_object_path, error_message, created_at, started_at, completed_at",
+					"id, status, jd_text, resume_text, resume_object_path, pdf_object_path, error_message, created_at, started_at, completed_at",
 				)
 				.eq("user_id", user.id)
 				.order("created_at", { ascending: false })

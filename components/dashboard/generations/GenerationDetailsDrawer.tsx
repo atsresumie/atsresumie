@@ -9,6 +9,7 @@ import {
 	ChevronDown,
 	ChevronUp,
 	AlertCircle,
+	FilePenLine,
 } from "lucide-react";
 import {
 	Sheet,
@@ -96,6 +97,8 @@ export function GenerationDetailsDrawer({
 
 	const label = deriveJobLabel(job.jd_text);
 	const hasPdf = job.status === "succeeded" && !!job.pdf_object_path;
+	const hasRenderableContent =
+		!!job.resume_text?.trim() || !!job.resume_object_path;
 	const hasLongJd = job.jd_text && job.jd_text.length > 300;
 
 	const handleDownload = async () => {
@@ -131,6 +134,12 @@ export function GenerationDetailsDrawer({
 	const handleDuplicate = () => {
 		// Navigate to generate page with job ID to load JD from DB
 		router.push(`/dashboard/generate?fromJobId=${job.id}`);
+		onOpenChange(false);
+	};
+
+	const handleEditDownload = () => {
+		if (!hasRenderableContent) return;
+		router.push(`/dashboard/editor/${job.id}`);
 		onOpenChange(false);
 	};
 
@@ -232,6 +241,15 @@ export function GenerationDetailsDrawer({
 					{/* Actions */}
 					<div className="space-y-2 pt-4">
 						<Button
+							variant="secondary"
+							className="w-full"
+							disabled={!hasRenderableContent}
+							onClick={handleEditDownload}
+						>
+							<FilePenLine size={16} className="mr-2" />
+							Edit & Download
+						</Button>
+						<Button
 							className="w-full"
 							disabled={!hasPdf || isDownloading}
 							onClick={handleDownload}
@@ -249,6 +267,12 @@ export function GenerationDetailsDrawer({
 						{downloadError && (
 							<p className="text-center text-xs text-red-400">
 								{downloadError}
+							</p>
+						)}
+						{!hasRenderableContent && (
+							<p className="text-center text-xs text-muted-foreground">
+								Resume source text is unavailable for editor
+								mode.
 							</p>
 						)}
 
