@@ -117,10 +117,20 @@ export function PdfJsPreview({
 					// Base scale fits the container width, then multiply by zoom
 					const baseScale = (containerWidth - 48) / viewport.width;
 					const scale = baseScale * zoom;
-					const scaledViewport = page.getViewport({ scale });
 
+					// Use devicePixelRatio for crisp rendering on HiDPI/Retina screens
+					const dpr = window.devicePixelRatio || 1;
+					const scaledViewport = page.getViewport({
+						scale: scale * dpr,
+					});
+
+					// Set canvas internal resolution (high-res)
 					canvas.width = scaledViewport.width;
 					canvas.height = scaledViewport.height;
+
+					// Set CSS display size (logical pixels)
+					canvas.style.width = `${scaledViewport.width / dpr}px`;
+					canvas.style.height = `${scaledViewport.height / dpr}px`;
 
 					await page.render({
 						canvasContext: ctx,

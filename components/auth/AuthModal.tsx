@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, Mail, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +20,7 @@ export default function AuthModal({
 	defaultTab = "signup",
 }: AuthModalProps) {
 	const reduceMotion = useReducedMotion();
+	const router = useRouter();
 	const { signIn, signUp, signInWithGoogle } = useAuth();
 
 	const [activeTab, setActiveTab] = useState<"signin" | "signup">(defaultTab);
@@ -45,6 +47,12 @@ export default function AuthModal({
 		try {
 			if (activeTab === "signup") {
 				await signUp(email, password);
+				// Redirect to email verification page
+				onClose();
+				router.push(
+					`/auth/verify-email?email=${encodeURIComponent(email)}`,
+				);
+				return;
 			} else {
 				await signIn(email, password);
 			}
