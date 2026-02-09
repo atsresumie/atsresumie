@@ -70,9 +70,7 @@ export async function POST(request: NextRequest) {
 		// 2. Fetch job and verify ownership
 		const { data: job, error: jobError } = await supabase
 			.from("generation_jobs")
-			.select(
-				"id, user_id, latex_text, pdf_object_path, styled_pdf_object_path",
-			)
+			.select("id, user_id, latex_text, pdf_object_path")
 			.eq("id", jobId)
 			.single();
 

@@ -36,13 +36,18 @@ export function applyStyleToLatex(latex: string, style: StyleConfig): string {
 	// 2. Remove existing fontsize marker if present
 	result = removeExistingFontSize(result);
 
-	// 3. Build style block
+	// 3. Strip existing geometry/setspace packages so we can inject our own
+	//    (avoids ordering issues — our block goes right after \documentclass)
+	result = stripPackage(result, "geometry");
+	result = stripPackage(result, "setspace");
+
+	// 4. Build style block (always includes \usepackage now)
 	const styleBlock = buildStyleBlock(style, result);
 
-	// 4. Insert style block after \documentclass line
+	// 5. Insert style block after \documentclass line
 	result = insertAfterDocumentclass(result, styleBlock);
 
-	// 5. Insert fontsize after \begin{document}
+	// 6. Insert fontsize after \begin{document}
 	const fontSizeCommand = buildFontSizeCommand(style);
 	result = insertAfterBeginDocument(result, fontSizeCommand);
 
@@ -81,14 +86,16 @@ function removeExistingFontSize(latex: string): string {
 }
 
 /**
- * Check if a package is already loaded
+ * Remove an existing \usepackage declaration for a given package.
+ * Handles \usepackage{pkg} and \usepackage[opts]{pkg}
  */
-function hasPackage(latex: string, packageName: string): boolean {
-	// Match \usepackage{package} or \usepackage[options]{package}
+function stripPackage(latex: string, packageName: string): string {
+	// Match \usepackage[optional]{packageName} on its own line
 	const regex = new RegExp(
-		`\\\\usepackage(\\[[^\\]]*\\])?\\{[^}]*\\b${packageName}\\b[^}]*\\}`,
+		`^[ \t]*\\\\usepackage(\\[[^\\]]*\\])?\\{${packageName}\\}[ \t]*$\n?`,
+		"gm",
 	);
-	return regex.test(latex);
+	return latex.replace(regex, "");
 }
 
 /**
@@ -98,28 +105,20 @@ function buildStyleBlock(style: StyleConfig, latex: string): string {
 	const lines: string[] = [STYLE_BLOCK_START];
 
 	// Geometry package for margins and page size
-	if (!hasPackage(latex, "geometry")) {
-		const paperName = style.pageSize === "a4" ? "a4paper" : "letterpaper";
-		lines.push(
-			`\\usepackage[${paperName},top=${style.marginTopMm}mm,bottom=${style.marginBottomMm}mm,left=${style.marginLeftMm}mm,right=${style.marginRightMm}mm]{geometry}`,
-		);
-	} else {
-		// Geometry exists - use \newgeometry to override
-		const paperName = style.pageSize === "a4" ? "a4paper" : "letterpaper";
-		lines.push(
-			`\\geometry{${paperName},top=${style.marginTopMm}mm,bottom=${style.marginBottomMm}mm,left=${style.marginLeftMm}mm,right=${style.marginRightMm}mm}`,
-		);
-	}
+	// (existing geometry package was already stripped)
+	const paperName = style.pageSize === "a4" ? "a4paper" : "letterpaper";
+	lines.push(
+		`\\usepackage[${paperName},top=${style.marginTopMm}mm,bottom=${style.marginBottomMm}mm,left=${style.marginLeftMm}mm,right=${style.marginRightMm}mm]{geometry}`,
+	);
 
-	// Setspace package for line spacing
-	if (!hasPackage(latex, "setspace")) {
-		lines.push("\\usepackage{setspace}");
-	}
+	// Setspace package for line spacing (existing was already stripped)
+	lines.push("\\usepackage{setspace}");
 	lines.push(`\\setstretch{${style.lineHeight.toFixed(2)}}`);
 
-	// Section spacing via titlesec if present
-	if (hasPackage(latex, "titlesec")) {
-		// Adjust section spacing - before and after
+	// Section spacing via titlesec if present in template
+	const hasTitlesec =
+		/\\usepackage(\[[^\]]*\])?\{[^}]*\btitlesec\b[^}]*\}/.test(latex);
+	if (hasTitlesec) {
 		const beforePt = style.sectionSpacingPt;
 		const afterPt = Math.round(style.sectionSpacingPt * 0.5);
 		lines.push(
