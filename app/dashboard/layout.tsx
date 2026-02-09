@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { cn } from "@/lib/utils";
+
+/**
+ * Dashboard Layout - The Résumé Atelier Design System
+ *
+ * Main application shell for authenticated dashboard pages.
+ * Uses new design tokens for consistent styling.
+ */
 
 export default function DashboardLayout({
 	children,
@@ -20,36 +28,30 @@ export default function DashboardLayout({
 	};
 
 	return (
-		<div
-			className="min-h-screen isolate"
-			style={{ backgroundColor: "hsl(24, 28%, 12%)" }}
-		>
-			{/* 
-				CLEAN SOLID BACKGROUND
-				- Uses 'isolate' to create stacking context
-				- Solid inline bg color prevents any inheritance issues
-				- NO gradient overlays or decorative elements
-				
-				The only visible lines are:
-				- Header's bottom border (horizontal line at top)
-				- Sidebar's right border (vertical line on left)
-				Together these form a clean -|---- pattern
-			*/}
-
-			{/* Header - has border-b */}
+		<div className={cn("min-h-screen", "bg-surface-base")}>
+			{/* Header */}
 			<DashboardHeader onToggleSidebar={handleToggleSidebar} />
 
-			{/* Sidebar - has border-r */}
+			{/* Sidebar */}
 			<DashboardSidebar
 				isOpen={isSidebarOpen}
 				onClose={handleCloseSidebar}
 			/>
 
 			{/* Main content */}
-			<main className="relative pt-16 md:pt-20 md:pl-64">
-				<div className="min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
-					{children}
-				</div>
+			<main
+				id="main-content"
+				className={cn(
+					"relative",
+					// Offset for header
+					"pt-14 md:pt-16",
+					// Offset for sidebar on desktop
+					"md:pl-64",
+					// Min height
+					"min-h-screen",
+				)}
+			>
+				{children}
 			</main>
 		</div>
 	);

@@ -1,3 +1,5 @@
+/* Fonts are self-hosted via next/font in layout.tsx - no external CDN */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -5,12 +7,6 @@
    ATSResumie Design System: "The Résumé Atelier"
    A refined editorial aesthetic inspired by premium stationery
    ============================================================================ */
-
-/* Google Fonts - Newsreader (serif display) */
-@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap");
-
-/* Fontshare CDN - Satoshi (sans body) */
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap");
 
 /* Class-based dark mode variant */
 @custom-variant dark (&:is(.dark *));
@@ -79,11 +75,13 @@
 	--ring: var(--accent);
 
 	/* --------------------------------------------------------------------------
-	   TYPOGRAPHY - Editorial hierarchy
+	   TYPOGRAPHY - Fonts defined in layout.tsx via next/font
+	   Change fonts in layout.tsx to update the entire codebase
 	   -------------------------------------------------------------------------- */
 
-	--font-display: "Newsreader", Georgia, serif;
-	--font-body: "Satoshi", system-ui, -apple-system, sans-serif;
+	--font-display: var(--font-display, "Newsreader"), Georgia, serif;
+	--font-body:
+		var(--font-body, "IBM Plex Sans"), system-ui, -apple-system, sans-serif;
 	--font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
 
 	/* Type scale (major third: 1.25) */
