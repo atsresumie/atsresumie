@@ -7,34 +7,37 @@ import { supabaseBrowser } from "@/lib/supabase/browser";
  * User is automatically signed in after successful signup.
  */
 export async function signUpWithEmail(email: string, password: string) {
-  const supabase = supabaseBrowser();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+	const supabase = supabaseBrowser();
+	const { data, error } = await supabase.auth.signUp({
+		email,
+		password,
+		options: {
+			emailRedirectTo: `${process.env.APP_URL}/auth/callback`,
+		},
+	});
 
-  if (error) {
-    throw error;
-  }
+	if (error) {
+		throw error;
+	}
 
-  return data;
+	return data;
 }
 
 /**
  * Sign in with email and password.
  */
 export async function signInWithEmail(email: string, password: string) {
-  const supabase = supabaseBrowser();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+	const supabase = supabaseBrowser();
+	const { data, error } = await supabase.auth.signInWithPassword({
+		email,
+		password,
+	});
 
-  if (error) {
-    throw error;
-  }
+	if (error) {
+		throw error;
+	}
 
-  return data;
+	return data;
 }
 
 /**
@@ -42,44 +45,47 @@ export async function signInWithEmail(email: string, password: string) {
  * Redirects to Google for authentication.
  */
 export async function signInWithGoogle(redirectTo?: string) {
-  const supabase = supabaseBrowser();
-  
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
-    },
-  });
+	const supabase = supabaseBrowser();
 
-  if (error) {
-    throw error;
-  }
+	const { data, error } = await supabase.auth.signInWithOAuth({
+		provider: "google",
+		options: {
+			redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+		},
+	});
 
-  return data;
+	if (error) {
+		throw error;
+	}
+
+	return data;
 }
 
 /**
  * Sign out the current user.
  */
 export async function signOut() {
-  const supabase = supabaseBrowser();
-  const { error } = await supabase.auth.signOut();
+	const supabase = supabaseBrowser();
+	const { error } = await supabase.auth.signOut();
 
-  if (error) {
-    throw error;
-  }
+	if (error) {
+		throw error;
+	}
 }
 
 /**
  * Get the current authenticated user.
  */
 export async function getCurrentUser() {
-  const supabase = supabaseBrowser();
-  const { data: { user }, error } = await supabase.auth.getUser();
+	const supabase = supabaseBrowser();
+	const {
+		data: { user },
+		error,
+	} = await supabase.auth.getUser();
 
-  if (error) {
-    throw error;
-  }
+	if (error) {
+		throw error;
+	}
 
-  return user;
+	return user;
 }

@@ -103,18 +103,49 @@ export const PAGE_SIZE_OPTIONS: { value: PageSize; label: string }[] = [
 // ============================================
 
 /**
+ * Font families available for LaTeX PDF generation.
+ * Each maps to a specific LaTeX package.
+ */
+export type LaTeXFontFamily =
+	| "default" // Computer Modern (LaTeX default)
+	| "times" // Times New Roman
+	| "helvetica" // Helvetica (≈ Arial)
+	| "palatino" // Palatino
+	| "charter" // Charter
+	| "bookman" // Bookman
+	| "lmodern"; // Latin Modern (polished Computer Modern)
+
+/**
+ * Font options for the editor UI
+ */
+export const LATEX_FONT_OPTIONS: {
+	value: LaTeXFontFamily;
+	label: string;
+	category: "sans-serif" | "serif";
+}[] = [
+	{ value: "default", label: "Computer Modern", category: "serif" },
+	{ value: "lmodern", label: "Latin Modern", category: "serif" },
+	{ value: "times", label: "Times New Roman", category: "serif" },
+	{ value: "palatino", label: "Palatino", category: "serif" },
+	{ value: "charter", label: "Charter", category: "serif" },
+	{ value: "bookman", label: "Bookman", category: "serif" },
+	{ value: "helvetica", label: "Helvetica / Arial", category: "sans-serif" },
+];
+
+/**
  * Style configuration for LaTeX PDF generation.
  * These values are injected into the LaTeX preamble.
  */
 export interface StyleConfig {
 	pageSize: PageSize;
-	marginTopMm: number; // 10-40mm
+	marginTopMm: number; // 5-40mm
 	marginBottomMm: number;
 	marginLeftMm: number;
 	marginRightMm: number;
-	baseFontSizePt: number; // 10-12pt
-	lineHeight: number; // 1.0-1.4
-	sectionSpacingPt: number; // 4-12pt
+	baseFontSizePt: number; // 8-12pt
+	lineHeight: number; // 0.8-1.5
+	sectionSpacingPt: number; // 2-16pt
+	fontFamily: LaTeXFontFamily;
 }
 
 /**
@@ -129,6 +160,7 @@ export const DEFAULT_STYLE_CONFIG: StyleConfig = {
 	baseFontSizePt: 10,
 	lineHeight: 1.15,
 	sectionSpacingPt: 8,
+	fontFamily: "default",
 };
 
 /**

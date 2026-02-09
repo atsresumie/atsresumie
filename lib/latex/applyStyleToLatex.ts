@@ -7,25 +7,45 @@
  * Uses marker blocks to enable re-application without duplicates.
  */
 
-import type { StyleConfig } from "@/types/editor";
+import {
+	type StyleConfig,
+	type LaTeXFontFamily,
+	DEFAULT_STYLE_CONFIG,
+} from "@/types/editor";
 
 // Marker comments for idempotent injection
 const STYLE_BLOCK_START = "% ATSRESUMIE_STYLE_BLOCK_START";
 const STYLE_BLOCK_END = "% ATSRESUMIE_STYLE_BLOCK_END";
 const FONT_SIZE_MARKER = "% ATSRESUMIE_FONTSIZE";
 
+/** LaTeX font package mappings */
+const FONT_PACKAGES: Record<LaTeXFontFamily, string[]> = {
+	default: [], // Computer Modern — no package needed
+	lmodern: ["\\usepackage{lmodern}"],
+	times: ["\\usepackage{mathptmx}"],
+	helvetica: [
+		"\\usepackage{helvet}",
+		"\\renewcommand{\\familydefault}{\\sfdefault}",
+	],
+	palatino: ["\\usepackage{palatino}"],
+	charter: ["\\usepackage{charter}"],
+	bookman: ["\\usepackage{bookman}"],
+};
+
+/** Packages that are font-related and should be stripped  */
+const FONT_PACKAGE_NAMES = [
+	"mathptmx",
+	"helvet",
+	"palatino",
+	"charter",
+	"bookman",
+	"lmodern",
+	"times",
+	"newcent",
+];
+
 /**
  * Apply style configuration to LaTeX source.
- *
- * Strategy:
- * 1. Remove existing style block if present (idempotent)
- * 2. Detect existing packages to avoid duplicates
- * 3. Insert style block after \documentclass
- * 4. Insert \fontsize after \begin{document}
- *
- * @param latex - Original LaTeX source
- * @param style - Style configuration to apply
- * @returns Modified LaTeX source
  */
 export function applyStyleToLatex(latex: string, style: StyleConfig): string {
 	let result = latex;
@@ -36,18 +56,26 @@ export function applyStyleToLatex(latex: string, style: StyleConfig): string {
 	// 2. Remove existing fontsize marker if present
 	result = removeExistingFontSize(result);
 
-	// 3. Strip existing geometry/setspace packages so we can inject our own
-	//    (avoids ordering issues — our block goes right after \documentclass)
+	// 3. Strip existing packages so we inject our own
 	result = stripPackage(result, "geometry");
 	result = stripPackage(result, "setspace");
+	for (const pkg of FONT_PACKAGE_NAMES) {
+		result = stripPackage(result, pkg);
+	}
 
-	// 4. Build style block (always includes \usepackage now)
+	// 4. Remove any existing \renewcommand{\familydefault} lines
+	result = result.replace(
+		/^[ \t]*\\renewcommand\{\\familydefault\}\{[^}]*\}[ \t]*$\n?/gm,
+		"",
+	);
+
+	// 5. Build style block
 	const styleBlock = buildStyleBlock(style, result);
 
-	// 5. Insert style block after \documentclass line
+	// 6. Insert style block after \documentclass line
 	result = insertAfterDocumentclass(result, styleBlock);
 
-	// 6. Insert fontsize after \begin{document}
+	// 7. Insert fontsize after \begin{document}
 	const fontSizeCommand = buildFontSizeCommand(style);
 	result = insertAfterBeginDocument(result, fontSizeCommand);
 
@@ -55,8 +83,102 @@ export function applyStyleToLatex(latex: string, style: StyleConfig): string {
 }
 
 /**
- * Remove existing style block from LaTeX
+ * Parse style settings from existing LaTeX source.
+ * Returns a StyleConfig with values extracted from the LaTeX.
+ * Falls back to defaults for anything not found.
  */
+export function parseStyleFromLatex(latex: string): StyleConfig {
+	const config = { ...DEFAULT_STYLE_CONFIG };
+
+	// Parse page size from \documentclass or geometry
+	if (/a4paper/i.test(latex)) {
+		config.pageSize = "a4";
+	} else {
+		config.pageSize = "letter";
+	}
+
+	// Parse font size from \documentclass[Xpt]
+	const docclassMatch = latex.match(/\\documentclass\[([^\]]*)\]/);
+	if (docclassMatch) {
+		const opts = docclassMatch[1];
+		const ptMatch = opts.match(/(\d+)pt/);
+		if (ptMatch) {
+			const pt = parseInt(ptMatch[1], 10);
+			if (pt >= 8 && pt <= 14) config.baseFontSizePt = pt;
+		}
+	}
+
+	// Parse margins from geometry package
+	const geometryMatch = latex.match(/\\usepackage\[([^\]]*)\]\{geometry\}/);
+	if (geometryMatch) {
+		const opts = geometryMatch[1];
+		const topMatch = opts.match(/top=(\d+(?:\.\d+)?)mm/);
+		const bottomMatch = opts.match(/bottom=(\d+(?:\.\d+)?)mm/);
+		const leftMatch = opts.match(/left=(\d+(?:\.\d+)?)mm/);
+		const rightMatch = opts.match(/right=(\d+(?:\.\d+)?)mm/);
+		const marginMatch = opts.match(/margin=(\d+(?:\.\d+)?)(?:mm|cm|in)/);
+
+		if (topMatch) config.marginTopMm = parseFloat(topMatch[1]);
+		if (bottomMatch) config.marginBottomMm = parseFloat(bottomMatch[1]);
+		if (leftMatch) config.marginLeftMm = parseFloat(leftMatch[1]);
+		if (rightMatch) config.marginRightMm = parseFloat(rightMatch[1]);
+
+		// Handle uniform margin= option (convert to mm)
+		if (marginMatch && !topMatch && !leftMatch) {
+			const val = parseFloat(marginMatch[1]);
+			const unit = marginMatch[0].match(/(mm|cm|in)$/)?.[1] || "mm";
+			const mm =
+				unit === "cm" ? val * 10 : unit === "in" ? val * 25.4 : val;
+			config.marginTopMm = mm;
+			config.marginBottomMm = mm;
+			config.marginLeftMm = mm;
+			config.marginRightMm = mm;
+		}
+	}
+
+	// Parse line height from setstretch
+	const setstretchMatch = latex.match(/\\setstretch\{(\d+(?:\.\d+)?)\}/);
+	if (setstretchMatch) {
+		config.lineHeight = parseFloat(setstretchMatch[1]);
+	}
+
+	// Parse font family from known packages
+	if (
+		/\\usepackage\{mathptmx\}/.test(latex) ||
+		/\\usepackage\{times\}/.test(latex)
+	) {
+		config.fontFamily = "times";
+	} else if (/\\usepackage\{helvet\}/.test(latex)) {
+		config.fontFamily = "helvetica";
+	} else if (/\\usepackage\{palatino\}/.test(latex)) {
+		config.fontFamily = "palatino";
+	} else if (/\\usepackage\{charter\}/.test(latex)) {
+		config.fontFamily = "charter";
+	} else if (/\\usepackage\{bookman\}/.test(latex)) {
+		config.fontFamily = "bookman";
+	} else if (/\\usepackage\{lmodern\}/.test(latex)) {
+		config.fontFamily = "lmodern";
+	} else {
+		config.fontFamily = "default";
+	}
+
+	// Clamp values to valid ranges
+	config.marginTopMm = clamp(config.marginTopMm, 5, 40);
+	config.marginBottomMm = clamp(config.marginBottomMm, 5, 40);
+	config.marginLeftMm = clamp(config.marginLeftMm, 5, 40);
+	config.marginRightMm = clamp(config.marginRightMm, 5, 40);
+	config.baseFontSizePt = clamp(config.baseFontSizePt, 8, 12);
+	config.lineHeight = clamp(config.lineHeight, 0.8, 1.5);
+
+	return config;
+}
+
+function clamp(val: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, val));
+}
+
+// ---- Internal helpers ----
+
 function removeExistingStyleBlock(latex: string): string {
 	const startIdx = latex.indexOf(STYLE_BLOCK_START);
 	const endIdx = latex.indexOf(STYLE_BLOCK_END);
@@ -65,19 +187,13 @@ function removeExistingStyleBlock(latex: string): string {
 		return latex;
 	}
 
-	// Remove from start marker to end marker (inclusive of end line)
 	const beforeBlock = latex.slice(0, startIdx);
 	const afterBlock = latex.slice(endIdx + STYLE_BLOCK_END.length);
 
-	// Clean up any extra newlines
 	return beforeBlock + afterBlock.replace(/^\n+/, "\n");
 }
 
-/**
- * Remove existing fontsize marker line
- */
 function removeExistingFontSize(latex: string): string {
-	// Match the fontsize line and marker
 	const fontSizeRegex = new RegExp(
 		`\\\\fontsize\\{[^}]+\\}\\{[^}]+\\}\\\\selectfont\\s*${FONT_SIZE_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\n?`,
 		"g",
@@ -85,33 +201,30 @@ function removeExistingFontSize(latex: string): string {
 	return latex.replace(fontSizeRegex, "");
 }
 
-/**
- * Remove an existing \usepackage declaration for a given package.
- * Handles \usepackage{pkg} and \usepackage[opts]{pkg}
- */
 function stripPackage(latex: string, packageName: string): string {
-	// Match \usepackage[optional]{packageName} on its own line
 	const regex = new RegExp(
-		`^[ \t]*\\\\usepackage(\\[[^\\]]*\\])?\\{${packageName}\\}[ \t]*$\n?`,
+		`^[ \\t]*\\\\usepackage(\\[[^\\]]*\\])?\\{${packageName}\\}[ \\t]*$\\n?`,
 		"gm",
 	);
 	return latex.replace(regex, "");
 }
 
-/**
- * Build the style block to inject
- */
 function buildStyleBlock(style: StyleConfig, latex: string): string {
 	const lines: string[] = [STYLE_BLOCK_START];
 
+	// Font family packages
+	const fontLines = FONT_PACKAGES[style.fontFamily] || [];
+	for (const line of fontLines) {
+		lines.push(line);
+	}
+
 	// Geometry package for margins and page size
-	// (existing geometry package was already stripped)
 	const paperName = style.pageSize === "a4" ? "a4paper" : "letterpaper";
 	lines.push(
 		`\\usepackage[${paperName},top=${style.marginTopMm}mm,bottom=${style.marginBottomMm}mm,left=${style.marginLeftMm}mm,right=${style.marginRightMm}mm]{geometry}`,
 	);
 
-	// Setspace package for line spacing (existing was already stripped)
+	// Setspace package for line spacing
 	lines.push("\\usepackage{setspace}");
 	lines.push(`\\setstretch{${style.lineHeight.toFixed(2)}}`);
 
@@ -131,20 +244,12 @@ function buildStyleBlock(style: StyleConfig, latex: string): string {
 	return lines.join("\n");
 }
 
-/**
- * Build fontsize command to insert after \begin{document}
- */
 function buildFontSizeCommand(style: StyleConfig): string {
-	// Baseline skip is typically 1.2 * font size
 	const baselineSkip = Math.round(style.baseFontSizePt * 1.2);
 	return `\\fontsize{${style.baseFontSizePt}pt}{${baselineSkip}pt}\\selectfont ${FONT_SIZE_MARKER}`;
 }
 
-/**
- * Insert content after \documentclass line
- */
 function insertAfterDocumentclass(latex: string, content: string): string {
-	// Find the end of \documentclass line (handles options like [11pt])
 	const docclassMatch = latex.match(/\\documentclass(\[[^\]]*\])?\{[^}]+\}/);
 
 	if (!docclassMatch) {
@@ -154,16 +259,12 @@ function insertAfterDocumentclass(latex: string, content: string): string {
 
 	const insertPos = docclassMatch.index! + docclassMatch[0].length;
 
-	// Find the end of the line
 	let endOfLine = latex.indexOf("\n", insertPos);
 	if (endOfLine === -1) endOfLine = insertPos;
 
 	return latex.slice(0, endOfLine) + "\n" + content + latex.slice(endOfLine);
 }
 
-/**
- * Insert content after \begin{document}
- */
 function insertAfterBeginDocument(latex: string, content: string): string {
 	const beginDocMatch = latex.match(/\\begin\{document\}/);
 
@@ -174,7 +275,6 @@ function insertAfterBeginDocument(latex: string, content: string): string {
 
 	const insertPos = beginDocMatch.index! + beginDocMatch[0].length;
 
-	// Find the end of the line
 	let endOfLine = latex.indexOf("\n", insertPos);
 	if (endOfLine === -1) endOfLine = insertPos;
 
@@ -183,7 +283,6 @@ function insertAfterBeginDocument(latex: string, content: string): string {
 
 /**
  * Validate that styled LaTeX is still compilable
- * (basic checks only - real validation happens at compile time)
  */
 export function validateStyledLatex(latex: string): {
 	valid: boolean;
@@ -201,7 +300,6 @@ export function validateStyledLatex(latex: string): {
 		return { valid: false, error: "Missing \\end{document}" };
 	}
 
-	// Check that our markers are properly paired
 	const hasStartMarker = latex.includes(STYLE_BLOCK_START);
 	const hasEndMarker = latex.includes(STYLE_BLOCK_END);
 

@@ -30,6 +30,7 @@ import {
 	DEFAULT_STYLE_CONFIG,
 	STYLE_CONFIG_STORAGE_KEY_PREFIX,
 } from "@/types/editor";
+import { parseStyleFromLatex } from "@/lib/latex/applyStyleToLatex";
 
 const FILENAME_STORAGE_KEY_PREFIX = "atsresumie_editor_filename_";
 
@@ -137,6 +138,15 @@ export default function EditorPage() {
 			}
 
 			setHasLatexText(!!job.latex_text);
+
+			// Parse initial style from LaTeX if no saved config in localStorage
+			const storedConfig = localStorage.getItem(
+				`${STYLE_CONFIG_STORAGE_KEY_PREFIX}${jobId}`,
+			);
+			if (!storedConfig && job.latex_text) {
+				const parsed = parseStyleFromLatex(job.latex_text);
+				setStyleConfig(parsed);
+			}
 
 			if (!job.pdf_object_path) {
 				throw new Error("PDF not available for this generation");
@@ -253,30 +263,61 @@ export default function EditorPage() {
 		setStyleConfig(DEFAULT_STYLE_CONFIG);
 	};
 
-	// Handle download
+	// Handle download — recompile with saveLatex flag then download
 	const handleDownload = async () => {
 		if (!pdfUrl) return;
 
 		setIsDownloading(true);
 		try {
+			// Save styled LaTeX to DB via recompile with saveLatex flag
+			if (hasLatexText) {
+				const saveRes = await fetch("/api/export-pdf-with-style", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						jobId,
+						styleConfig,
+						saveLatex: true,
+					}),
+				});
+
+				if (saveRes.ok) {
+					const { pdfUrl: freshUrl } = await saveRes.json();
+					setPdfUrl(freshUrl);
+					// Download the freshly compiled PDF
+					const response = await fetch(freshUrl);
+					const blob = await response.blob();
+					triggerDownload(blob);
+					return;
+				}
+				// If save-compile failed, still download the current preview
+				console.warn(
+					"Save-compile failed, downloading current preview",
+				);
+			}
+
+			// Fallback: download whatever is currently previewed
 			const response = await fetch(pdfUrl);
 			const blob = await response.blob();
-
-			const downloadUrl = URL.createObjectURL(blob);
-			const link = document.createElement("a");
-			link.href = downloadUrl;
-			link.download = filename.endsWith(".pdf")
-				? filename
-				: `${filename}.pdf`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-			URL.revokeObjectURL(downloadUrl);
+			triggerDownload(blob);
 		} catch (err) {
 			console.error("Download failed:", err);
 		} finally {
 			setIsDownloading(false);
 		}
+	};
+
+	const triggerDownload = (blob: Blob) => {
+		const downloadUrl = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = downloadUrl;
+		link.download = filename.endsWith(".pdf")
+			? filename
+			: `${filename}.pdf`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(downloadUrl);
 	};
 
 	// Loading state

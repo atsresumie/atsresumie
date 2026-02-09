@@ -45,6 +45,7 @@ atsresumie/
 │   │   ├── credits/       # Get user credits
 │   │   ├── export/        # Export endpoint
 │   │   ├── export-pdf/    # PDF compilation proxy
+│   │   ├── export-pdf-with-style/ # Styled PDF compilation
 │   │   ├── feedback/      # User feedback submission
 │   │   ├── generate/      # Create generation job (Claude)
 │   │   ├── jobs/[id]/     # Job status & details
@@ -67,6 +68,8 @@ atsresumie/
 │   │   ├── account/       # Account information page
 │   │   ├── credits/       # Credits & billing page
 │   │   ├── downloads/     # Download center
+│   │   ├── editor/        # PDF Editor
+│   │   │   └── [jobId]/   # Per-job editor page
 │   │   ├── generate/      # Generate new resume
 │   │   ├── generations/   # Past generations list
 │   │   ├── profile/       # User profile page
@@ -105,6 +108,12 @@ atsresumie/
 │   │   ├── QuickActionCard.tsx
 │   │   ├── QuickActionsGrid.tsx
 │   │   └── RecentGenerationsCard.tsx
+│   │
+│   ├── editor/            # PDF Editor components
+│   │   ├── PdfJsPreview.tsx     # PDF.js renderer (scrollable + zoom)
+│   │   ├── StyleControls.tsx    # Formatting sliders panel
+│   │   ├── EditorLoadingState.tsx
+│   │   └── EditorErrorState.tsx
 │   │
 │   ├── get-started/       # Onboarding wizard components
 │   │   ├── hooks/         # useResumeForm
@@ -174,6 +183,8 @@ atsresumie/
 │   │   ├── browser.ts     # Browser client
 │   │   ├── server.ts      # Server client
 │   │   └── middleware.ts  # Middleware client
+│   ├── latex/             # LaTeX utilities
+│   │   └── applyStyleToLatex.ts # Style injection + parsing
 │   ├── utils/             # General helpers
 │   └── utils.ts           # cn() utility
 │
@@ -184,7 +195,8 @@ atsresumie/
 │
 └── docs/                  # Documentation
     ├── AUTH.md
-    ├── CONTEXT.md         # (this file)
+    ├── CANVAS.md           # PDF Editor architecture
+    ├── CONTEXT.md          # (this file)
     ├── CORE_ENGINE.md
     ├── DASHBOARD.md
     ├── IMPLEMENTATIONS.md
@@ -231,7 +243,20 @@ External compilation via `latex-online.cc`:
 - Returns signed URL (10 min validity)
 - Credits deducted during generation, not PDF export
 
-### 5. Stripe Integration
+### 5. PDF Editor
+
+Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
+
+- **PDF.js Preview**: Scrollable all-pages view rendered to canvas, with zoom (50-300%)
+- **Style Controls**: Font family, page size, margins, font size, line height, section spacing
+- **Auto-Recompile**: Changes trigger PDF regeneration after 800ms debounce
+- **Font Families**: Computer Modern, Latin Modern, Times New Roman, Palatino, Charter, Bookman, Helvetica
+- **Initial Settings**: Parsed from existing LaTeX via `parseStyleFromLatex()`
+- **Save on Download**: Styled LaTeX is saved to DB when user downloads
+- **LaTeX Injection**: Idempotent marker-based style block injection (`applyStyleToLatex()`)
+- See `docs/CANVAS.md` for detailed architecture
+
+### 6. Stripe Integration
 
 Full subscription system:
 
@@ -309,6 +334,7 @@ Warm dark theme with coffee/beige tones:
     - Download Center
     - Credits & Billing
     - Profile/Settings/Account
+    - PDF Editor with live preview
 - Stripe monthly subscription
 - Auth intent preservation
 - User feedback submission
@@ -333,4 +359,4 @@ Warm dark theme with coffee/beige tones:
 
 ---
 
-_Last updated: 2026-02-08_
+_Last updated: 2026-02-09_

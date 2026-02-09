@@ -14,7 +14,9 @@ import { RotateCcw } from "lucide-react";
 import {
 	type StyleConfig,
 	type PageSize,
+	type LaTeXFontFamily,
 	PAGE_SIZE_OPTIONS,
+	LATEX_FONT_OPTIONS,
 } from "@/types/editor";
 
 interface StyleControlsProps {
@@ -189,6 +191,51 @@ export function StyleControls({
 					<h3 className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
 						Typography
 					</h3>
+
+					{/* Font Family */}
+					<div className="space-y-2">
+						<Label htmlFor="fontFamily" className="text-sm">
+							Font Family
+						</Label>
+						<Select
+							value={config.fontFamily}
+							onValueChange={(v) =>
+								updateConfig("fontFamily", v as LaTeXFontFamily)
+							}
+						>
+							<SelectTrigger id="fontFamily" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<div className="px-2 py-1 text-[10px] font-medium uppercase tracking-widest text-text-tertiary">
+									Sans-Serif
+								</div>
+								{LATEX_FONT_OPTIONS.filter(
+									(o) => o.category === "sans-serif",
+								).map((opt) => (
+									<SelectItem
+										key={opt.value}
+										value={opt.value}
+									>
+										{opt.label}
+									</SelectItem>
+								))}
+								<div className="px-2 py-1 text-[10px] font-medium uppercase tracking-widest text-text-tertiary">
+									Serif
+								</div>
+								{LATEX_FONT_OPTIONS.filter(
+									(o) => o.category === "serif",
+								).map((opt) => (
+									<SelectItem
+										key={opt.value}
+										value={opt.value}
+									>
+										{opt.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
 
 					{/* Font Size */}
 					<div className="space-y-2">

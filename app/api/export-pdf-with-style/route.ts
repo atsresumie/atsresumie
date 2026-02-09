@@ -202,18 +202,42 @@ export async function POST(request: NextRequest) {
 			`[export-pdf-with-style] PDF uploaded to ${PDF_BUCKET}/${styledObjectPath}`,
 		);
 
-		// 10. Update job with styled_pdf_object_path (NOT pdf_object_path)
-		const { error: updateError } = await admin
-			.from("generation_jobs")
-			.update({
-				styled_pdf_object_path: styledObjectPath,
-				updated_at: new Date().toISOString(),
-			})
-			.eq("id", jobId);
+		// 10. Update job (optionally save styled LaTeX)
+		const updatePayload: Record<string, unknown> = {
+			updated_at: new Date().toISOString(),
+		};
 
-		if (updateError) {
-			console.error("Job update error:", updateError);
-			// Non-fatal - PDF is still stored
+		// If saveLatex flag is set, persist the styled LaTeX
+		if (body.saveLatex === true) {
+			updatePayload.latex_text = styledLatex;
+			console.log(
+				`[export-pdf-with-style] Saving styled LaTeX to DB for job ${jobId}`,
+			);
+		}
+
+		// Try to update styled_pdf_object_path (column may not exist yet)
+		try {
+			const { error: updateError } = await admin
+				.from("generation_jobs")
+				.update({
+					...updatePayload,
+					styled_pdf_object_path: styledObjectPath,
+				})
+				.eq("id", jobId);
+
+			if (updateError) {
+				// If styled_pdf_object_path column doesn't exist, try without it
+				console.warn(
+					"Job update with styled path failed:",
+					updateError,
+				);
+				await admin
+					.from("generation_jobs")
+					.update(updatePayload)
+					.eq("id", jobId);
+			}
+		} catch {
+			console.warn("Job update failed (non-fatal)");
 		}
 
 		// 11. Generate and return signed URL
@@ -301,6 +325,20 @@ function validateStyleConfig(config: unknown): string | null {
 		c.sectionSpacingPt > 20
 	) {
 		return "sectionSpacingPt must be a number between 0 and 20";
+	}
+
+	// Font family (optional - defaults to "default" if missing)
+	const validFonts = [
+		"default",
+		"times",
+		"helvetica",
+		"palatino",
+		"charter",
+		"bookman",
+		"lmodern",
+	];
+	if (c.fontFamily && !validFonts.includes(c.fontFamily as string)) {
+		return `fontFamily must be one of: ${validFonts.join(", ")}`;
 	}
 
 	return null;
