@@ -14,12 +14,18 @@ import {
 	X,
 	Crown,
 	LogOut,
+	Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+
+/**
+ * DashboardSidebar - The Résumé Atelier Design System
+ *
+ * Editorial-styled sidebar with underline-style active states.
+ */
 
 const sidebarLinks = [
 	{ label: "Dashboard", href: "/dashboard", icon: Home },
@@ -48,9 +54,9 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { signOut } = useAuth();
+	const [isUpgrading, setIsUpgrading] = useState(false);
 
 	const handleLinkClick = () => {
-		// Close sidebar on mobile when link is clicked
 		onClose();
 	};
 
@@ -58,8 +64,6 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 		await signOut();
 		router.push("/");
 	};
-
-	const [isUpgrading, setIsUpgrading] = useState(false);
 
 	const handleUpgrade = async () => {
 		if (isUpgrading) return;
@@ -93,62 +97,89 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 			{/* Mobile overlay */}
 			{isOpen && (
 				<div
-					className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+					className="fixed inset-0 z-40 bg-surface-base/80 backdrop-blur-sm md:hidden"
 					onClick={onClose}
+					aria-hidden="true"
 				/>
 			)}
 
 			{/* Sidebar */}
 			<aside
 				className={cn(
-					"fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-64 border-r border-t border-border bg-background transition-transform duration-300 md:top-20 md:h-[calc(100vh-5rem)] flex flex-col",
-					"md:translate-x-0 md:transition-none",
+					// Positioning
+					"fixed left-0 z-50",
+					"top-14 md:top-16",
+					"h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)]",
+					"w-64",
+					// Styling
+					"bg-surface-base",
+					"border-r border-border-subtle",
+					// Layout
+					"flex flex-col",
+					// Transitions
+					"transition-transform duration-200 ease-out",
+					"md:translate-x-0",
 					isOpen ? "translate-x-0" : "-translate-x-full",
 				)}
 			>
 				{/* Mobile close button */}
 				<button
 					onClick={onClose}
-					className="absolute right-3 top-3 p-1.5 text-muted-foreground hover:text-foreground md:hidden"
+					className={cn(
+						"absolute right-3 top-3 p-1.5 md:hidden",
+						"text-text-tertiary hover:text-text-primary",
+						"rounded-sm",
+						"transition-colors duration-150",
+						"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+					)}
 					aria-label="Close sidebar"
 				>
-					<X size={20} />
+					<X size={18} />
 				</button>
 
 				{/* Navigation links */}
-				<nav className="flex flex-col gap-1 p-4 pt-10 md:pt-4 flex-1">
-					{sidebarLinks.map((link) => {
-						const isActive =
-							pathname === link.href ||
-							(link.href !== "/dashboard" &&
-								pathname.startsWith(link.href));
-						const Icon = link.icon;
+				<nav className="flex-1 overflow-y-auto p-4 pt-10 md:pt-4">
+					<ul className="flex flex-col gap-1">
+						{sidebarLinks.map((link) => {
+							const isActive =
+								pathname === link.href ||
+								(link.href !== "/dashboard" &&
+									pathname.startsWith(link.href));
+							const Icon = link.icon;
 
-						return (
-							<Link
-								key={link.href}
-								href={link.href}
-								onClick={handleLinkClick}
-								className={cn(
-									"flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-									isActive
-										? "bg-muted text-foreground"
-										: "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-								)}
-							>
-								<Icon size={18} />
-								{link.label}
-							</Link>
-						);
-					})}
+							return (
+								<li key={link.href}>
+									<Link
+										href={link.href}
+										onClick={handleLinkClick}
+										className={cn(
+											// Base
+											"flex items-center gap-3",
+											"px-3 py-2.5",
+											"text-sm font-medium",
+											"rounded-sm",
+											"transition-colors duration-150",
+											// States
+											isActive
+												? "bg-surface-raised text-text-primary border-l-2 border-accent -ml-[2px] pl-[14px]"
+												: "text-text-secondary hover:text-text-primary hover:bg-surface-raised",
+										)}
+									>
+										<Icon size={18} />
+										{link.label}
+									</Link>
+								</li>
+							);
+						})}
+					</ul>
 				</nav>
 
 				{/* Bottom section */}
-				<div className="p-4 border-t border-border space-y-2">
+				<div className="p-4 border-t border-border-subtle space-y-2">
 					{/* Upgrade to Pro */}
 					<Button
-						variant="default"
-						className="w-full gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+						variant="primary"
+						className="w-full"
 						onClick={handleUpgrade}
 						disabled={isUpgrading}
 					>
@@ -168,7 +199,7 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 					{/* Sign Out */}
 					<Button
 						variant="ghost"
-						className="w-full gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+						className="w-full text-text-secondary hover:text-error"
 						onClick={handleSignOut}
 					>
 						<LogOut size={16} />

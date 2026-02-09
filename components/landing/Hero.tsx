@@ -1,197 +1,85 @@
-import { useRef, useEffect, useState } from "react";
-import {
-	motion,
-	useScroll,
-	useTransform,
-	useSpring,
-	useReducedMotion,
-} from "framer-motion";
 import { Sparkles, Download, TrendingUp, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
+/**
+ * Hero Component - Server Component (no framer-motion)
+ *
+ * Uses CSS animations for performance. No client-side JavaScript required.
+ */
 export const Hero = () => {
-	const containerRef = useRef<HTMLDivElement>(null);
-	const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
-	const prefersReducedMotion = useReducedMotion();
-
-	const { scrollYProgress } = useScroll({
-		target: containerRef,
-		offset: ["start start", "end start"],
-	});
-
-	const y = useTransform(scrollYProgress, [0, 1], [0, 150]);
-	const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-
-	const springConfig = { damping: 25, stiffness: 100 };
-	const mouseX = useSpring(mousePosition.x, springConfig);
-	const mouseY = useSpring(mousePosition.y, springConfig);
-
-	useEffect(() => {
-		if (prefersReducedMotion) return;
-
-		const handleMouseMove = (e: MouseEvent) => {
-			if (!containerRef.current) return;
-			const rect = containerRef.current.getBoundingClientRect();
-			setMousePosition({
-				x: (e.clientX - rect.left) / rect.width,
-				y: (e.clientY - rect.top) / rect.height,
-			});
-		};
-
-		window.addEventListener("mousemove", handleMouseMove);
-		return () => window.removeEventListener("mousemove", handleMouseMove);
-	}, [prefersReducedMotion]);
-
-	const scrollToSection = (href: string) => {
-		const element = document.querySelector(href);
-		element?.scrollIntoView({ behavior: "smooth" });
-	};
-
 	return (
 		<section
-			ref={containerRef}
 			id="start"
-			className="relative min-h-screen flex items-center justify-center overflow-hidden noise-overlay"
+			className="relative min-h-screen flex items-center justify-center overflow-hidden"
 		>
-			{/* Animated Background */}
-			<div className="absolute inset-0 bg-hero-gradient" />
+			{/* Background gradient */}
+			<div className="absolute inset-0 bg-gradient-to-b from-surface-base via-surface-base to-surface-raised" />
 
-			{/* Cursor-reactive light bloom */}
-			{!prefersReducedMotion && (
-				<motion.div
-					className="absolute inset-0 pointer-events-none"
-					style={{
-						background: `radial-gradient(circle at calc(${mousePosition.x} * 100%) calc(${mousePosition.y} * 100%), hsla(36, 30%, 85%, 0.12) 0%, transparent 40%)`,
-					}}
-				/>
-			)}
-
-			{/* Animated gradient orbs */}
-			<motion.div
-				className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20"
+			{/* Animated gradient orbs - CSS only */}
+			<div
+				className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20 animate-float-slow"
 				style={{
 					background:
 						"radial-gradient(circle, hsl(36, 30%, 70%) 0%, transparent 70%)",
 					filter: "blur(80px)",
-					y: prefersReducedMotion ? 0 : y,
 				}}
-				animate={
-					prefersReducedMotion
-						? {}
-						: { scale: [1, 1.1, 1], rotate: [0, 180, 360] }
-				}
-				transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
 			/>
-			<motion.div
-				className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15"
+			<div
+				className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15 animate-float-reverse"
 				style={{
 					background:
 						"radial-gradient(circle, hsl(32, 28%, 66%) 0%, transparent 70%)",
 					filter: "blur(60px)",
 				}}
-				animate={
-					prefersReducedMotion
-						? {}
-						: { scale: [1.1, 1, 1.1], rotate: [360, 180, 0] }
-				}
-				transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
 			/>
 
 			{/* Content */}
-			<motion.div
-				style={{ opacity, y: prefersReducedMotion ? 0 : y }}
-				className="relative z-10 container mx-auto px-4 py-20 md:py-32"
-			>
+			<div className="relative z-10 container mx-auto px-4 py-20 md:py-32">
 				<div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center justify-center">
 					{/* Left: Text Content */}
 					<div className="text-center pt-8 lg:pt-16 max-w-xl">
 						{/* Badge */}
-						<motion.div
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{
-								delay: 0.1,
-								type: "spring",
-								damping: 20,
-							}}
-							className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground"
-						>
-							<Sparkles size={14} className="text-sand" />
+						<div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground animate-fade-in-up animation-delay-100">
+							<Sparkles size={14} className="text-accent" />
 							<span>3 free credits included</span>
-						</motion.div>
+						</div>
 
 						{/* Headline */}
-						<motion.h1
-							initial={{ opacity: 0, y: 30 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{
-								delay: 0.2,
-								type: "spring",
-								damping: 20,
-							}}
-							className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6"
-						>
+						<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 animate-fade-in-up animation-delay-200">
 							ATS-optimized resumes,{" "}
 							<span className="text-gradient">
 								generated as LaTeX.
 							</span>
-						</motion.h1>
+						</h1>
 
 						{/* Subheadline */}
-						<motion.p
-							initial={{ opacity: 0, y: 30 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{
-								delay: 0.3,
-								type: "spring",
-								damping: 20,
-							}}
-							className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8"
-						>
+						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-fade-in-up animation-delay-300">
 							Paste a job description + your resume. Get an
 							ATS-friendly PDF and LaTeX source in minutes.
-						</motion.p>
+						</p>
 
 						{/* CTAs */}
-						<motion.div
-							initial={{ opacity: 0, y: 30 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{
-								delay: 0.4,
-								type: "spring",
-								damping: 20,
-							}}
-							className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
-						>
-							<Link href="/get-started" className="w-full sm:w-auto">
-								<motion.button
-	
-								className="w-full sm:w-auto px-8 py-4 bg-secondary text-secondary-foreground font-semibold rounded-xl shadow-soft hover:shadow-glow transition-all"
-								whileHover={{ scale: 1.02, y: -2 }}
-								whileTap={{ scale: 0.98 }}
+						<div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-in-up animation-delay-400">
+							<Link
+								href="/get-started"
+								className="w-full sm:w-auto"
 							>
-								Get Started
-								</motion.button>
+								<button className="w-full sm:w-auto px-8 py-4 bg-accent text-accent-foreground font-semibold rounded-sm hover:bg-accent-hover transition-all hover:-translate-y-0.5 active:scale-[0.98]">
+									Get Started
+								</button>
 							</Link>
-							<motion.button
-								onClick={() => scrollToSection("#how-it-works")}
-								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-xl border border-border hover:bg-muted/50 transition-all"
-								whileHover={{ scale: 1.02, y: -1 }}
-								whileTap={{ scale: 0.98 }}
+							<a
+								href="#how-it-works"
+								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border hover:bg-muted/50 transition-all hover:-translate-y-0.5"
 							>
 								See how it works
-							</motion.button>
-						</motion.div>
+							</a>
+						</div>
 					</div>
 
 					{/* Right: Preview Card */}
-					<motion.div
-						initial={{ opacity: 0, scale: 0.95, y: 40 }}
-						animate={{ opacity: 1, scale: 1, y: 0 }}
-						transition={{ delay: 0.5, type: "spring", damping: 20 }}
-						className="relative w-[80vw] max-w-4xl mt-12 lg:mt-16"
-					>
-						<div className="bg-card-gradient rounded-2xl border border-border/50 p-6 shadow-card">
+					<div className="relative w-[80vw] max-w-4xl mt-12 lg:mt-16 animate-fade-in-up animation-delay-500">
+						<div className="bg-surface-raised rounded-sm border border-border-visible p-6">
 							{/* ATS Score Ring */}
 							<div className="flex items-center gap-6 mb-6">
 								<div className="relative w-20 h-20">
@@ -207,33 +95,23 @@ export const Hero = () => {
 											stroke="hsl(var(--muted))"
 											strokeWidth="6"
 										/>
-										<motion.circle
+										<circle
 											cx="40"
 											cy="40"
 											r="35"
 											fill="none"
-											stroke="hsl(var(--sand))"
+											stroke="var(--accent)"
 											strokeWidth="6"
 											strokeLinecap="round"
 											strokeDasharray="220"
-											initial={{ strokeDashoffset: 220 }}
-											animate={{ strokeDashoffset: 44 }}
-											transition={{
-												delay: 0.8,
-												duration: 1.5,
-												ease: "easeOut",
-											}}
+											strokeDashoffset="44"
+											className="animate-progress-fill"
 										/>
 									</svg>
 									<div className="absolute inset-0 flex items-center justify-center">
-										<motion.span
-											className="font-display text-2xl font-semibold text-foreground"
-											initial={{ opacity: 0 }}
-											animate={{ opacity: 1 }}
-											transition={{ delay: 1.2 }}
-										>
+										<span className="font-display text-2xl font-semibold text-foreground animate-fade-in animation-delay-800">
 											80%
-										</motion.span>
+										</span>
 									</div>
 								</div>
 								<div>
@@ -249,10 +127,22 @@ export const Hero = () => {
 							{/* Keyword Match Bars */}
 							<div className="space-y-3 mb-6">
 								{[
-									{ label: "Keyword Match", value: 85 },
-									{ label: "Format Score", value: 92 },
-									{ label: "Section Structure", value: 78 },
-								].map((item, i) => (
+									{
+										label: "Keyword Match",
+										value: 85,
+										delay: "600",
+									},
+									{
+										label: "Format Score",
+										value: 92,
+										delay: "700",
+									},
+									{
+										label: "Section Structure",
+										value: 78,
+										delay: "800",
+									},
+								].map((item) => (
 									<div key={item.label}>
 										<div className="flex justify-between text-sm mb-1">
 											<span className="text-muted-foreground">
@@ -263,20 +153,10 @@ export const Hero = () => {
 											</span>
 										</div>
 										<div className="h-2 bg-muted rounded-full overflow-hidden">
-											<motion.div
-												className="h-full rounded-full"
+											<div
+												className={`h-full rounded-full bg-accent animate-bar-fill animation-delay-${item.delay}`}
 												style={{
-													background:
-														"linear-gradient(90deg, hsl(var(--sand)), hsl(var(--beige)))",
-												}}
-												initial={{ width: 0 }}
-												animate={{
 													width: `${item.value}%`,
-												}}
-												transition={{
-													delay: 0.9 + i * 0.15,
-													duration: 0.8,
-													ease: "easeOut",
 												}}
 											/>
 										</div>
@@ -289,7 +169,7 @@ export const Hero = () => {
 								<h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
 									<TrendingUp
 										size={14}
-										className="text-sand"
+										className="text-accent"
 									/>
 									Improvements Applied
 								</h4>
@@ -299,21 +179,16 @@ export const Hero = () => {
 										"Skills section enhanced",
 										"ATS-safe formatting",
 									].map((item, i) => (
-										<motion.div
+										<div
 											key={item}
-											initial={{ opacity: 0, x: -10 }}
-											animate={{ opacity: 1, x: 0 }}
-											transition={{
-												delay: 1.3 + i * 0.1,
-											}}
-											className="flex items-center gap-2 text-sm text-muted-foreground"
+											className={`flex items-center gap-2 text-sm text-muted-foreground animate-fade-in-left animation-delay-${900 + i * 100}`}
 										>
 											<CheckCircle2
 												size={14}
-												className="text-sand"
+												className="text-accent"
 											/>
 											{item}
-										</motion.div>
+										</div>
 									))}
 								</div>
 							</div>
@@ -321,7 +196,7 @@ export const Hero = () => {
 							{/* Download Button (Demo) */}
 							<button
 								disabled
-								className="w-full py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
+								className="w-full py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
 							>
 								<Download size={18} />
 								Download PDF (1 credit)
@@ -329,46 +204,19 @@ export const Hero = () => {
 						</div>
 
 						{/* Floating decoration */}
-						<motion.div
-							className="absolute -top-4 -right-4 w-24 h-24 rounded-2xl bg-card-gradient border border-border/30 shadow-soft hidden lg:flex items-center justify-center"
-							animate={
-								prefersReducedMotion ? {} : { y: [0, -8, 0] }
-							}
-							transition={{
-								duration: 4,
-								repeat: Infinity,
-								ease: "easeInOut",
-							}}
-						>
+						<div className="absolute -top-4 -right-4 w-24 h-24 rounded-sm bg-surface-raised border border-border/30 hidden lg:flex items-center justify-center animate-float">
 							<span className="font-display text-3xl">📄</span>
-						</motion.div>
-					</motion.div>
+						</div>
+					</div>
 				</div>
-			</motion.div>
+			</div>
 
 			{/* Scroll indicator */}
-			<motion.div
-				className="absolute bottom-8 left-1/2 -translate-x-1/2"
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ delay: 1.5 }}
-			>
-				<motion.div
-					className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2"
-					animate={prefersReducedMotion ? {} : { y: [0, 5, 0] }}
-					transition={{ duration: 2, repeat: Infinity }}
-				>
-					<motion.div
-						className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
-						animate={
-							prefersReducedMotion
-								? {}
-								: { y: [0, 8, 0], opacity: [1, 0.3, 1] }
-						}
-						transition={{ duration: 2, repeat: Infinity }}
-					/>
-				</motion.div>
-			</motion.div>
+			<div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in animation-delay-1000">
+				<div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2 animate-bounce-slow">
+					<div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+				</div>
+			</div>
 		</section>
 	);
 };

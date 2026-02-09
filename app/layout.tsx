@@ -1,7 +1,25 @@
 import "./globals.css";
 import Providers from "./providers";
+import { Manrope, DM_Sans } from "next/font/google";
 
-const jsonLd = {
+const displayFont = Manrope({
+	subsets: ["latin"],
+	weight: ["400", "500", "600", "700"],
+	variable: "--font-display",
+	display: "swap",
+});
+
+const bodyFont = DM_Sans({
+	subsets: ["latin"],
+	weight: ["400", "500", "600", "700"],
+	style: ["normal", "italic"],
+	variable: "--font-body",
+	display: "swap",
+});
+
+export { displayFont, bodyFont };
+
+export const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "SoftwareApplication",
 	name: "atsresumie",
@@ -40,8 +58,18 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body>
+		<html
+			lang="en"
+			suppressHydrationWarning
+			className={`${displayFont.variable} ${bodyFont.variable}`}
+		>
+			<body className="antialiased font-body">
+				<a
+					href="#main-content"
+					className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-surface-raised focus:text-text-primary"
+				>
+					Skip to content
+				</a>
 				<Providers>{children}</Providers>
 			</body>
 		</html>

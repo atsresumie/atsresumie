@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthModal } from "@/contexts/AuthModalContext";
+import { ProfileDropdown } from "@/components/shared/ProfileDropdown";
 
 const marketingLinks = [
 	{ label: "Pricing", href: "#pricing" },
@@ -109,7 +110,7 @@ export const Navbar = () => {
 							{!isLoading && (
 								<>
 									{isAuthenticated ? (
-										<>
+										<div className="flex items-center gap-3">
 											{/* Dashboard Button */}
 											<motion.div
 												whileHover={{
@@ -128,7 +129,9 @@ export const Navbar = () => {
 													Dashboard
 												</Link>
 											</motion.div>
-										</>
+											{/* Profile Avatar Dropdown */}
+											<ProfileDropdown />
+										</div>
 									) : (
 										<>
 											<motion.button

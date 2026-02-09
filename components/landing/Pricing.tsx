@@ -1,12 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { useState } from "react";
 import { Check, Zap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthModal } from "@/contexts/AuthModalContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthIntent } from "@/hooks/useAuthIntent";
+
+/**
+ * Pricing Component - Client Component (for checkout logic)
+ * Uses CSS animations instead of framer-motion
+ */
 
 const plans = [
 	{
@@ -42,9 +46,6 @@ const plans = [
 ];
 
 export const Pricing = () => {
-	const containerRef = useRef<HTMLDivElement>(null);
-	const isInView = useInView(containerRef, { once: true, margin: "-100px" });
-	const prefersReducedMotion = useReducedMotion();
 	const { openAuthModal } = useAuthModal();
 	const { isAuthenticated } = useAuth();
 	const { saveIntent } = useAuthIntent();
@@ -58,19 +59,13 @@ export const Pricing = () => {
 	const handleBuyPro = async () => {
 		if (isLoading) return;
 
-		console.log("[Pricing] handleBuyPro called", { isAuthenticated });
-
-		// Pre-auth check: save intent + open modal if not authenticated
 		if (!isAuthenticated) {
-			console.log("[Pricing] Not authenticated, saving intent...");
 			saveIntent({ type: "buy_credits", payload: { packId: "pro_75" } });
-			console.log("[Pricing] Intent saved, opening modal...");
 			toast.info("Please sign in to purchase credits");
 			openAuthModal("signin");
 			return;
 		}
 
-		// User is authenticated, proceed with checkout
 		setIsLoading(true);
 		try {
 			const res = await fetch("/api/stripe/checkout", {
@@ -82,7 +77,6 @@ export const Pricing = () => {
 			const data = await res.json();
 
 			if (!res.ok) {
-				// 401 fallback: session expired between check and API call
 				if (res.status === 401) {
 					saveIntent({
 						type: "buy_credits",
@@ -100,7 +94,6 @@ export const Pricing = () => {
 				throw new Error("No checkout URL returned");
 			}
 
-			// Redirect to Stripe Checkout
 			window.location.href = data.url;
 		} catch (error) {
 			console.error("Checkout error:", error);
@@ -123,77 +116,47 @@ export const Pricing = () => {
 
 	return (
 		<section id="pricing" className="relative py-24 md:py-32">
-			<div ref={containerRef} className="container mx-auto">
+			<div className="container mx-auto">
 				{/* Section header */}
-				<motion.div
-					initial={{ opacity: 0, y: 30 }}
-					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={{ type: "spring", damping: 20 }}
-					className="text-center mb-12 md:mb-16"
-				>
+				<div className="text-center mb-12 md:mb-16 animate-fade-in-up">
 					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
 						Simple pricing
 					</h2>
-					<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
 						Start free, buy credits when you need more
 					</p>
-				</motion.div>
+				</div>
 
 				{/* Pricing cards */}
 				<div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
 					{plans.map((plan, index) => (
-						<motion.div
+						<div
 							key={plan.name}
-							initial={{ opacity: 0, y: 40 }}
-							animate={isInView ? { opacity: 1, y: 0 } : {}}
-							transition={{
-								delay: prefersReducedMotion
-									? 0
-									: 0.2 + index * 0.15,
-								type: "spring",
-								damping: 20,
-							}}
-							className="relative group"
+							className={`relative group animate-fade-in-up animation-delay-${(index + 2) * 100}`}
 						>
-							{/* Animated gradient border for Pro */}
+							{/* Gradient border for Pro */}
 							{plan.popular && (
-								<motion.div
-									className="absolute -inset-px rounded-2xl z-0"
+								<div
+									className="absolute -inset-px rounded-sm z-0 animate-gradient-shift"
 									style={{
 										background:
-											"linear-gradient(135deg, hsl(var(--coffee-light)), hsl(var(--sand)), hsl(var(--beige)), hsl(var(--coffee-light)))",
+											"linear-gradient(135deg, var(--accent), hsl(36, 30%, 70%), var(--accent))",
 										backgroundSize: "300% 300%",
-									}}
-									animate={
-										prefersReducedMotion
-											? {}
-											: {
-													backgroundPosition: [
-														"0% 0%",
-														"100% 100%",
-														"0% 0%",
-													],
-												}
-									}
-									transition={{
-										duration: 5,
-										repeat: Infinity,
-										ease: "linear",
 									}}
 								/>
 							)}
 
 							<div
-								className={`relative h-full bg-card-gradient rounded-2xl border p-8 ${
+								className={`relative h-full bg-surface-raised rounded-sm border p-8 ${
 									plan.popular
 										? "border-transparent"
-										: "border-border/50"
+										: "border-border-visible"
 								}`}
 							>
 								{/* Popular badge */}
 								{plan.popular && (
 									<div className="absolute -top-3 left-1/2 -translate-x-1/2">
-										<div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white text-sm font-semibold rounded-full shadow-lg">
+										<div className="flex items-center gap-1.5 px-3 py-1 bg-success text-white text-sm font-semibold rounded-full shadow-lg">
 											<Zap size={12} />
 											Best Value
 										</div>
@@ -205,7 +168,7 @@ export const Pricing = () => {
 									<h3 className="font-display text-2xl font-semibold mb-1">
 										{plan.name}
 									</h3>
-									<p className="text-muted-foreground text-sm">
+									<p className="text-text-secondary text-sm">
 										{plan.description}
 									</p>
 								</div>
@@ -215,7 +178,7 @@ export const Pricing = () => {
 									<span className="font-display text-5xl font-bold">
 										{plan.price}
 									</span>
-									<span className="text-muted-foreground">
+									<span className="text-text-secondary">
 										{plan.period}
 									</span>
 								</div>
@@ -227,10 +190,10 @@ export const Pricing = () => {
 											key={feature}
 											className="flex items-center gap-3"
 										>
-											<div className="w-5 h-5 rounded-full bg-sand/20 flex items-center justify-center flex-shrink-0">
+											<div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
 												<Check
 													size={12}
-													className="text-sand"
+													className="text-accent"
 												/>
 											</div>
 											<span className="text-sm">
@@ -241,18 +204,14 @@ export const Pricing = () => {
 								</ul>
 
 								{/* CTA */}
-								<motion.button
+								<button
 									onClick={() => handleCTA(plan.id)}
 									disabled={plan.id === "pro_75" && isLoading}
-									className={`w-full py-3.5 px-4 font-medium rounded-xl transition-all flex items-center justify-center gap-2 ${
+									className={`w-full py-3.5 px-4 font-medium rounded-sm transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-[0.98] ${
 										plan.popular
-											? "bg-secondary text-secondary-foreground shadow-soft hover:shadow-glow"
-											: "bg-muted/50 text-foreground hover:bg-muted"
+											? "bg-accent text-accent-foreground hover:bg-accent-hover"
+											: "bg-surface-inset text-text-primary hover:bg-surface-overlay"
 									} ${isLoading && plan.id === "pro_75" ? "opacity-70 cursor-not-allowed" : ""}`}
-									whileHover={
-										!isLoading ? { scale: 1.02, y: -2 } : {}
-									}
-									whileTap={!isLoading ? { scale: 0.98 } : {}}
 								>
 									{plan.id === "pro_75" && isLoading ? (
 										<>
@@ -265,21 +224,16 @@ export const Pricing = () => {
 									) : (
 										plan.cta
 									)}
-								</motion.button>
+								</button>
 							</div>
-						</motion.div>
+						</div>
 					))}
 				</div>
 
 				{/* Microcopy */}
-				<motion.p
-					initial={{ opacity: 0 }}
-					animate={isInView ? { opacity: 1 } : {}}
-					transition={{ delay: 0.6 }}
-					className="text-center text-sm text-muted-foreground mt-8"
-				>
-					One-time purchase. No subscriptions, no hidden fees.
-				</motion.p>
+				<p className="text-center text-sm text-text-secondary mt-8 animate-fade-in animation-delay-600">
+					Flexible plans. Cancel anytime, no hidden fees.
+				</p>
 			</div>
 		</section>
 	);

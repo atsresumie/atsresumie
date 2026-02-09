@@ -1,11 +1,12 @@
-import { useState, useRef } from "react";
-import {
-	motion,
-	AnimatePresence,
-	useInView,
-	useReducedMotion,
-} from "framer-motion";
+"use client";
+
+import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+
+/**
+ * FAQ Component - Client Component (for accordion state)
+ * Uses CSS transitions instead of framer-motion
+ */
 
 const faqs = [
 	{
@@ -34,98 +35,62 @@ interface FAQItemProps {
 	faq: (typeof faqs)[0];
 	isOpen: boolean;
 	onToggle: () => void;
-	index: number;
-	isInView: boolean;
 }
 
-const FAQItem = ({ faq, isOpen, onToggle, index, isInView }: FAQItemProps) => {
-	const prefersReducedMotion = useReducedMotion();
-
+const FAQItem = ({ faq, isOpen, onToggle }: FAQItemProps) => {
 	return (
-		<motion.div
-			initial={{ opacity: 0, y: 20 }}
-			animate={isInView ? { opacity: 1, y: 0 } : {}}
-			transition={{
-				delay: prefersReducedMotion ? 0 : 0.1 + index * 0.08,
-				type: "spring",
-				damping: 20,
-			}}
-			className="border-b border-border/50 last:border-0"
-		>
+		<div className="border-b border-border-subtle last:border-0">
 			<button
 				onClick={onToggle}
 				className="w-full py-6 flex items-center justify-between text-left group"
 			>
-				<span className="font-display text-lg font-medium group-hover:text-sand transition-colors pr-4">
+				<span className="font-display text-lg font-medium group-hover:text-accent transition-colors pr-4">
 					{faq.question}
 				</span>
-				<motion.div
-					animate={{ rotate: isOpen ? 180 : 0 }}
-					transition={{ type: "spring", damping: 20, stiffness: 300 }}
-					className="flex-shrink-0"
+				<div
+					className={`flex-shrink-0 transition-transform duration-200 ${
+						isOpen ? "rotate-180" : ""
+					}`}
 				>
-					<ChevronDown size={20} className="text-muted-foreground" />
-				</motion.div>
+					<ChevronDown size={20} className="text-text-secondary" />
+				</div>
 			</button>
 
-			<AnimatePresence initial={false}>
-				{isOpen && (
-					<motion.div
-						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: "auto", opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
-						transition={{
-							type: "spring",
-							damping: 25,
-							stiffness: 200,
-						}}
-						className="overflow-hidden"
-					>
-						<motion.div
-							initial={prefersReducedMotion ? {} : { y: -10 }}
-							animate={{ y: 0 }}
-							exit={prefersReducedMotion ? {} : { y: -10 }}
-							transition={{ type: "spring", damping: 20 }}
-							className="pb-6"
-						>
-							<p className="text-muted-foreground leading-relaxed">
-								{faq.answer}
-							</p>
-						</motion.div>
-					</motion.div>
-				)}
-			</AnimatePresence>
-		</motion.div>
+			<div
+				className={`overflow-hidden transition-all duration-300 ease-out ${
+					isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+				}`}
+			>
+				<div className="pb-6">
+					<p className="text-text-secondary leading-relaxed">
+						{faq.answer}
+					</p>
+				</div>
+			</div>
+		</div>
 	);
 };
 
 export const FAQ = () => {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
-	const containerRef = useRef<HTMLDivElement>(null);
-	const isInView = useInView(containerRef, { once: true, margin: "-100px" });
 
 	return (
 		<section id="faq" className="relative py-24 md:py-32">
-			<div className="absolute inset-0 bg-gradient-to-b from-background via-muted/10 to-background" />
+			<div className="absolute inset-0 bg-gradient-to-b from-surface-base via-surface-raised/10 to-surface-base" />
 
-			<div ref={containerRef} className="container mx-auto relative z-10">
+			<div className="container mx-auto relative z-10">
 				{/* Section header */}
-				<motion.div
-					initial={{ opacity: 0, y: 30 }}
-					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={{ type: "spring", damping: 20 }}
-					className="text-center mb-12 md:mb-16"
-				>
+				<div className="text-center mb-12 md:mb-16 animate-fade-in-up">
 					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
 						Frequently asked questions
 					</h2>
-					<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
 						Everything you need to know about atsresumie
 					</p>
-				</motion.div>
+				</div>
 
 				{/* FAQ List */}
-				<div className="max-w-3xl mx-auto bg-card-gradient rounded-2xl border border-border/50 px-6 md:px-8">
+				<div className="max-w-3xl mx-auto bg-surface-raised rounded-sm border border-border-visible px-6 md:px-8 animate-fade-in-up animation-delay-200">
 					{faqs.map((faq, index) => (
 						<FAQItem
 							key={faq.question}
@@ -134,8 +99,6 @@ export const FAQ = () => {
 							onToggle={() =>
 								setOpenIndex(openIndex === index ? null : index)
 							}
-							index={index}
-							isInView={isInView}
 						/>
 					))}
 				</div>
