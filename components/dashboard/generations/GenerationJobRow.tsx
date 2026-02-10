@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, Download, Copy, Trash2, Loader2, FileCheck } from "lucide-react";
+import Link from "next/link";
+import {
+	Eye,
+	Download,
+	Copy,
+	Trash2,
+	Loader2,
+	FileCheck,
+	Pencil,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	type GenerationJobFull,
@@ -134,6 +143,15 @@ export function GenerationJobRow({
 					<Eye size={16} />
 					<span className="ml-1 hidden sm:inline">View</span>
 				</Button>
+
+				{job.status === "succeeded" && (
+					<Link href={`/dashboard/editor/${job.id}`}>
+						<Button variant="ghost" size="sm" className="h-8 px-2">
+							<Pencil size={16} />
+							<span className="ml-1 hidden sm:inline">Edit</span>
+						</Button>
+					</Link>
+				)}
 
 				<Button
 					variant="ghost"

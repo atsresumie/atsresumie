@@ -1,0 +1,128 @@
+/**
+ * LaTeX Template CSS Styles
+ * Replicates the exact styling of the pdflatex resume output:
+ * - Latin Modern / Computer Modern font family
+ * - Article class 10-11pt base font
+ * - Section headers with hrule beneath
+ * - Enumitem-style tight bullets
+ */
+
+.latex-resume {
+	/* Latin Modern / Computer Modern approximation using STIX Two Text or system serif */
+	font-family:
+		"STIX Two Text", "Latin Modern Roman", "Computer Modern",
+		"Times New Roman", Georgia, serif;
+	font-size: 11pt;
+	line-height: 1.2;
+	color: #000;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Name header - typically \Huge\textbf in LaTeX */
+.latex-resume .resume-name {
+	font-size: 24pt;
+	font-weight: 700;
+	text-align: center;
+	margin-bottom: 4pt;
+	letter-spacing: 0.02em;
+}
+
+/* Contact info line */
+.latex-resume .resume-contacts {
+	font-size: 10pt;
+	text-align: center;
+	color: #333;
+	margin-bottom: 12pt;
+}
+
+.latex-resume .resume-contacts a {
+	color: inherit;
+	text-decoration: none;
+}
+
+/* Section container */
+.latex-resume .resume-section {
+	margin-bottom: 10pt;
+}
+
+/* Section heading with hrule - matches \sectionheader macro */
+.latex-resume .section-heading {
+	font-size: 11pt;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	padding-bottom: 3pt;
+	border-bottom: 0.5pt solid #000;
+	margin-bottom: 6pt;
+}
+
+/* Experience entry header: Role | Company | Location | Dates */
+.latex-resume .entry-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	flex-wrap: wrap;
+	margin-bottom: 2pt;
+}
+
+.latex-resume .entry-title {
+	font-weight: 700;
+	font-size: 11pt;
+}
+
+.latex-resume .entry-subtitle {
+	font-style: italic;
+	font-size: 11pt;
+}
+
+.latex-resume .entry-meta {
+	font-size: 10pt;
+	color: #333;
+}
+
+/* Bullet list - matches enumitem [leftmargin=*, topsep=0pt, itemsep=2pt] */
+.latex-resume .bullet-list {
+	margin: 0;
+	padding-left: 16pt;
+	list-style-type: disc;
+}
+
+.latex-resume .bullet-list li {
+	margin-bottom: 2pt;
+	padding-left: 2pt;
+	line-height: 1.3;
+}
+
+.latex-resume .bullet-list li::marker {
+	font-size: 0.6em;
+}
+
+/* Paragraph content */
+.latex-resume .resume-paragraph {
+	margin-bottom: 6pt;
+	text-align: justify;
+	hyphens: auto;
+}
+
+/* Skills section - comma-separated inline */
+.latex-resume .skills-line {
+	margin-bottom: 4pt;
+}
+
+.latex-resume .skills-category {
+	font-weight: 700;
+}
+
+/* Education - similar to experience but typically no bullets */
+.latex-resume .education-entry {
+	margin-bottom: 6pt;
+}
+
+/* Ensure page formatting */
+@media print {
+	.latex-resume {
+		font-size: 11pt;
+		line-height: 1.2;
+	}
+}
