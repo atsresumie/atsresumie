@@ -336,7 +336,7 @@ export default function EditorPage() {
 	}
 
 	return (
-		<div className="flex h-screen flex-col bg-surface-base">
+		<div className="flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden bg-surface-base md:h-[calc(100vh-4rem)]">
 			{/* Top Bar */}
 			<header className="flex h-14 shrink-0 items-center justify-between border-b border-border-subtle bg-surface-raised px-4">
 				{/* Left section: Back + Filename */}

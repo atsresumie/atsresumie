@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ export default function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
+	const pathname = usePathname();
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 	const handleToggleSidebar = () => {
