@@ -62,7 +62,8 @@ atsresumie/
 │   │       └── webhook/   # Handle Stripe webhooks
 │   │
 │   ├── auth/              # Authentication routes
-│   │   └── callback/      # OAuth callback handler
+│   │   ├── callback/      # OAuth callback handler
+│   │   └── verify-email/  # Email verification confirmation
 │   │
 │   ├── dashboard/         # User dashboard (protected)
 │   │   ├── account/       # Account information page
@@ -248,11 +249,13 @@ External compilation via `latex-online.cc`:
 Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
 
 - **PDF.js Preview**: Scrollable all-pages view rendered to canvas, with zoom (50-300%)
+- **HiDPI Rendering**: Canvas renders at `scale × devicePixelRatio` for crisp Retina output
 - **Style Controls**: Font family, page size, margins, font size, line height, section spacing
 - **Auto-Recompile**: Changes trigger PDF regeneration after 800ms debounce
 - **Font Families**: Computer Modern, Latin Modern, Times New Roman, Palatino, Charter, Bookman, Helvetica
 - **Initial Settings**: Parsed from existing LaTeX via `parseStyleFromLatex()`
 - **Save on Download**: Styled LaTeX is saved to DB when user downloads
+- **Layout**: Fixed viewport inside dashboard shell (`calc(100vh - header)`) — only PDF scrolls
 - **LaTeX Injection**: Idempotent marker-based style block injection (`applyStyleToLatex()`)
 - See `docs/CANVAS.md` for detailed architecture
 

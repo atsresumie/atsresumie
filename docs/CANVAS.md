@@ -6,7 +6,7 @@
 
 ## Overview
 
-The PDF Editor allows users to visually adjust formatting of their AI-generated resumes and see real-time PDF previews. It renders the actual compiled PDF via PDF.js, injects style modifications into the LaTeX source, and recompiles on every change.
+The PDF Editor allows users to visually adjust formatting of their AI-generated resumes and see real-time PDF previews. It renders the actual compiled PDF via PDF.js, injects style modifications into the LaTeX source, and recompiles on every change. The editor sits inside the dashboard shell but uses a fixed-height layout (`calc(100vh - header)`) so only the PDF area scrolls.
 
 ---
 
@@ -80,11 +80,12 @@ The PDF Editor allows users to visually adjust formatting of their AI-generated 
 
 ### Supporting Files
 
-| File                          | Purpose                                     |
-| ----------------------------- | ------------------------------------------- |
-| `app/api/export-pdf/route.ts` | Existing PDF export (used for initial load) |
-| `public/pdf.worker.min.mjs`   | PDF.js web worker (copied via postinstall)  |
-| `package.json`                | `pdfjs-dist` dep + `postinstall` script     |
+| File                             | Purpose                                     |
+| -------------------------------- | ------------------------------------------- |
+| `app/api/export-pdf/route.ts`    | Existing PDF export (used for initial load) |
+| `public/pdf.worker.min.mjs`      | PDF.js web worker (copied via postinstall)  |
+| `package.json`                   | `pdfjs-dist` dep + `postinstall` script     |
+| `app/auth/verify-email/page.tsx` | Email verification confirmation page        |
 
 ---
 
@@ -190,8 +191,53 @@ Falls back to `DEFAULT_STYLE_CONFIG` for anything not found.
 - **Controls**: `[−] 100% [+]` buttons in the top bar
 - **Keyboard**: `Ctrl/Cmd + scroll wheel` on the PDF area only
 - **Range**: 50% – 300%, steps of 10%
-- **Rendering**: Re-renders canvas at new resolution (not CSS scaling) for crisp output
+- **Rendering**: Re-renders canvas at `scale × devicePixelRatio` for crisp HiDPI/Retina output
 - **State**: Lifted to editor page so both top bar controls and PDF.js component share it
+
+---
+
+## HiDPI / Retina Rendering
+
+PDF.js renders to a `<canvas>`. On HiDPI screens (e.g. Retina at 2x), a 1:1 canvas looks blurry. Fix:
+
+1. **Internal resolution**: canvas renders at `scale × dpr` (e.g. 2× on Retina)
+2. **CSS display size**: set via `style.width/height` at logical pixels (`scaledWidth / dpr`)
+3. Result: crisp, sharp text at any zoom level
+
+---
+
+## Layout Integration
+
+The editor lives inside the dashboard shell (`DashboardHeader` + `DashboardSidebar`). To prevent page-level scrolling:
+
+- Dashboard layout adds `pt-14 md:pt-16` (header offset) and `md:pl-64` (sidebar offset)
+- Editor page uses `h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)]` + `overflow-hidden`
+- Only the PDF container inside `PdfJsPreview` has `overflow-auto`
+
+```
+┌─ Dashboard Layout ────────────────────────────────┐
+│ ┌─ DashboardHeader (h-14/h-16, fixed) ──────────┐ │
+│ └────────────────────────────────────────────────┘ │
+│ ┌─ Sidebar ─┐ ┌─ Editor (calc height) ──────────┐ │
+│ │           │ │ ┌─ Editor Top Bar ─────────────┐ │ │
+│ │           │ │ └─────────────────────────────┘ │ │
+│ │           │ │ ┌─ StyleControls ─┐ ┌─ PDF ──┐ │ │
+│ │           │ │ │ (scrolls own)  │ │(scroll)│ │ │
+│ │           │ │ └────────────────┘ └────────┘ │ │
+│ └───────────┘ └─────────────────────────────────┘ │
+└───────────────────────────────────────────────────┘
+```
+
+---
+
+## Email Verification Flow
+
+After email/password signup, users are redirected to `/auth/verify-email?email=...`:
+
+1. **AuthModal** calls `signUp(email, password)`, then redirects to verification page
+2. **Verify page** shows numbered steps (open inbox → click link → return to sign in)
+3. **Resend button** calls `supabase.auth.resend({ type: "signup", email })`
+4. After clicking the email link → `/auth/callback` → authenticated
 
 ---
 
