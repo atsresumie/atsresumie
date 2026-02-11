@@ -179,7 +179,7 @@ export function EditorControls({ settings, onChange }: EditorControlsProps) {
 									Top
 								</span>
 								<span className="text-xs text-text-secondary">
-									{settings.marginTop}
+									{Math.round(settings.marginTop)}
 								</span>
 							</div>
 							<Slider
@@ -198,7 +198,7 @@ export function EditorControls({ settings, onChange }: EditorControlsProps) {
 									Bottom
 								</span>
 								<span className="text-xs text-text-secondary">
-									{settings.marginBottom}
+									{Math.round(settings.marginBottom)}
 								</span>
 							</div>
 							<Slider
@@ -217,7 +217,7 @@ export function EditorControls({ settings, onChange }: EditorControlsProps) {
 									Left
 								</span>
 								<span className="text-xs text-text-secondary">
-									{settings.marginLeft}
+									{Math.round(settings.marginLeft)}
 								</span>
 							</div>
 							<Slider
@@ -236,7 +236,7 @@ export function EditorControls({ settings, onChange }: EditorControlsProps) {
 									Right
 								</span>
 								<span className="text-xs text-text-secondary">
-									{settings.marginRight}
+									{Math.round(settings.marginRight)}
 								</span>
 							</div>
 							<Slider
