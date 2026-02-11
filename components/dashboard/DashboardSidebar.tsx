@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useCredits } from "@/hooks/useCredits";
+import { usePurchaseHistory } from "@/hooks/usePurchaseHistory";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -54,7 +56,13 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { signOut } = useAuth();
+	const { credits } = useCredits();
+	const { purchases } = usePurchaseHistory();
 	const [isUpgrading, setIsUpgrading] = useState(false);
+
+	const hasPurchasedBefore = purchases.some((p) => p.status === "succeeded");
+	const shouldShowBuyMore =
+		!hasPurchasedBefore || credits === null || credits <= 15;
 
 	const handleLinkClick = () => {
 		onClose();
@@ -176,25 +184,35 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 
 				{/* Bottom section */}
 				<div className="p-4 border-t border-border-subtle space-y-2">
-					{/* Upgrade to Pro */}
-					<Button
-						variant="primary"
-						className="w-full"
-						onClick={handleUpgrade}
-						disabled={isUpgrading}
-					>
-						{isUpgrading ? (
-							<>
-								<Loader2 size={16} className="animate-spin" />
-								Loading...
-							</>
-						) : (
-							<>
-								<Crown size={16} />
-								Upgrade to Pro
-							</>
-						)}
-					</Button>
+					{/* Upgrade / Buy more credits — hidden for returning users with plenty of credits */}
+					{shouldShowBuyMore && (
+						<Button
+							variant="primary"
+							className="w-full"
+							onClick={handleUpgrade}
+							disabled={isUpgrading}
+						>
+							{isUpgrading ? (
+								<>
+									<Loader2
+										size={16}
+										className="animate-spin"
+									/>
+									Loading...
+								</>
+							) : hasPurchasedBefore ? (
+								<>
+									<Crown size={16} />
+									Buy more credits ✨
+								</>
+							) : (
+								<>
+									<Crown size={16} />
+									Upgrade to Pro
+								</>
+							)}
+						</Button>
+					)}
 
 					{/* Sign Out */}
 					<Button

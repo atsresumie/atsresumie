@@ -84,11 +84,13 @@ function CreditsSummaryCard({
 	isLoading,
 	error,
 	onRetry,
+	hasPurchasedBefore,
 }: {
 	credits: number | null;
 	isLoading: boolean;
 	error: string | null;
 	onRetry: () => void;
+	hasPurchasedBefore: boolean;
 }) {
 	const isLowCredits = credits !== null && credits <= 2;
 
@@ -173,7 +175,7 @@ function CreditsSummaryCard({
 
 				<div className="flex flex-col gap-2 sm:items-end">
 					<span className="rounded-full bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
-						Plan: Free
+						{hasPurchasedBefore ? "Plan: Pro" : "Plan: Free"}
 					</span>
 					{isLowCredits && (
 						<span className="flex items-center gap-1 text-sm text-amber-400">
@@ -446,6 +448,7 @@ function CreditPackCard({
 	currency,
 	onBuy,
 	isLoading,
+	hasPurchasedBefore,
 }: {
 	packId: string;
 	label: string;
@@ -454,6 +457,7 @@ function CreditPackCard({
 	currency: string;
 	onBuy: (packId: string) => void;
 	isLoading: boolean;
+	hasPurchasedBefore: boolean;
 }) {
 	const price = (priceCents / 100).toFixed(0);
 
@@ -466,7 +470,9 @@ function CreditPackCard({
 						{label}
 					</h3>
 					<p className="text-sm text-muted-foreground">
-						Monthly subscription
+						{hasPurchasedBefore
+							? "Top up your credits"
+							: "Monthly subscription"}
 					</p>
 				</div>
 				<div className="text-right">
@@ -516,6 +522,8 @@ function CreditPackCard({
 						<Loader2 size={16} className="mr-2 animate-spin" />
 						Processing...
 					</>
+				) : hasPurchasedBefore ? (
+					"Buy more credits ✨"
 				) : (
 					"Subscribe"
 				)}
@@ -681,6 +689,9 @@ function CreditsPageContent() {
 						isLoading={creditsLoading}
 						error={creditsError}
 						onRetry={refetchCredits}
+						hasPurchasedBefore={purchases.some(
+							(p) => p.status === "succeeded",
+						)}
 					/>
 
 					{/* Credit history */}
@@ -699,16 +710,23 @@ function CreditsPageContent() {
 
 				{/* Right column */}
 				<div className="space-y-6">
-					{/* Credit pack */}
-					<CreditPackCard
-						packId="pro_75"
-						label="Pro Pack"
-						credits={75}
-						priceCents={1000}
-						currency="cad"
-						onBuy={handleBuyCredits}
-						isLoading={isCheckoutLoading}
-					/>
+					{/* Credit pack — hide for returning users with plenty of credits */}
+					{(!purchases.some((p) => p.status === "succeeded") ||
+						credits === null ||
+						credits <= 15) && (
+						<CreditPackCard
+							packId="pro_75"
+							label="Pro Pack"
+							credits={75}
+							priceCents={1000}
+							currency="cad"
+							onBuy={handleBuyCredits}
+							isLoading={isCheckoutLoading}
+							hasPurchasedBefore={purchases.some(
+								(p) => p.status === "succeeded",
+							)}
+						/>
+					)}
 
 					{/* Usage this month */}
 					<UsageCard
