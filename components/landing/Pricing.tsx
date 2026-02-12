@@ -31,11 +31,11 @@ const plans = [
 	{
 		id: "pro_75",
 		name: "Pro",
-		description: "75 credits every month",
+		description: "50 credits every month",
 		price: "$10",
 		period: "/mo",
 		features: [
-			"75 credits per month",
+			"50 credits per month",
 			"Unlimited PDF exports",
 			"Priority support",
 			"Cancel anytime",

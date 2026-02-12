@@ -304,7 +304,7 @@ Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
 
 Full subscription system:
 
-- Monthly plan: $10/month for 75 credits
+- Monthly plan: $10/month for 50 credits
 - Secure webhooks with signature verification
 - Idempotent credit granting
 - Promotion code support

@@ -717,7 +717,7 @@ function CreditsPageContent() {
 						<CreditPackCard
 							packId="pro_75"
 							label="Pro Pack"
-							credits={75}
+							credits={50}
 							priceCents={1000}
 							currency="cad"
 							onBuy={handleBuyCredits}
