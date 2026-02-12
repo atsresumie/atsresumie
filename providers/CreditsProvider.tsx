@@ -1,42 +1,44 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useAuth } from "./useAuth";
+import {
+	createContext,
+	useContext,
+	useState,
+	useEffect,
+	useCallback,
+	useRef,
+	type ReactNode,
+} from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabaseBrowser } from "@/lib/supabase/browser";
-import { useCreditsContext } from "@/providers/CreditsProvider";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-interface UseCreditsReturn {
+interface CreditsContextValue {
 	credits: number | null;
 	isLoading: boolean;
 	error: string | null;
 	refetch: () => Promise<void>;
 }
 
-/**
- * Hook that returns the user's credit balance with Realtime updates.
- *
- * Inside a <CreditsProvider> (dashboard layout) → uses shared context,
- * one Realtime channel for all consumers, always in sync.
- *
- * Outside a provider (landing page) → creates its own subscription.
- *
- * All hooks are called unconditionally to satisfy React's rules of hooks;
- * side effects are simply skipped when context is available.
- */
-export function useCredits(): UseCreditsReturn {
-	const ctx = useCreditsContext();
-	const hasProvider = ctx !== null;
+const CreditsContext = createContext<CreditsContextValue | null>(null);
 
+/**
+ * CreditsProvider — wraps a subtree so every `useCredits()` consumer
+ * shares the SAME state and a SINGLE Realtime channel.
+ *
+ * Place this in the dashboard layout (or app layout) to keep the
+ * navbar, sidebar, credits page, etc. all in sync.
+ */
+export function CreditsProvider({ children }: { children: ReactNode }) {
 	const { isAuthenticated, isLoading: authLoading, user } = useAuth();
 	const [credits, setCredits] = useState<number | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+
 	const channelRef = useRef<RealtimeChannel | null>(null);
 
-	// Fetch credits from API (skipped when provider exists)
+	// Fetch credits from API
 	const fetchCredits = useCallback(async () => {
-		if (hasProvider) return;
 		if (!isAuthenticated) {
 			setCredits(null);
 			setIsLoading(false);
@@ -47,7 +49,9 @@ export function useCredits(): UseCreditsReturn {
 			setIsLoading(true);
 			setError(null);
 			const res = await fetch("/api/credits");
-			if (!res.ok) throw new Error("Failed to fetch credits");
+			if (!res.ok) {
+				throw new Error("Failed to fetch credits");
+			}
 			const data = await res.json();
 			setCredits(data.credits);
 		} catch (err) {
@@ -57,25 +61,25 @@ export function useCredits(): UseCreditsReturn {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [isAuthenticated, hasProvider]);
+	}, [isAuthenticated]);
 
-	// Initial fetch (skipped when provider exists)
+	// Initial fetch
 	useEffect(() => {
-		if (hasProvider) return;
 		if (!authLoading) {
 			fetchCredits();
 		}
-	}, [authLoading, fetchCredits, hasProvider]);
+	}, [authLoading, fetchCredits]);
 
-	// Realtime subscription (skipped when provider exists)
+	// Single Realtime subscription for the entire subtree
 	useEffect(() => {
-		if (hasProvider) return;
-		if (!isAuthenticated || !user?.id) return;
+		if (!isAuthenticated || !user?.id) {
+			return;
+		}
 
 		const supabase = supabaseBrowser();
 
 		const channel = supabase
-			.channel(`credits-standalone:${user.id}`)
+			.channel(`credits-global:${user.id}`)
 			.on(
 				"postgres_changes",
 				{
@@ -88,7 +92,7 @@ export function useCredits(): UseCreditsReturn {
 					const newCredits = (payload.new as { credits: number })
 						.credits;
 					console.log(
-						"[useCredits] Realtime update - credits:",
+						"[CreditsProvider] Realtime update — credits:",
 						newCredits,
 					);
 					setCredits(newCredits);
@@ -96,10 +100,12 @@ export function useCredits(): UseCreditsReturn {
 			)
 			.subscribe((status) => {
 				if (status === "SUBSCRIBED") {
-					console.log("[useCredits] Realtime channel subscribed");
+					console.log(
+						"[CreditsProvider] Realtime channel subscribed",
+					);
 				} else if (status === "CHANNEL_ERROR") {
 					console.warn(
-						"[useCredits] Realtime unavailable - live updates disabled",
+						"[CreditsProvider] Realtime unavailable — live updates disabled",
 					);
 				}
 			});
@@ -108,23 +114,35 @@ export function useCredits(): UseCreditsReturn {
 
 		return () => {
 			if (channelRef.current) {
-				console.log("[useCredits] Unsubscribing from Realtime channel");
+				console.log(
+					"[CreditsProvider] Unsubscribing from Realtime channel",
+				);
 				supabase.removeChannel(channelRef.current);
 				channelRef.current = null;
 			}
 		};
-	}, [isAuthenticated, user?.id, hasProvider]);
+	}, [isAuthenticated, user?.id]);
 
-	// If context exists, return shared state
-	if (ctx) {
-		return ctx;
-	}
+	return (
+		<CreditsContext.Provider
+			value={{
+				credits,
+				isLoading: authLoading || isLoading,
+				error,
+				refetch: fetchCredits,
+			}}
+		>
+			{children}
+		</CreditsContext.Provider>
+	);
+}
 
-	// Otherwise return local state
-	return {
-		credits,
-		isLoading: authLoading || isLoading,
-		error,
-		refetch: fetchCredits,
-	};
+/**
+ * Read from the nearest CreditsProvider.
+ * Falls back to null if called outside a provider (components outside
+ * the dashboard shell that still call useCredits will create their own
+ * subscription via the hook below).
+ */
+export function useCreditsContext(): CreditsContextValue | null {
+	return useContext(CreditsContext);
 }
