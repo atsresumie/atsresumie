@@ -75,9 +75,17 @@ export function GenerationJobRow({
 	const label = deriveJobLabel(job.jd_text);
 	const relativeTime = getRelativeTime(job.created_at);
 	const hasPdf = job.status === "succeeded" && !!job.pdf_object_path;
+	const isPdfPreparing =
+		job.status === "succeeded" &&
+		!job.pdf_object_path &&
+		job.pdf_status !== "failed";
+	const isPdfFailed =
+		job.status === "succeeded" &&
+		job.pdf_status === "failed" &&
+		!job.pdf_object_path;
 
 	const handleDownload = async () => {
-		if (!hasPdf) return;
+		if (job.status !== "succeeded") return;
 
 		setIsDownloading(true);
 		setDownloadError(null);
@@ -120,6 +128,12 @@ export function GenerationJobRow({
 							className="flex-shrink-0 text-emerald-400"
 						/>
 					)}
+					{isPdfPreparing && (
+						<Loader2
+							size={14}
+							className="flex-shrink-0 animate-spin text-blue-400"
+						/>
+					)}
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
 					<StatusBadge status={job.status} />
@@ -157,15 +171,21 @@ export function GenerationJobRow({
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2"
-					disabled={!hasPdf || isDownloading}
+					disabled={job.status !== "succeeded" || isDownloading}
 					onClick={handleDownload}
 				>
-					{isDownloading ? (
+					{isDownloading || isPdfPreparing ? (
 						<Loader2 size={16} className="animate-spin" />
 					) : (
 						<Download size={16} />
 					)}
-					<span className="ml-1 hidden sm:inline">Download</span>
+					<span className="ml-1 hidden sm:inline">
+						{isPdfPreparing
+							? "Preparing…"
+							: isPdfFailed
+								? "Retry"
+								: "Download"}
+					</span>
 				</Button>
 
 				<Button

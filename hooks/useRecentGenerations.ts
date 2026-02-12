@@ -11,11 +11,14 @@ export type GenerationJobStatus =
 	| "succeeded"
 	| "failed";
 
+export type PdfStatus = "none" | "queued" | "processing" | "ready" | "failed";
+
 export interface GenerationJob {
 	id: string;
 	status: GenerationJobStatus;
 	jd_text: string | null;
 	pdf_object_path: string | null;
+	pdf_status: PdfStatus | null;
 	created_at: string;
 }
 
@@ -78,7 +81,9 @@ export function useRecentGenerations(): UseRecentGenerationsReturn {
 
 			const { data, error: fetchError } = await supabase
 				.from("generation_jobs")
-				.select("id, status, jd_text, pdf_object_path, created_at")
+				.select(
+					"id, status, jd_text, pdf_object_path, pdf_status, created_at",
+				)
 				.eq("user_id", user.id)
 				.order("created_at", { ascending: false })
 				.limit(MAX_JOBS);

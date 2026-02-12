@@ -98,10 +98,18 @@ export function GenerationDetailsDrawer({
 
 	const label = deriveJobLabel(job.jd_text);
 	const hasPdf = job.status === "succeeded" && !!job.pdf_object_path;
+	const isPdfPreparing =
+		job.status === "succeeded" &&
+		!job.pdf_object_path &&
+		job.pdf_status !== "failed";
+	const isPdfFailed =
+		job.status === "succeeded" &&
+		job.pdf_status === "failed" &&
+		!job.pdf_object_path;
 	const hasLongJd = job.jd_text && job.jd_text.length > 300;
 
 	const handleDownload = async () => {
-		if (!hasPdf) return;
+		if (job.status !== "succeeded") return;
 
 		setIsDownloading(true);
 		setDownloadError(null);
@@ -248,10 +256,12 @@ export function GenerationDetailsDrawer({
 
 						<Button
 							className="w-full"
-							disabled={!hasPdf || isDownloading}
+							disabled={
+								job.status !== "succeeded" || isDownloading
+							}
 							onClick={handleDownload}
 						>
-							{isDownloading ? (
+							{isDownloading || isPdfPreparing ? (
 								<Loader2
 									size={16}
 									className="mr-2 animate-spin"
@@ -259,7 +269,11 @@ export function GenerationDetailsDrawer({
 							) : (
 								<Download size={16} className="mr-2" />
 							)}
-							Download PDF
+							{isPdfPreparing
+								? "PDF Preparing…"
+								: isPdfFailed
+									? "Retry PDF Download"
+									: "Download PDF"}
 						</Button>
 						{downloadError && (
 							<p className="text-center text-xs text-red-400">

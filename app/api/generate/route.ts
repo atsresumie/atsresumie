@@ -107,12 +107,13 @@ async function kickWorker(jobId: string): Promise<void> {
 
 	try {
 		const response = await fetch(
-			`${supabaseUrl}/functions/v1/process-generation-job`,
+			`${supabaseUrl}/functions/v1/worker-generate-latex`,
 			{
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${serviceKey}`,
+					apikey: serviceKey,
 				},
 				body: JSON.stringify({ jobId }),
 				signal: controller.signal,
