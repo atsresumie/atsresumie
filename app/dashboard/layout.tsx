@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { CreditsProvider } from "@/providers/CreditsProvider";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,31 +31,33 @@ export default function DashboardLayout({
 	};
 
 	return (
-		<div className={cn("min-h-screen", "bg-surface-base")}>
-			{/* Header */}
-			<DashboardHeader onToggleSidebar={handleToggleSidebar} />
+		<CreditsProvider>
+			<div className={cn("min-h-screen", "bg-surface-base")}>
+				{/* Header */}
+				<DashboardHeader onToggleSidebar={handleToggleSidebar} />
 
-			{/* Sidebar */}
-			<DashboardSidebar
-				isOpen={isSidebarOpen}
-				onClose={handleCloseSidebar}
-			/>
+				{/* Sidebar */}
+				<DashboardSidebar
+					isOpen={isSidebarOpen}
+					onClose={handleCloseSidebar}
+				/>
 
-			{/* Main content */}
-			<main
-				id="main-content"
-				className={cn(
-					"relative",
-					// Offset for header
-					"pt-14 md:pt-16",
-					// Offset for sidebar on desktop
-					"md:pl-64",
-					// Min height
-					"min-h-screen",
-				)}
-			>
-				{children}
-			</main>
-		</div>
+				{/* Main content */}
+				<main
+					id="main-content"
+					className={cn(
+						"relative",
+						// Offset for header
+						"pt-14 md:pt-16",
+						// Offset for sidebar on desktop
+						"md:pl-64",
+						// Min height
+						"min-h-screen",
+					)}
+				>
+					{children}
+				</main>
+			</div>
+		</CreditsProvider>
 	);
 }

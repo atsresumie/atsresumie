@@ -29,8 +29,8 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPack> = {
 	pro_75: {
 		packId: "pro_75",
 		label: "Pro Pack",
-		description: "75 credits for resume generation",
-		credits: 75,
+		description: "50 credits for resume generation",
+		credits: 50,
 		priceCents: 1000, // CAD $10.00
 		currency: "cad",
 		stripePriceId: process.env.STRIPE_PRICE_PRO_75 || "",

@@ -108,7 +108,7 @@ export function StyleControls({
 									Top
 								</span>
 								<span className="text-xs tabular-nums text-text-secondary">
-									{config.marginTopMm}
+									{Math.round(config.marginTopMm)}
 								</span>
 							</div>
 							<Slider
@@ -128,7 +128,7 @@ export function StyleControls({
 									Bottom
 								</span>
 								<span className="text-xs tabular-nums text-text-secondary">
-									{config.marginBottomMm}
+									{Math.round(config.marginBottomMm)}
 								</span>
 							</div>
 							<Slider
@@ -148,7 +148,7 @@ export function StyleControls({
 									Left
 								</span>
 								<span className="text-xs tabular-nums text-text-secondary">
-									{config.marginLeftMm}
+									{Math.round(config.marginLeftMm)}
 								</span>
 							</div>
 							<Slider
@@ -168,7 +168,7 @@ export function StyleControls({
 									Right
 								</span>
 								<span className="text-xs tabular-nums text-text-secondary">
-									{config.marginRightMm}
+									{Math.round(config.marginRightMm)}
 								</span>
 							</div>
 							<Slider

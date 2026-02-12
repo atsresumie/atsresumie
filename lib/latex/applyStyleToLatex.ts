@@ -63,6 +63,15 @@ export function applyStyleToLatex(latex: string, style: StyleConfig): string {
 		result = stripPackage(result, pkg);
 	}
 
+	// 3a. Strip XeLaTeX-only packages that break pdflatex
+	for (const pkg of ["fontspec", "unicode-math", "polyglossia"]) {
+		result = stripPackage(result, pkg);
+	}
+	result = result.replace(
+		/^[ \t]*\\(?:setmainfont|setsansfont|setmonofont)\{[^}]*\}[ \t]*$\n?/gm,
+		"",
+	);
+
 	// 4. Remove any existing \renewcommand{\familydefault} lines
 	result = result.replace(
 		/^[ \t]*\\renewcommand\{\\familydefault\}\{[^}]*\}[ \t]*$\n?/gm,
@@ -112,23 +121,36 @@ export function parseStyleFromLatex(latex: string): StyleConfig {
 	const geometryMatch = latex.match(/\\usepackage\[([^\]]*)\]\{geometry\}/);
 	if (geometryMatch) {
 		const opts = geometryMatch[1];
-		const topMatch = opts.match(/top=(\d+(?:\.\d+)?)mm/);
-		const bottomMatch = opts.match(/bottom=(\d+(?:\.\d+)?)mm/);
-		const leftMatch = opts.match(/left=(\d+(?:\.\d+)?)mm/);
-		const rightMatch = opts.match(/right=(\d+(?:\.\d+)?)mm/);
-		const marginMatch = opts.match(/margin=(\d+(?:\.\d+)?)(?:mm|cm|in)/);
 
-		if (topMatch) config.marginTopMm = parseFloat(topMatch[1]);
-		if (bottomMatch) config.marginBottomMm = parseFloat(bottomMatch[1]);
-		if (leftMatch) config.marginLeftMm = parseFloat(leftMatch[1]);
-		if (rightMatch) config.marginRightMm = parseFloat(rightMatch[1]);
-
-		// Handle uniform margin= option (convert to mm)
-		if (marginMatch && !topMatch && !leftMatch) {
-			const val = parseFloat(marginMatch[1]);
-			const unit = marginMatch[0].match(/(mm|cm|in)$/)?.[1] || "mm";
+		// Helper to parse a margin value with unit and convert to mm
+		const parseMm = (match: RegExpMatchArray | null): number | null => {
+			if (!match) return null;
+			const val = parseFloat(match[1]);
+			const unit = match[2] || "mm";
 			const mm =
 				unit === "cm" ? val * 10 : unit === "in" ? val * 25.4 : val;
+			return Math.round(mm);
+		};
+
+		const topMatch = opts.match(/top=(\d+(?:\.\d+)?)(mm|cm|in)/);
+		const bottomMatch = opts.match(/bottom=(\d+(?:\.\d+)?)(mm|cm|in)/);
+		const leftMatch = opts.match(/left=(\d+(?:\.\d+)?)(mm|cm|in)/);
+		const rightMatch = opts.match(/right=(\d+(?:\.\d+)?)(mm|cm|in)/);
+		const marginMatch = opts.match(/margin=(\d+(?:\.\d+)?)(mm|cm|in)/);
+
+		const top = parseMm(topMatch);
+		const bottom = parseMm(bottomMatch);
+		const left = parseMm(leftMatch);
+		const right = parseMm(rightMatch);
+
+		if (top !== null) config.marginTopMm = top;
+		if (bottom !== null) config.marginBottomMm = bottom;
+		if (left !== null) config.marginLeftMm = left;
+		if (right !== null) config.marginRightMm = right;
+
+		// Handle uniform margin= option
+		if (marginMatch && !topMatch && !leftMatch) {
+			const mm = parseMm(marginMatch)!;
 			config.marginTopMm = mm;
 			config.marginBottomMm = mm;
 			config.marginLeftMm = mm;
