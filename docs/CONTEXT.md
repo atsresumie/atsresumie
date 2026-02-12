@@ -86,6 +86,9 @@ atsresumie/
 │   ├── page.tsx           # Landing page
 │   └── providers.tsx      # React context providers
 │
+├── providers/              # React context providers
+│   └── CreditsProvider.tsx # Shared Realtime credits context
+│
 ├── components/
 │   ├── auth/              # Authentication components
 │   ├── dashboard/         # Dashboard components
@@ -139,6 +142,7 @@ atsresumie/
 │   │   └── Pricing.tsx
 │   │
 │   ├── shared/            # Shared components
+│   │   ├── CreditsPill.tsx
 │   │   └── ProfileDropdown.tsx
 │   │
 │   └── ui/                # shadcn/ui components (49 files)
@@ -193,6 +197,14 @@ atsresumie/
 │   └── logo.png
 │
 ├── supabase/              # Supabase config & migrations
+│   ├── functions/         # Edge Functions (Deno)
+│   │   ├── enqueue-generation-job/   # User-facing fast job insert
+│   │   ├── worker-generate-latex/    # Cron-triggered Claude worker
+│   │   ├── worker-generate-pdf/      # Cron-triggered PDF compiler
+│   │   └── process-generation-job/   # Legacy monolith (fallback)
+│   └── migrations/        # SQL migrations
+│       ├── 009_pipeline_split.sql    # Pipeline columns + RPCs
+│       └── 010_cron_schedules.sql    # pg_cron + pg_net schedules
 │
 └── docs/                  # Documentation
     ├── AUTH.md
@@ -218,7 +230,33 @@ Two-stage upload process to prevent orphan files:
 - **Stage 2 (Final)**: File moved to `final/` folder on confirm. Green badge.
 - **Progress**: XHR for real-time percentage and ETA.
 
-### 2. Claude LaTeX Generation
+### 2. Generation Pipeline (Split Architecture)
+
+The generation pipeline is split into 3 decoupled Edge Functions:
+
+```
+Frontend → enqueue-generation-job → generation_jobs (queued)
+                                         ↓
+pg_cron (20s) → worker-generate-latex → Claude API → status=succeeded, pdf_status=queued
+                                                          ↓
+pg_cron (45s) → worker-generate-pdf → latexonline.cc → pdf_status=ready
+```
+
+| Function                 | Trigger                             | Responsibility                                                                       |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------ |
+| `enqueue-generation-job` | User request / `/api/generate` kick | JWT auth, validation, credit check, fast insert                                      |
+| `worker-generate-latex`  | pg_cron (20s, batch 2)              | Claim jobs, call Claude, retry with exponential backoff, idempotent credit deduction |
+| `worker-generate-pdf`    | pg_cron (45s, batch 3)              | Claim succeeded jobs, compile PDF via latexonline.cc, upload to Storage              |
+
+**Key design decisions:**
+
+- **Idempotent credit deduction**: `deduct_credit_once` RPC checks `credit_deducted_at` before deducting
+- **Stale lock recovery**: Jobs stuck in `processing` > 10 min auto-reset (both in claim RPC and via dedicated cron job)
+- **Exponential backoff**: 429/5xx errors backoff at `base × 2^attempt`, permanent fail after 3 attempts
+- **Atomic claims**: `FOR UPDATE SKIP LOCKED` + `RETURNING` prevents concurrent workers from claiming the same job
+- **Time budgets**: LaTeX worker 25s, PDF worker 50s — ensures completion within Deno function limits
+
+### 3. Claude LaTeX Generation
 
 Uses **Claude 3.5 Sonnet** to generate ATS-safe LaTeX code.
 
@@ -226,25 +264,28 @@ Uses **Claude 3.5 Sonnet** to generate ATS-safe LaTeX code.
 - **Prompts**: `lib/llm/prompts.ts`
 - **Modes**: Quick, Deep, From Scratch (all implemented)
 
-### 3. Realtime System
+### 4. Realtime System
 
 Supabase Realtime replaces polling for instant updates:
 
-1. Job created → `status: pending`
-2. Frontend subscribes via `useJobRealtime`
-3. Backend pushes updates (running → succeeded/failed)
+1. Job created → `status: queued`
+2. Frontend subscribes via `useJobRealtime` / `useGenerations`
+3. Backend pushes updates (processing → succeeded/failed, pdf_status changes)
 4. Frontend reacts immediately
 
-### 4. PDF Compilation
+**CreditsProvider** (`providers/CreditsProvider.tsx`): Wraps the entire dashboard layout so that all `useCredits()` consumers (header, sidebar, credits page, profile dropdown) share a **single Realtime channel** and always display the same value. Components outside the dashboard (e.g. landing page) fall back to their own independent subscription.
+
+### 5. PDF Compilation
 
 External compilation via `latex-online.cc`:
 
-- Endpoint: `/api/export-pdf`
-- Uploads compiled PDF to Supabase Storage
+- **Background**: `worker-generate-pdf` Edge Function compiles and uploads automatically
+- **On-demand fallback**: `/api/export-pdf` endpoint for manual download
+- Uploads compiled PDF to Supabase Storage with upsert for idempotency
 - Returns signed URL (10 min validity)
-- Credits deducted during generation, not PDF export
+- Credits deducted during LaTeX generation, not PDF export
 
-### 5. PDF Editor
+### 6. PDF Editor
 
 Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
 
@@ -259,7 +300,7 @@ Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
 - **LaTeX Injection**: Idempotent marker-based style block injection (`applyStyleToLatex()`)
 - See `docs/CANVAS.md` for detailed architecture
 
-### 6. Stripe Integration
+### 7. Stripe Integration
 
 Full subscription system:
 
@@ -298,15 +339,39 @@ Warm dark theme with coffee/beige tones:
 
 ### Key Tables
 
-| Table                    | Purpose                          |
-| ------------------------ | -------------------------------- |
-| `user_profiles`          | User data, credits, profile info |
-| `generation_jobs`        | Job status, LaTeX, PDF path      |
-| `saved_job_descriptions` | Reusable JDs                     |
-| `resume_versions`        | User resume files with versions  |
-| `onboarding_sessions`    | Anonymous session tracking       |
-| `onboarding_drafts`      | Draft data before signup         |
-| `credit_purchases`       | Stripe purchase records          |
+| Table                    | Purpose                                     |
+| ------------------------ | ------------------------------------------- |
+| `user_profiles`          | User data, credits, profile info            |
+| `generation_jobs`        | Job status, LaTeX, PDF path, pipeline state |
+| `saved_job_descriptions` | Reusable JDs                                |
+| `resume_versions`        | User resume files with versions             |
+| `onboarding_sessions`    | Anonymous session tracking                  |
+| `onboarding_drafts`      | Draft data before signup                    |
+| `credit_purchases`       | Stripe purchase records                     |
+
+### Pipeline Columns (generation_jobs)
+
+Added by migration `009_pipeline_split.sql`:
+
+| Column                | Type          | Purpose                                                               |
+| --------------------- | ------------- | --------------------------------------------------------------------- |
+| `next_attempt_at`     | `TIMESTAMPTZ` | Backoff scheduling for LaTeX retries                                  |
+| `last_error`          | `TEXT`        | Last error message for debugging                                      |
+| `pdf_status`          | `TEXT`        | PDF pipeline state: `none`, `queued`, `processing`, `ready`, `failed` |
+| `pdf_attempt_count`   | `INT`         | PDF compilation retry counter                                         |
+| `pdf_next_attempt_at` | `TIMESTAMPTZ` | Backoff scheduling for PDF retries                                    |
+| `pdf_last_error`      | `TEXT`        | Last PDF error for debugging                                          |
+| `credit_deducted_at`  | `TIMESTAMPTZ` | Idempotency guard for credit deduction                                |
+
+### Key RPCs
+
+| RPC                         | Purpose                                                                 |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `claim_next_generation_job` | Atomically claim queued job with backoff + stale lock recovery          |
+| `claim_next_pdf_job`        | Claim succeeded job for PDF compilation                                 |
+| `deduct_credit_once`        | Idempotent credit deduction (checks `credit_deducted_at`)               |
+| `complete_job`              | Mark job succeeded/failed; auto-sets `pdf_status = 'queued'` on success |
+| `recover_stale_locks`       | Reset jobs stuck in `processing` > 10 min                               |
 
 ### Storage Buckets
 
@@ -315,6 +380,14 @@ Warm dark theme with coffee/beige tones:
 | `user-resumes`   | Onboarding flow (anonymous sessions) |
 | `resumes`        | Dashboard resume versions            |
 | `generated-pdfs` | Compiled PDF exports                 |
+
+### Cron Schedules (pg_cron + pg_net)
+
+| Job                   | Interval   | Action                                    |
+| --------------------- | ---------- | ----------------------------------------- |
+| `latex-pump`          | 20 seconds | POST to `worker-generate-latex` (batch 2) |
+| `pdf-pump`            | 45 seconds | POST to `worker-generate-pdf` (batch 3)   |
+| `stale-lock-recovery` | 5 minutes  | Reset stale `processing` jobs to `queued` |
 
 ---
 
@@ -326,21 +399,24 @@ Warm dark theme with coffee/beige tones:
 - Realtime system (WebSocket updates)
 - Soft-commit resume upload with progress
 - PDF export pipeline
-- Credit system with atomic decrements
+- **Split generation pipeline** (3 Edge Functions + cron)
+- Credit system with atomic decrements + idempotent deduction
+- **CreditsProvider** for synced Realtime credits across all dashboard components
 - Google/Email auth with gate for export
 - Complete dashboard:
     - Home with quick actions
     - Generate with mode/resume selection
-    - Past Generations with filters/drawer
+    - Past Generations with filters/drawer (PDF preparing/failed states)
     - Saved JDs library
     - Resume Versions with duplicate detection
     - Download Center
-    - Credits & Billing
+    - Credits & Billing (conditional buy button based on purchase history)
     - Profile/Settings/Account
     - PDF Editor with live preview
 - Stripe monthly subscription
 - Auth intent preservation
 - User feedback submission
+- Conditional sidebar upgrade button (hidden when user has credits + purchase history)
 
 ### 🚧 In Progress
 
@@ -354,7 +430,7 @@ Warm dark theme with coffee/beige tones:
 | Script               | Description                             |
 | -------------------- | --------------------------------------- |
 | `pnpm dev`           | Start Next.js + Stripe webhook listener |
-| `pnpm dev:next`      | Start Next.js only                      |
+| `pnpm dev:next`      | Start Next.js only (with Turbopack)     |
 | `pnpm stripe:listen` | Start Stripe webhook listener only      |
 | `pnpm build`         | Production build                        |
 | `pnpm start`         | Start production server                 |
@@ -362,4 +438,4 @@ Warm dark theme with coffee/beige tones:
 
 ---
 
-_Last updated: 2026-02-09_
+_Last updated: 2026-02-11_
