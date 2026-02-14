@@ -15,6 +15,9 @@ import {
 	XCircle,
 	Clock,
 	ShoppingCart,
+	ExternalLink,
+	Shield,
+	Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,12 +29,10 @@ import {
 	PACK_LABELS,
 	formatPrice,
 } from "@/hooks/usePurchaseHistory";
+import { useBilling } from "@/hooks/useBilling";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-/**
- * Event type display config
- */
 const EVENT_CONFIG: Record<
 	CreditEvent["event_type"],
 	{ label: string; className: string }
@@ -189,6 +190,282 @@ function CreditsSummaryCard({
 			<p className="mt-4 text-sm text-muted-foreground">
 				Generations cost 1 credit each. PDF export is free.
 			</p>
+		</div>
+	);
+}
+
+/**
+ * Format a date string to "MMM D, YYYY" format.
+ */
+function formatDate(dateString: string): string {
+	const date = new Date(dateString);
+	return date.toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	});
+}
+
+/**
+ * Billing & Subscription card.
+ * Shows subscription status, renewal/cancellation dates, and portal access.
+ */
+function BillingSubscriptionCard({
+	subscriptionStatus,
+	planName,
+	cancelAtPeriodEnd,
+	cancelAt,
+	currentPeriodEnd,
+	hasStripeCustomer,
+	hasSubscription,
+	isActive,
+	isCanceling,
+	isPastDue,
+	isLoading,
+	migrationRequired,
+	hasPurchasedBefore,
+}: {
+	subscriptionStatus: string | null;
+	planName: string;
+	cancelAtPeriodEnd: boolean;
+	cancelAt: string | null;
+	currentPeriodEnd: string | null;
+	hasStripeCustomer: boolean;
+	hasSubscription: boolean;
+	isActive: boolean;
+	isCanceling: boolean;
+	isPastDue: boolean;
+	isLoading: boolean;
+	migrationRequired: boolean;
+	hasPurchasedBefore: boolean;
+}) {
+	const [isPortalLoading, setIsPortalLoading] = useState(false);
+
+	// Determine the "cancels on" date: prefer cancel_at (authoritative), fallback to current_period_end
+	const cancelsOnDate = cancelAt || currentPeriodEnd;
+
+	const handleManageBilling = async () => {
+		if (isPortalLoading) return;
+		setIsPortalLoading(true);
+
+		try {
+			const res = await fetch("/api/stripe/portal", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+			});
+
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || "Failed to open billing portal");
+			}
+
+			if (!data.url) {
+				throw new Error("No portal URL returned");
+			}
+
+			window.location.href = data.url;
+		} catch (error) {
+			console.error("Portal error:", error);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to open billing portal",
+			);
+			setIsPortalLoading(false);
+		}
+	};
+
+	if (isLoading) {
+		return (
+			<div className="rounded-xl border border-border/50 bg-card/50 p-6">
+				<div className="flex items-center gap-3 mb-4">
+					<Skeleton className="h-5 w-5" />
+					<Skeleton className="h-5 w-48" />
+				</div>
+				<Skeleton className="h-4 w-64 mb-3" />
+				<Skeleton className="h-10 w-40" />
+			</div>
+		);
+	}
+
+	if (migrationRequired) {
+		return (
+			<div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6">
+				<div className="flex items-center gap-3">
+					<AlertTriangle size={20} className="text-amber-400" />
+					<div>
+						<p className="font-medium text-amber-400">
+							Database update required
+						</p>
+						<p className="text-sm text-amber-400/80">
+							Run migration 011_subscription_fields.sql to enable
+							billing management.
+						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// Status badge config
+	const statusConfig = {
+		active: {
+			label: "Active",
+			className:
+				"text-emerald-400 bg-emerald-400/10 border-emerald-500/30",
+			icon: CheckCircle2,
+		},
+		canceling: {
+			label: "Canceling",
+			className: "text-amber-400 bg-amber-400/10 border-amber-500/30",
+			icon: Clock,
+		},
+		past_due: {
+			label: "Past Due",
+			className: "text-red-400 bg-red-400/10 border-red-500/30",
+			icon: AlertTriangle,
+		},
+		canceled: {
+			label: "Canceled",
+			className: "text-muted-foreground bg-muted/30 border-border/50",
+			icon: XCircle,
+		},
+		none: {
+			label: "No Subscription",
+			className: "text-muted-foreground bg-muted/30 border-border/50",
+			icon: CreditCard,
+		},
+	};
+
+	const currentStatus = isCanceling
+		? "canceling"
+		: isPastDue
+			? "past_due"
+			: isActive
+				? "active"
+				: subscriptionStatus === "canceled"
+					? "canceled"
+					: "none";
+
+	const config = statusConfig[currentStatus];
+	const StatusIcon = config.icon;
+
+	return (
+		<div
+			className={cn(
+				"rounded-xl border p-6",
+				hasSubscription
+					? config.className.split(" ").slice(1).join(" ")
+					: "border-border/50 bg-card/50",
+			)}
+		>
+			<div className="flex items-center gap-3 mb-4">
+				<Shield size={20} className="text-primary" />
+				<h3 className="font-semibold text-foreground">
+					Billing & Subscription
+				</h3>
+			</div>
+
+			{/* Status badge */}
+			<div className="flex items-center gap-3 mb-4">
+				<span
+					className={cn(
+						"flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium",
+						config.className,
+					)}
+				>
+					<StatusIcon size={14} />
+					{config.label}
+				</span>
+				{hasSubscription && (
+					<span className="text-sm text-muted-foreground">
+						{planName === "pro" ? "Pro Plan" : planName}
+					</span>
+				)}
+			</div>
+
+			{/* Date info */}
+			{isActive && currentPeriodEnd && (
+				<div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+					<Calendar size={14} />
+					Renews on {formatDate(currentPeriodEnd)}
+				</div>
+			)}
+
+			{isCanceling && cancelsOnDate && (
+				<div className="flex items-center gap-2 mb-4 text-sm text-amber-400">
+					<Calendar size={14} />
+					Cancels on {formatDate(cancelsOnDate)}
+				</div>
+			)}
+
+			{isPastDue && (
+				<p className="mb-4 text-sm text-red-400">
+					Your payment failed. Please update your payment method to
+					avoid service interruption.
+				</p>
+			)}
+
+			{!hasSubscription && !subscriptionStatus && (
+				<p className="mb-4 text-sm text-muted-foreground">
+					No active subscription. Upgrade to Pro for monthly credits.
+				</p>
+			)}
+
+			{subscriptionStatus === "canceled" && (
+				<p className="mb-4 text-sm text-muted-foreground">
+					Your subscription has ended. Upgrade to continue generating
+					resumes.
+				</p>
+			)}
+
+			{/* Actions */}
+			<div className="flex flex-wrap gap-3">
+				{hasStripeCustomer &&
+				(hasSubscription ||
+					subscriptionStatus === "canceled" ||
+					hasPurchasedBefore) ? (
+					<Button
+						onClick={handleManageBilling}
+						disabled={isPortalLoading}
+						variant={isPastDue ? "default" : "outline"}
+					>
+						{isPortalLoading ? (
+							<>
+								<Loader2
+									size={16}
+									className="mr-2 animate-spin"
+								/>
+								Opening portal...
+							</>
+						) : (
+							<>
+								<ExternalLink size={16} className="mr-2" />
+								Manage billing
+							</>
+						)}
+					</Button>
+				) : null}
+
+				{(!hasSubscription || subscriptionStatus === "canceled") &&
+					!hasPurchasedBefore && (
+						<Button asChild variant="default">
+							<a href="#credit-packs">
+								<Sparkles size={16} className="mr-2" />
+								Upgrade to Pro
+							</a>
+						</Button>
+					)}
+			</div>
+
+			{/* Portal note */}
+			{hasStripeCustomer && (
+				<p className="mt-3 text-xs text-muted-foreground">
+					Manage payment methods, view invoices, and cancel
+					subscription via Stripe.
+				</p>
+			)}
 		</div>
 	);
 }
@@ -556,6 +833,15 @@ function CreditsPageContent() {
 		isLoading: purchasesLoading,
 		refetch: refetchPurchases,
 	} = usePurchaseHistory();
+	const {
+		billing,
+		isLoading: billingLoading,
+		hasSubscription,
+		isActive,
+		isCanceling,
+		isPastDue,
+		migrationRequired,
+	} = useBilling();
 
 	const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 	const [purchaseStatus, setPurchaseStatus] = useState<
@@ -689,6 +975,25 @@ function CreditsPageContent() {
 						isLoading={creditsLoading}
 						error={creditsError}
 						onRetry={refetchCredits}
+						hasPurchasedBefore={purchases.some(
+							(p) => p.status === "succeeded",
+						)}
+					/>
+
+					{/* Billing & Subscription */}
+					<BillingSubscriptionCard
+						subscriptionStatus={billing?.subscriptionStatus ?? null}
+						planName={billing?.planName ?? "free"}
+						cancelAtPeriodEnd={billing?.cancelAtPeriodEnd ?? false}
+						cancelAt={billing?.cancelAt ?? null}
+						currentPeriodEnd={billing?.currentPeriodEnd ?? null}
+						hasStripeCustomer={billing?.hasStripeCustomer ?? false}
+						hasSubscription={hasSubscription}
+						isActive={isActive}
+						isCanceling={isCanceling}
+						isPastDue={isPastDue}
+						isLoading={billingLoading}
+						migrationRequired={migrationRequired}
 						hasPurchasedBefore={purchases.some(
 							(p) => p.status === "succeeded",
 						)}
