@@ -19,6 +19,8 @@ export interface CreditPack {
 	priceCents: number;
 	currency: "cad";
 	stripePriceId: string;
+	/** Server-authoritative plan name derived from Price ID */
+	planName: string;
 }
 
 /**
@@ -34,6 +36,7 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPack> = {
 		priceCents: 1000, // CAD $10.00
 		currency: "cad",
 		stripePriceId: process.env.STRIPE_PRICE_PRO_75 || "",
+		planName: "pro",
 	},
 };
 
@@ -54,8 +57,17 @@ export function getPackByPriceId(priceId: string): CreditPack | undefined {
 }
 
 /**
+ * Derive plan name from a Stripe Price ID.
+ * Returns "free" if the price ID is unknown.
+ */
+export function getPlanNameByPriceId(priceId: string): string {
+	const pack = getPackByPriceId(priceId);
+	return pack?.planName ?? "free";
+}
+
+/**
  * Get all packs for display (client-safe data only).
- * Excludes stripePriceId as it's server-only.
+ * Excludes stripePriceId and planName as they're server-only.
  */
 export function getDisplayPacks() {
 	return Object.values(CREDIT_PACKS).map(
