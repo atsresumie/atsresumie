@@ -59,6 +59,7 @@ atsresumie/
 │   │   ├── resumes/       # Resume management API
 │   │   └── stripe/        # Stripe integration
 │   │       ├── checkout/  # Create checkout session
+│   │       ├── portal/    # Stripe Customer Portal session
 │   │       └── webhook/   # Handle Stripe webhooks
 │   │
 │   ├── auth/              # Authentication routes
@@ -166,6 +167,7 @@ atsresumie/
 │   ├── useJobRealtime.ts  # Supabase Realtime subscription
 │   ├── useProfile.ts      # User profile data
 │   ├── usePurchaseHistory.ts # Stripe purchase history
+│   ├── useBilling.ts      # Subscription billing state
 │   ├── useRecentGenerations.ts # Dashboard home widget
 │   ├── useResumeVersions.ts # Resume versions CRUD + realtime
 │   ├── useSavedJds.ts     # Saved JDs CRUD + realtime
@@ -302,13 +304,32 @@ Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
 
 ### 7. Stripe Integration
 
-Full subscription system:
+Full subscription + billing management system:
 
 - Monthly plan: $10/month for 50 credits
 - Secure webhooks with signature verification
 - Idempotent credit granting
 - Promotion code support
 - Purchase history tracking
+- **Billing Management** via Stripe Customer Portal:
+    - Subscription status display (Active / Canceling / Past Due / Canceled)
+    - Renewal and cancellation date display
+    - "Manage billing" button → Stripe-hosted portal
+    - Portal handles: payment methods, invoices, cancellation
+
+**Webhook events handled:**
+
+| Event                           | Action                                          |
+| ------------------------------- | ----------------------------------------------- |
+| `checkout.session.completed`    | Grant credits + store `stripe_customer_id`      |
+| `charge.refunded`               | Mark purchase as refunded                       |
+| `customer.subscription.created` | Set subscription fields                         |
+| `customer.subscription.updated` | Update status, cancellation scheduling          |
+| `customer.subscription.deleted` | Clear subscription fields (with ID match guard) |
+| `invoice.paid`                  | Mark active (with reactivation safety)          |
+| `invoice.payment_failed`        | Mark past_due                                   |
+
+> **Gotcha:** Stripe Customer Portal sets `cancel_at` (a date) rather than `cancel_at_period_end: true`. The `useBilling` hook checks both.
 
 ---
 
@@ -341,13 +362,27 @@ Warm dark theme with coffee/beige tones:
 
 | Table                    | Purpose                                     |
 | ------------------------ | ------------------------------------------- |
-| `user_profiles`          | User data, credits, profile info            |
+| `user_profiles`          | User data, credits, profile, subscription   |
 | `generation_jobs`        | Job status, LaTeX, PDF path, pipeline state |
 | `saved_job_descriptions` | Reusable JDs                                |
 | `resume_versions`        | User resume files with versions             |
 | `onboarding_sessions`    | Anonymous session tracking                  |
 | `onboarding_drafts`      | Draft data before signup                    |
 | `credit_purchases`       | Stripe purchase records                     |
+
+### Subscription Columns (user_profiles)
+
+Added by migration `011_subscription_fields.sql`:
+
+| Column                   | Type          | Purpose                                       |
+| ------------------------ | ------------- | --------------------------------------------- |
+| `stripe_customer_id`     | TEXT (UNIQUE) | Primary key for webhook user lookup           |
+| `stripe_subscription_id` | TEXT (UNIQUE) | Current subscription ID                       |
+| `subscription_status`    | TEXT          | `active`, `past_due`, `canceled`, etc.        |
+| `plan_name`              | TEXT          | Derived from Price ID (default: `free`)       |
+| `cancel_at_period_end`   | BOOLEAN       | Whether cancel is scheduled at period end     |
+| `cancel_at`              | TIMESTAMPTZ   | Specific cancellation date (portal uses this) |
+| `current_period_end`     | TIMESTAMPTZ   | Current billing period end date               |
 
 ### Pipeline Columns (generation_jobs)
 
@@ -414,14 +449,10 @@ Added by migration `009_pipeline_split.sql`:
     - Profile/Settings/Account
     - PDF Editor with live preview
 - Stripe monthly subscription
+- **Billing Management** (subscription status, portal access, cancellation display)
 - Auth intent preservation
 - User feedback submission
 - Conditional sidebar upgrade button (hidden when user has credits + purchase history)
-
-### 🚧 In Progress
-
-- Subscription renewals (`invoice.paid` webhook)
-- Subscription management (customer portal)
 
 ---
 
@@ -438,4 +469,4 @@ Added by migration `009_pipeline_split.sql`:
 
 ---
 
-_Last updated: 2026-02-11_
+_Last updated: 2026-02-14_

@@ -1,6 +1,6 @@
 # ATSResumie Payment System Documentation
 
-> Phase 9 Implementation: Stripe Monthly Subscription
+> Phase 9 & 10 Implementation: Stripe Monthly Subscription + Billing Management
 
 ---
 
@@ -45,9 +45,12 @@ export const CREDIT_PACKS = {
 		priceCents: 1000,
 		currency: "cad",
 		stripePriceId: process.env.STRIPE_PRICE_PRO_75,
+		planName: "pro", // Server-authoritative plan name
 	},
 };
 ```
+
+A helper `getPlanNameByPriceId(priceId)` derives the plan name from a Price ID for webhook use.
 
 **Adding new packs:**
 
@@ -127,10 +130,43 @@ Handles Stripe webhook events.
 
 **Events Handled:**
 
-- `checkout.session.completed` → Grant initial credits
-- `charge.refunded` → Mark purchase as refunded
+| Event                           | Action                                                    |
+| ------------------------------- | --------------------------------------------------------- |
+| `checkout.session.completed`    | Grant credits + store `stripe_customer_id`                |
+| `charge.refunded`               | Mark purchase as refunded                                 |
+| `customer.subscription.created` | Set subscription fields in `user_profiles`                |
+| `customer.subscription.updated` | Update status, cancellation scheduling                    |
+| `customer.subscription.deleted` | Clear subscription fields (only if sub ID matches stored) |
+| `invoice.paid`                  | Mark active (with safety: won't reactivate canceled subs) |
+| `invoice.payment_failed`        | Mark `past_due`                                           |
 
-> **Note:** For recurring credits on subscription renewal, handle `invoice.paid` event (not yet implemented).
+**User Resolution Strategy:**
+
+1. Primary: Look up `stripe_customer_id` in `user_profiles`
+2. Fallback: Use `user_id` from subscription metadata
+
+**Multi-Subscription Safety:**
+
+- `deleted` event only clears fields if the deleted subscription ID matches `stripe_subscription_id` in DB
+- `invoice.paid` verifies subscription ID match and won't reactivate canceled subscriptions
+
+### POST /api/stripe/portal
+
+Creates a Stripe Billing Portal session for the authenticated user.
+
+**Response:**
+
+```json
+{ "url": "https://billing.stripe.com/session/..." }
+```
+
+**Auth:** Required (uses session user)
+
+**Security:**
+
+- `stripe_customer_id` is fetched from DB using authenticated user ID
+- No client-supplied IDs — prevents opening portal for another customer
+- Return URL uses `APP_URL` with `Origin` header fallback
 
 ---
 
@@ -153,10 +189,24 @@ Handles Stripe webhook events.
 | `created_at`                 | TIMESTAMPTZ | Created timestamp                 |
 | `updated_at`                 | TIMESTAMPTZ | Updated timestamp                 |
 
+### Subscription Columns (user_profiles)
+
+Added by migration `011_subscription_fields.sql`:
+
+| Column                   | Type          | Description                                      |
+| ------------------------ | ------------- | ------------------------------------------------ |
+| `stripe_customer_id`     | TEXT (UNIQUE) | Primary key for webhook user lookup              |
+| `stripe_subscription_id` | TEXT (UNIQUE) | Current subscription ID                          |
+| `subscription_status`    | TEXT          | `active`, `past_due`, `canceled`, etc.           |
+| `plan_name`              | TEXT          | Derived from Price ID (`free` default)           |
+| `cancel_at_period_end`   | BOOLEAN       | Cancel scheduled at period end                   |
+| `cancel_at`              | TIMESTAMPTZ   | Specific cancellation date (portal uses this)    |
+| `current_period_end`     | TIMESTAMPTZ   | Current billing period end (on SubscriptionItem) |
+
 ### RLS Policies
 
-- Users can read their own purchases only
-- Users cannot insert/update/delete (service role only)
+- Users can read their own purchases and profile only
+- Webhook writes use service role (bypasses RLS)
 
 ---
 
@@ -199,6 +249,57 @@ Handles Stripe webhook events.
 - **Promotion codes**: Users can apply discount codes
 - **Billing address**: Collected for tax calculation
 - **Cancel anytime**: Users manage subscription in Stripe portal
+
+---
+
+## Billing Management
+
+### Overview
+
+The Billing & Subscription card on `/dashboard/credits` lets users view their subscription status and manage billing via Stripe Customer Portal.
+
+### Architecture
+
+```
+Credits Page → useBilling hook → Supabase (user_profiles)
+     ↓
+"Manage billing" button → POST /api/stripe/portal → Stripe Portal Session
+     ↓
+Redirect → Stripe-hosted Customer Portal → Webhook → DB update
+```
+
+### UI States
+
+| State     | Badge        | Info Shown                               | Actions                  |
+| --------- | ------------ | ---------------------------------------- | ------------------------ |
+| Active    | ✅ Active    | "Renews on [date]"                       | Manage billing           |
+| Canceling | ⚠️ Canceling | "Cancels on [date]"                      | Manage billing (undo)    |
+| Past Due  | 🔴 Past Due  | "Payment failed, update payment method"  | Manage billing (primary) |
+| Canceled  | Canceled     | "Subscription has ended"                 | Manage billing           |
+| No sub    | No Sub       | "No active subscription. Upgrade to Pro" | Upgrade to Pro           |
+| Migration | ⚠️ Warning   | "Database update required"               | —                        |
+
+### Key Gotcha: `cancel_at` vs `cancel_at_period_end`
+
+> **Important:** Stripe Customer Portal sets `cancel_at` (a specific date) instead of `cancel_at_period_end: true` when a user cancels. Both must be checked:
+
+```typescript
+// In useBilling.ts
+const isCanceling =
+	billing?.subscriptionStatus === "active" &&
+	(billing.cancelAtPeriodEnd === true || billing.cancelAt != null);
+```
+
+### Stripe SDK v20 Compatibility
+
+- `current_period_end` is on `SubscriptionItem`, not `Subscription`
+- Invoice subscription ID is at `invoice.parent.subscription_details.subscription`
+
+### Portal Pre-requisites
+
+1. Enable Customer Portal in [Stripe Dashboard → Settings → Billing → Customer Portal](https://dashboard.stripe.com/settings/billing/portal)
+2. Set cancellation mode to "At end of billing period"
+3. Enable: invoice history, payment method updates, subscription cancellation
 
 ---
 
@@ -251,6 +352,9 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 | Refresh success page        | No duplicate credits                 |
 | Logged out → checkout       | Redirected to login                  |
 | Double-click Buy button     | Button disabled, only one session    |
+| Cancel via portal           | Card shows "Canceling" + end date    |
+| Undo cancel via portal      | Card reverts to "Active"             |
+| Past due payment            | Card shows "Past Due" + warning      |
 
 ---
 
@@ -280,15 +384,18 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 ## Files
 
-| File                                           | Purpose                   |
-| ---------------------------------------------- | ------------------------- |
-| `lib/stripe/config.ts`                         | Credit pack configuration |
-| `lib/stripe/client.ts`                         | Stripe SDK initialization |
-| `app/api/stripe/checkout/route.ts`             | Checkout session creation |
-| `app/api/stripe/webhook/route.ts`              | Webhook handler           |
-| `hooks/usePurchaseHistory.ts`                  | Purchase history hook     |
-| `app/dashboard/credits/page.tsx`               | Credits page UI           |
-| `supabase/migrations/008_credit_purchases.sql` | Database migration        |
+| File                                              | Purpose                         |
+| ------------------------------------------------- | ------------------------------- |
+| `lib/stripe/config.ts`                            | Credit pack + plan name config  |
+| `lib/stripe/client.ts`                            | Stripe SDK initialization       |
+| `app/api/stripe/checkout/route.ts`                | Checkout session creation       |
+| `app/api/stripe/portal/route.ts`                  | Billing Portal session creation |
+| `app/api/stripe/webhook/route.ts`                 | Webhook handler (7 events)      |
+| `hooks/usePurchaseHistory.ts`                     | Purchase history hook           |
+| `hooks/useBilling.ts`                             | Subscription billing state hook |
+| `app/dashboard/credits/page.tsx`                  | Credits + billing page UI       |
+| `supabase/migrations/008_credit_purchases.sql`    | Credit purchases migration      |
+| `supabase/migrations/011_subscription_fields.sql` | Subscription fields migration   |
 
 ---
 
@@ -308,4 +415,4 @@ The following scripts are available for payment development:
 
 ---
 
-_Last updated: 2026-02-05_
+_Last updated: 2026-02-14_
