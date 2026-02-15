@@ -2,7 +2,7 @@
     "name": "atsresumie-monorepo",
     "private": true,
     "scripts": {
-        "dev": "pnpm --filter @atsresumie/web dev:next",
+        "dev": "pnpm --filter @atsresumie/web dev",
         "dev:stripe": "pnpm --filter @atsresumie/web dev",
         "build": "pnpm --filter @atsresumie/web build",
         "lint": "pnpm --filter @atsresumie/web lint",
