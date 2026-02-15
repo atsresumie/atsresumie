@@ -217,10 +217,10 @@ pnpm start
 
 - worker-generate-pdf
 
-- process-generation-job (legacy fallback)
+- process-generation-job (legacy fallback )
 
 ### 📜 License
 
 ## Proprietary — ATSResumie
 
-**sujanshrestha.ca**
+**www.sujanshrestha.ca**
