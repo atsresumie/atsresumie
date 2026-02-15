@@ -1,0 +1,9 @@
+{
+    "name": "@atsresumie/latex-service",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Placeholder for future standalone LaTeX compilation microservice",
+    "scripts": {
+        "test": "echo \"No tests configured yet\" && exit 0"
+    }
+}
