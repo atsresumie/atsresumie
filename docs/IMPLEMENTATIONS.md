@@ -12,7 +12,7 @@ This document tracks major features and changes made to the application.
 
 **Changes:**
 
-- Modified `components/landing/Hero.tsx`
+- Modified `web/components/landing/Hero.tsx`
     - Restructured button component to wrap `<Link>` around `<motion.button>` instead of nesting Link inside button
     - Removed conflicting `onClick` handler
     - Added `className="w-full sm:w-auto"` to Link wrapper for proper responsive sizing
@@ -26,22 +26,22 @@ This document tracks major features and changes made to the application.
 **New Files Created:**
 | File | Purpose |
 |------|---------|
-| `lib/auth/auth.ts` | Auth helper functions (signUp, signIn, signInWithGoogle, signOut) |
-| `lib/auth/AuthContext.tsx` | React context with `onAuthStateChange` listener |
-| `hooks/useAuth.ts` | Custom hook to consume auth state |
-| `middleware.ts` | Session refresh on each request |
-| `app/auth/callback/route.ts` | PKCE code exchange for OAuth |
-| `components/auth/AuthModal.tsx` | Login/Signup modal with email + Google |
-| `app/dashboard/page.tsx` | Placeholder dashboard page |
+| `web/lib/auth/auth.ts` | Auth helper functions (signUp, signIn, signInWithGoogle, signOut) |
+| `web/lib/auth/AuthContext.tsx` | React context with `onAuthStateChange` listener |
+| `web/hooks/useAuth.ts` | Custom hook to consume auth state |
+| `web/middleware.ts` | Session refresh on each request |
+| `web/app/auth/callback/route.ts` | PKCE code exchange for OAuth |
+| `web/components/auth/AuthModal.tsx` | Login/Signup modal with email + Google |
+| `web/app/dashboard/page.tsx` | Placeholder dashboard page |
 
 **Modified Files:**
 
-- `app/providers.tsx` - Wrapped with `AuthProvider`
-- `components/landing/Navbar.tsx` - Added Sign In/Sign Up buttons, user menu
-- `components/get-started/TopNav.tsx` - Added user menu icon and Dashboard button
-- `components/get-started/SignupGateModal.tsx` - Integrated `AuthModal`
-- `components/get-started/hooks/useResumeForm.ts` - Replaced auth stub with real `useAuth()`
-- `app/api/analyze/route.ts` - Support fetching stored resume from Supabase Storage
+- `web/app/providers.tsx` - Wrapped with `AuthProvider`
+- `web/components/landing/Navbar.tsx` - Added Sign In/Sign Up buttons, user menu
+- `web/components/get-started/TopNav.tsx` - Added user menu icon and Dashboard button
+- `web/components/get-started/SignupGateModal.tsx` - Integrated `AuthModal`
+- `web/components/get-started/hooks/useResumeForm.ts` - Replaced auth stub with real `useAuth()`
+- `web/app/api/analyze/route.ts` - Support fetching stored resume from Supabase Storage
 
 **Database Changes (Supabase SQL):**
 
@@ -70,11 +70,11 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
 
 **New Files:**
 
-- `app/dashboard/page.tsx` - Placeholder dashboard page with coming soon features list
+- `web/app/dashboard/page.tsx` - Placeholder dashboard page with coming soon features list
 
 **Modified Files:**
 
-- `components/get-started/TopNav.tsx` - Added "Dashboard" button (only visible when authenticated)
+- `web/components/get-started/TopNav.tsx` - Added "Dashboard" button (only visible when authenticated)
 
 ---
 
@@ -86,15 +86,15 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
 
 **New Files:**
 
-- `hooks/useCredits.ts` - Hook to fetch and cache user credits
-- `app/api/credits/route.ts` - GET endpoint to retrieve credits
+- `web/hooks/useCredits.ts` - Hook to fetch and cache user credits
+- `web/app/api/credits/route.ts` - GET endpoint to retrieve credits
 - `supabase/credits_system.sql` - Database schema, RLS, triggers, RPCs
 
 **Modified Files:**
 
-- `components/get-started/TopNav.tsx` - Credits badge display
-- `app/api/export/route.ts` - Auth check + credits verification + decrement on success
-- `components/get-started/hooks/useResumeForm.ts` - NO_CREDITS error handling
+- `web/components/get-started/TopNav.tsx` - Credits badge display
+- `web/app/api/export/route.ts` - Auth check + credits verification + decrement on success
+- `web/components/get-started/hooks/useResumeForm.ts` - NO_CREDITS error handling
 
 **Database (Supabase):**
 
@@ -123,7 +123,7 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
 - Updated `/api/onboarding/start` route
     - Added `forceNew` parameter to clear old session and create fresh one
 
-- Added client helpers in `lib/onboarding/client.ts`
+- Added client helpers in `web/lib/onboarding/client.ts`
     - `getSessionStatus()` - Fetch session and draft data
     - `startNewSession()` - Force create a new session
 
@@ -141,16 +141,16 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
 
 **Changes:**
 
-- Modified `components/get-started/steps/components/FilePreview.tsx`
+- Modified `web/components/get-started/steps/components/FilePreview.tsx`
     - Now accepts optional `filename` string and `isRestored` boolean props
     - Shows green checkmark icon for restored files
     - Displays "Previously uploaded" instead of file size
-- Updated `components/get-started/steps/Step1InputForm.tsx`
+- Updated `web/components/get-started/steps/Step1InputForm.tsx`
     - Added `previousResumeFilename` prop
     - Shows FilePreview with restored filename when session has previous resume
     - Clicking X on restored file opens file picker instead of clearing
 
-- Updated `app/get-started/page.tsx`
+- Updated `web/app/get-started/page.tsx`
     - Passes `previousResumeFilename` from hook to Step1InputForm
 
 ---
@@ -166,7 +166,7 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
     - Also deletes associated draft record
     - Validates session is active before allowing deletion
 
-- Added `deleteResume()` in `lib/onboarding/client.ts`
+- Added `deleteResume()` in `web/lib/onboarding/client.ts`
     - Client helper to call the delete API
 
 - Updated `useResumeForm` hook
@@ -194,7 +194,7 @@ CREATE FUNCTION claim_onboarding_session(p_session_id UUID)
     - Changed from `import { serve }` to built-in `Deno.serve()`
 - Updated `supabase/functions/deno.json`
     - Upgraded std library version from `0.168.0` to `0.224.0`
-- Updated `tsconfig.json`
+- Updated `web/tsconfig.json`
     - Excluded `supabase/functions` from Next.js TypeScript compilation
 
 ---
@@ -248,7 +248,7 @@ Users can start using the app without signing up. Session is tracked via `ats_on
 ### Dual Storage
 
 - Server: Supabase tables for persistence
-- Client: localStorage as backup (via `lib/storage/draft.ts`)
+- Client: localStorage as backup (via `web/lib/storage/draft.ts`)
 
 ---
 
@@ -273,8 +273,8 @@ Edge Function (Deduct) → Postgres (Update) → Supabase Realtime → Client Su
 
 **Key Files:**
 
-- `hooks/useCredits.ts`: Added Realtime subscription
-- `components/get-started/TopNav.tsx`: Added deduction animation logic
+- `web/hooks/useCredits.ts`: Added Realtime subscription
+- `web/components/get-started/TopNav.tsx`: Added deduction animation logic
 - `supabase/functions/process-generation-job/index.ts`: Added credit deduction logic
 
 ---

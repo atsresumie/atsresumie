@@ -19,14 +19,14 @@ Users can anonymously upload a resume and paste a Job Description. After signup,
 ## Files
 
 ### Utilities
-- `lib/utils/hash.ts` - SHA-256 using Node crypto
-- `lib/utils/sanitize.ts` - Filename sanitization (120 char limit)
-- `lib/supabase/server.ts` - Server client with Next.js 15 async cookies
-- `lib/onboarding/client.ts` - Client-side helpers with polling
-- `lib/onboarding/cookie.ts` - Session cookie management
+- `web/lib/utils/hash.ts` - SHA-256 using Node crypto
+- `web/lib/utils/sanitize.ts` - Filename sanitization (120 char limit)
+- `web/lib/supabase/server.ts` - Server client with Next.js 15 async cookies
+- `web/lib/onboarding/client.ts` - Client-side helpers with polling
+- `web/lib/onboarding/cookie.ts` - Session cookie management
 
 ### UI Integration
-- `components/get-started/hooks/useResumeForm.ts` - Session init, upload, draft save
+- `web/components/get-started/hooks/useResumeForm.ts` - Session init, upload, draft save
 
 ## How It Works
 

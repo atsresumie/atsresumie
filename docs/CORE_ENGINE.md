@@ -103,7 +103,7 @@ Now generates temp paths instead of final paths:
 
 ### Client Library Changes
 
-#### `lib/onboarding/client.ts`
+#### `web/lib/onboarding/client.ts`
 
 **New interface:**
 
@@ -209,15 +209,15 @@ Passes all upload progress props from hook to form component.
 | File                                                      | Type      |
 | --------------------------------------------------------- | --------- |
 | `supabase/migrations/001_add_resume_status.sql`           | NEW       |
-| `app/api/onboarding/commit-resume/route.ts`               | NEW       |
-| `app/api/onboarding/resume-upload-url/route.ts`           | MODIFIED  |
-| `app/api/onboarding/save-draft/route.ts`                  | MODIFIED  |
-| `app/api/onboarding/delete-resume/route.ts`               | MODIFIED  |
-| `lib/onboarding/client.ts`                                | MODIFIED  |
-| `components/get-started/hooks/useResumeForm.ts`           | MODIFIED  |
-| `components/get-started/steps/components/FilePreview.tsx` | REWRITTEN |
-| `components/get-started/steps/Step1InputForm.tsx`         | MODIFIED  |
-| `app/get-started/page.tsx`                                | MODIFIED  |
+| `web/app/api/onboarding/commit-resume/route.ts`               | NEW       |
+| `web/app/api/onboarding/resume-upload-url/route.ts`           | MODIFIED  |
+| `web/app/api/onboarding/save-draft/route.ts`                  | MODIFIED  |
+| `web/app/api/onboarding/delete-resume/route.ts`               | MODIFIED  |
+| `web/lib/onboarding/client.ts`                                | MODIFIED  |
+| `web/components/get-started/hooks/useResumeForm.ts`           | MODIFIED  |
+| `web/components/get-started/steps/components/FilePreview.tsx` | REWRITTEN |
+| `web/components/get-started/steps/Step1InputForm.tsx`         | MODIFIED  |
+| `web/app/get-started/page.tsx`                                | MODIFIED  |
 
 ### Testing Checklist
 
@@ -302,7 +302,7 @@ setSessionId(newId);
 
 | File                                            | Change                                         |
 | ----------------------------------------------- | ---------------------------------------------- |
-| `components/get-started/hooks/useResumeForm.ts` | Added form state reset after successful export |
+| `web/components/get-started/hooks/useResumeForm.ts` | Added form state reset after successful export |
 
 ---
 
@@ -335,8 +335,8 @@ generateLatexWithClaude(inputs)
 
 | File                        | Type     | Description                                                       |
 | --------------------------- | -------- | ----------------------------------------------------------------- |
-| `lib/llm/claudeLatex.ts`    | NEW      | Claude integration with system prompt, 3 mode prompts, validation |
-| `app/api/generate/route.ts` | MODIFIED | Replaced mock with real Claude generation                         |
+| `web/lib/llm/claudeLatex.ts`    | NEW      | Claude integration with system prompt, 3 mode prompts, validation |
+| `web/app/api/generate/route.ts` | MODIFIED | Replaced mock with real Claude generation                         |
 
 ### Generation Modes
 
@@ -429,12 +429,12 @@ Step 3 displays REAL Claude-generated LaTeX
 
 | File                                            | Type     | Description                                              |
 | ----------------------------------------------- | -------- | -------------------------------------------------------- |
-| `hooks/useJobRealtime.ts`                       | NEW      | Supabase Realtime subscription hook for job updates      |
-| `app/api/jobs/[id]/route.ts`                    | MODIFIED | Added `latexText` to response                            |
-| `app/api/generate/route.ts`                     | MODIFIED | Fixed mode handling, uses QuickModeInputs type           |
-| `components/get-started/hooks/useResumeForm.ts` | MODIFIED | Replaced `runAnalyze` to use Realtime instead of polling |
-| `components/get-started/steps/Step2Preview.tsx` | MODIFIED | Accepts `latexText` prop, conditionally renders analysis |
-| `app/get-started/page.tsx`                      | MODIFIED | Passes `generatedLatex` to Step2Preview                  |
+| `web/hooks/useJobRealtime.ts`                       | NEW      | Supabase Realtime subscription hook for job updates      |
+| `web/app/api/jobs/[id]/route.ts`                    | MODIFIED | Added `latexText` to response                            |
+| `web/app/api/generate/route.ts`                     | MODIFIED | Fixed mode handling, uses QuickModeInputs type           |
+| `web/components/get-started/hooks/useResumeForm.ts` | MODIFIED | Replaced `runAnalyze` to use Realtime instead of polling |
+| `web/components/get-started/steps/Step2Preview.tsx` | MODIFIED | Accepts `latexText` prop, conditionally renders analysis |
+| `web/app/get-started/page.tsx`                      | MODIFIED | Passes `generatedLatex` to Step2Preview                  |
 
 ### useJobRealtime Hook
 
@@ -554,7 +554,7 @@ Return signed URL (10 min expiry)
 
 | File                          | Type     | Description                         |
 | ----------------------------- | -------- | ----------------------------------- |
-| `app/api/export-pdf/route.ts` | NEW      | PDF compilation endpoint            |
+| `web/app/api/export-pdf/route.ts` | NEW      | PDF compilation endpoint            |
 | `useResumeForm.ts`            | MODIFIED | `exportPdf` calls `/api/export-pdf` |
 
 ### Storage
@@ -593,11 +593,11 @@ Credits were not being deducted after successful LaTeX generation. The `complete
     - Deducts 1 credit with reason `"generation"` and source `"edge_function"`
     - Non-blocking: logs error but doesn't fail job if credit deduction fails
 
-2. **UI Credit Refresh** (`components/get-started/TopNav.tsx`):
+2. **UI Credit Refresh** (`web/components/get-started/TopNav.tsx`):
     - Added listener for custom `credits:refresh` event
     - Calls `refetch()` from `useCredits` hook when event is received
 
-3. **Event Dispatch** (`components/get-started/hooks/useResumeForm.ts`):
+3. **Event Dispatch** (`web/components/get-started/hooks/useResumeForm.ts`):
     - Dispatches `credits:refresh` CustomEvent in `onSuccess` callback after job succeeds
 
 ### Flow
@@ -663,7 +663,7 @@ export function HeaderAuthControls({ onOpenAuthModal }: Props) {
 
 ### Integration
 
-1. **Navbar (`components/landing/Navbar.tsx`)**: Replaced inline auth buttons with `<HeaderAuthControls />`.
+1. **Navbar (`web/components/landing/Navbar.tsx`)**: Replaced inline auth buttons with `<HeaderAuthControls />`.
 2. **Mobile Menu**: Kept separate implementation for better mobile UX but verified consistent behavior.
 
 ### Critical Considerations
@@ -688,15 +688,15 @@ Updated the credit model text across the entire UI to reflect the correct busine
 
 | File                                                        | Change                                                                |
 | ----------------------------------------------------------- | --------------------------------------------------------------------- |
-| `components/get-started/steps/components/ActionButtons.tsx` | Button text: "Analyze & Preview" → **"Analyze & Preview (1 Credit)"** |
-| `components/get-started/steps/Step2Preview.tsx`             | Button text: "Download PDF (1 credit)" → "Download PDF"               |
-| `components/get-started/steps/Step1InputForm.tsx`           | Info text updated + **yellow-orange (#FFA726) highlighting**          |
-| `components/get-started/SidePanel.tsx`                      | Credit text updated + **yellow-orange highlighting**                  |
-| `components/get-started/TopNav.tsx`                         | Badge: "Preview (1 Credit) • Export free" + **unified dropdown**      |
-| `components/get-started/SignupGateModal.tsx`                | Text updated + **yellow-orange highlighting**                         |
-| `components/landing/CTA.tsx`                                | "Preview (1 Credit) • Export free • LaTeX included"                   |
-| `components/landing/FAQ.tsx`                                | Updated FAQ answer about credit costs                                 |
-| `components/landing/Pricing.tsx`                            | Features: "Preview uses 1 credit" / "Export is free"                  |
+| `web/components/get-started/steps/components/ActionButtons.tsx` | Button text: "Analyze & Preview" → **"Analyze & Preview (1 Credit)"** |
+| `web/components/get-started/steps/Step2Preview.tsx`             | Button text: "Download PDF (1 credit)" → "Download PDF"               |
+| `web/components/get-started/steps/Step1InputForm.tsx`           | Info text updated + **yellow-orange (#FFA726) highlighting**          |
+| `web/components/get-started/SidePanel.tsx`                      | Credit text updated + **yellow-orange highlighting**                  |
+| `web/components/get-started/TopNav.tsx`                         | Badge: "Preview (1 Credit) • Export free" + **unified dropdown**      |
+| `web/components/get-started/SignupGateModal.tsx`                | Text updated + **yellow-orange highlighting**                         |
+| `web/components/landing/CTA.tsx`                                | "Preview (1 Credit) • Export free • LaTeX included"                   |
+| `web/components/landing/FAQ.tsx`                                | Updated FAQ answer about credit costs                                 |
+| `web/components/landing/Pricing.tsx`                            | Features: "Preview uses 1 credit" / "Export is free"                  |
 
 ### Profile Dropdown Unification
 

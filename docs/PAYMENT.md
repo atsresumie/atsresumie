@@ -34,7 +34,7 @@ ATSResumie uses Stripe Checkout for secure monthly subscriptions. Users subscrib
 
 ### Configuration
 
-Credit packs are defined server-side in `lib/stripe/config.ts`:
+Credit packs are defined server-side in `web/lib/stripe/config.ts`:
 
 ```typescript
 export const CREDIT_PACKS = {
@@ -55,7 +55,7 @@ A helper `getPlanNameByPriceId(priceId)` derives the plan name from a Price ID f
 **Adding new packs:**
 
 1. Create a Price in Stripe Dashboard
-2. Add the pack to `CREDIT_PACKS` in `lib/stripe/config.ts`
+2. Add the pack to `CREDIT_PACKS` in `web/lib/stripe/config.ts`
 3. Add the environment variable for the Stripe Price ID
 
 ---
@@ -386,14 +386,14 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 | File                                              | Purpose                         |
 | ------------------------------------------------- | ------------------------------- |
-| `lib/stripe/config.ts`                            | Credit pack + plan name config  |
-| `lib/stripe/client.ts`                            | Stripe SDK initialization       |
-| `app/api/stripe/checkout/route.ts`                | Checkout session creation       |
-| `app/api/stripe/portal/route.ts`                  | Billing Portal session creation |
-| `app/api/stripe/webhook/route.ts`                 | Webhook handler (7 events)      |
-| `hooks/usePurchaseHistory.ts`                     | Purchase history hook           |
-| `hooks/useBilling.ts`                             | Subscription billing state hook |
-| `app/dashboard/credits/page.tsx`                  | Credits + billing page UI       |
+| `web/lib/stripe/config.ts`                            | Credit pack + plan name config  |
+| `web/lib/stripe/client.ts`                            | Stripe SDK initialization       |
+| `web/app/api/stripe/checkout/route.ts`                | Checkout session creation       |
+| `web/app/api/stripe/portal/route.ts`                  | Billing Portal session creation |
+| `web/app/api/stripe/webhook/route.ts`                 | Webhook handler (7 events)      |
+| `web/hooks/usePurchaseHistory.ts`                     | Purchase history hook           |
+| `web/hooks/useBilling.ts`                             | Subscription billing state hook |
+| `web/app/dashboard/credits/page.tsx`                  | Credits + billing page UI       |
 | `supabase/migrations/008_credit_purchases.sql`    | Credit purchases migration      |
 | `supabase/migrations/011_subscription_fields.sql` | Subscription fields migration   |
 

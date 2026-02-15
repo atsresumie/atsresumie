@@ -38,186 +38,53 @@
 ## Directory Structure
 
 ```
-atsresumie/
-├── app/                    # Next.js App Router
-│   ├── api/               # API Routes
-│   │   ├── analyze/       # ATS analysis endpoint
-│   │   ├── credits/       # Get user credits
-│   │   ├── export/        # Export endpoint
-│   │   ├── export-pdf/    # PDF compilation proxy
-│   │   ├── export-pdf-with-style/ # Styled PDF compilation
-│   │   ├── feedback/      # User feedback submission
-│   │   ├── generate/      # Create generation job (Claude)
-│   │   ├── jobs/[id]/     # Job status & details
-│   │   ├── onboarding/    # Anonymous session management
-│   │   │   ├── claim/           # Claim session after signup
-│   │   │   ├── commit-resume/   # Soft-commit resume
-│   │   │   ├── delete-resume/   # Delete resume from storage
-│   │   │   ├── resume-upload-url/ # Signed URL for upload
-│   │   │   ├── save-draft/      # Save JD + resume metadata
-│   │   │   └── session-status/  # Get session + draft data
-│   │   ├── resumes/       # Resume management API
-│   │   └── stripe/        # Stripe integration
-│   │       ├── checkout/  # Create checkout session
-│   │       ├── portal/    # Stripe Customer Portal session
-│   │       └── webhook/   # Handle Stripe webhooks
-│   │
-│   ├── auth/              # Authentication routes
-│   │   ├── callback/      # OAuth callback handler
-│   │   └── verify-email/  # Email verification confirmation
-│   │
-│   ├── dashboard/         # User dashboard (protected)
-│   │   ├── account/       # Account information page
-│   │   ├── credits/       # Credits & billing page
-│   │   ├── downloads/     # Download center
-│   │   ├── editor/        # PDF Editor
-│   │   │   └── [jobId]/   # Per-job editor page
-│   │   ├── generate/      # Generate new resume
-│   │   ├── generations/   # Past generations list
-│   │   ├── profile/       # User profile page
-│   │   ├── resumes/       # Resume versions management
-│   │   ├── saved-jds/     # Saved job descriptions
-│   │   ├── settings/      # User settings
-│   │   ├── layout.tsx     # Dashboard layout (header + sidebar)
-│   │   └── page.tsx       # Dashboard home
-│   │
-│   ├── get-started/       # Onboarding wizard (public)
-│   ├── globals.css        # Design tokens & base styles
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Landing page
-│   └── providers.tsx      # React context providers
+atsresumie/                         # Monorepo root
+├── web/                            # Next.js 16 app
+│   ├── app/                        # App Router
+│   │   ├── api/                   # API Routes
+│   │   │   ├── analyze/           # ATS analysis endpoint
+│   │   │   ├── credits/           # Get user credits
+│   │   │   ├── export/            # Export endpoint
+│   │   │   ├── export-pdf/        # PDF compilation proxy
+│   │   │   ├── export-pdf-with-style/ # Styled PDF compilation
+│   │   │   ├── feedback/          # User feedback submission
+│   │   │   ├── generate/          # Create generation job (Claude)
+│   │   │   ├── jobs/[id]/         # Job status & details
+│   │   │   ├── onboarding/        # Anonymous session management
+│   │   │   ├── resumes/           # Resume management API
+│   │   │   └── stripe/            # Stripe integration
+│   │   ├── auth/                  # Authentication routes
+│   │   ├── dashboard/             # User dashboard (protected)
+│   │   ├── get-started/           # Onboarding wizard (public)
+│   │   ├── globals.css            # Design tokens & base styles
+│   │   ├── layout.tsx             # Root layout
+│   │   └── page.tsx               # Landing page
+│   ├── components/                # React components
+│   ├── contexts/                  # React contexts
+│   ├── hooks/                     # Custom hooks
+│   ├── lib/                       # Utility libraries
+│   ├── providers/                 # Context providers
+│   ├── public/                    # Static assets
+│   ├── styles/                    # CSS
+│   └── types/                     # TypeScript types
 │
-├── providers/              # React context providers
-│   └── CreditsProvider.tsx # Shared Realtime credits context
+├── microservices/
+│   └── latex-service/             # Future LaTeX compilation service
 │
-├── components/
-│   ├── auth/              # Authentication components
-│   ├── dashboard/         # Dashboard components
-│   │   ├── generate/      # Generate page components
-│   │   │   ├── JdQualityIndicator.tsx
-│   │   │   ├── ModeSelector.tsx
-│   │   │   ├── PastGenerationPicker.tsx
-│   │   │   ├── QuickUploadModal.tsx
-│   │   │   └── ResumeSelector.tsx
-│   │   ├── generations/   # Generations list components
-│   │   │   ├── DeleteJobDialog.tsx
-│   │   │   ├── GenerationDetailsDrawer.tsx
-│   │   │   ├── GenerationJobRow.tsx
-│   │   │   └── GenerationsFilters.tsx
-│   │   ├── resumes/       # Resume management components
-│   │   ├── saved-jds/     # Saved JDs components
-│   │   ├── CreditsCard.tsx
-│   │   ├── DashboardHeader.tsx
-│   │   ├── DashboardSidebar.tsx
-│   │   ├── FeedbackModal.tsx
-│   │   ├── QuickActionCard.tsx
-│   │   ├── QuickActionsGrid.tsx
-│   │   └── RecentGenerationsCard.tsx
-│   │
-│   ├── editor/            # PDF Editor components
-│   │   ├── PdfJsPreview.tsx     # PDF.js renderer (scrollable + zoom)
-│   │   ├── StyleControls.tsx    # Formatting sliders panel
-│   │   ├── EditorLoadingState.tsx
-│   │   └── EditorErrorState.tsx
-│   │
-│   ├── get-started/       # Onboarding wizard components
-│   │   ├── hooks/         # useResumeForm
-│   │   ├── steps/         # Step0, Step1, Step2 components
-│   │   ├── AnimatedBackground.tsx
-│   │   ├── ModeCards.tsx
-│   │   ├── SidePanel.tsx
-│   │   ├── SignupGateModal.tsx
-│   │   ├── Stepper.tsx
-│   │   └── TopNav.tsx
-│   │
-│   ├── landing/           # Landing page components
-│   │   ├── BeforeAfter.tsx
-│   │   ├── CTA.tsx
-│   │   ├── FAQ.tsx
-│   │   ├── Features.tsx
-│   │   ├── Footer.tsx
-│   │   ├── HeaderAuthControls.tsx
-│   │   ├── Hero.tsx
-│   │   ├── HowItWorks.tsx
-│   │   ├── Navbar.tsx
-│   │   └── Pricing.tsx
-│   │
-│   ├── shared/            # Shared components
-│   │   ├── CreditsPill.tsx
-│   │   └── ProfileDropdown.tsx
-│   │
-│   └── ui/                # shadcn/ui components (49 files)
-│       ├── button.tsx
-│       ├── input.tsx
-│       ├── dialog.tsx
-│       ├── ... (46 more)
+├── packages/
+│   └── shared/                    # (Placeholder) Future shared utilities
 │
-├── contexts/              # React contexts
-│   └── AuthModalContext.tsx
+├── supabase/                      # Supabase config & migrations
+│   ├── functions/                 # Edge Functions (Deno)
+│   │   ├── enqueue-generation-job/
+│   │   ├── worker-generate-latex/
+│   │   ├── worker-generate-pdf/
+│   │   └── process-generation-job/
+│   └── migrations/
 │
-├── hooks/                 # Global custom hooks
-│   ├── useAuth.ts         # Auth state hook
-│   ├── useAuthIntent.ts   # Auth intent preservation
-│   ├── useCredits.ts      # Credits state with realtime
-│   ├── useCreditHistory.ts # Credit history from generations
-│   ├── useDownloads.ts    # Download center data
-│   ├── useDraftJd.ts      # Autosave for Generate page
-│   ├── useGenerations.ts  # Dashboard generations + realtime
-│   ├── useJobPolling.ts   # Legacy polling (deprecated)
-│   ├── useJobRealtime.ts  # Supabase Realtime subscription
-│   ├── useProfile.ts      # User profile data
-│   ├── usePurchaseHistory.ts # Stripe purchase history
-│   ├── useBilling.ts      # Subscription billing state
-│   ├── useRecentGenerations.ts # Dashboard home widget
-│   ├── useResumeVersions.ts # Resume versions CRUD + realtime
-│   ├── useSavedJds.ts     # Saved JDs CRUD + realtime
-│   ├── useUserResume.ts   # Fetch user's latest resume
-│   ├── use-mobile.tsx     # Mobile detection
-│   └── use-toast.ts       # Toast notifications
-│
-├── lib/                   # Utility libraries
-│   ├── ats/               # ATS-related utilities
-│   ├── auth/              # Auth helpers
-│   ├── jobs/              # Job-related utilities
-│   ├── llm/               # AI Logic
-│   │   ├── claudeLatex.ts # Claude integration & modes
-│   │   └── prompts.ts     # Prompt templates
-│   ├── onboarding/        # Onboarding helpers
-│   │   └── client.ts      # Client-side API helpers (XHR upload)
-│   ├── storage/           # Storage utilities
-│   ├── stripe/            # Stripe helpers
-│   ├── supabase/          # Supabase clients
-│   │   ├── browser.ts     # Browser client
-│   │   ├── server.ts      # Server client
-│   │   └── middleware.ts  # Middleware client
-│   ├── latex/             # LaTeX utilities
-│   │   └── applyStyleToLatex.ts # Style injection + parsing
-│   ├── utils/             # General helpers
-│   └── utils.ts           # cn() utility
-│
-├── public/                # Static assets
-│   └── logo.png
-│
-├── supabase/              # Supabase config & migrations
-│   ├── functions/         # Edge Functions (Deno)
-│   │   ├── enqueue-generation-job/   # User-facing fast job insert
-│   │   ├── worker-generate-latex/    # Cron-triggered Claude worker
-│   │   ├── worker-generate-pdf/      # Cron-triggered PDF compiler
-│   │   └── process-generation-job/   # Legacy monolith (fallback)
-│   └── migrations/        # SQL migrations
-│       ├── 009_pipeline_split.sql    # Pipeline columns + RPCs
-│       └── 010_cron_schedules.sql    # pg_cron + pg_net schedules
-│
-└── docs/                  # Documentation
-    ├── AUTH.md
-    ├── CANVAS.md           # PDF Editor architecture
-    ├── CONTEXT.md          # (this file)
-    ├── CORE_ENGINE.md
-    ├── DASHBOARD.md
-    ├── IMPLEMENTATIONS.md
-    ├── ONBOARDING.md
-    ├── PAYMENT.md
-    └── WORKFLOW.md
+├── docs/                          # Documentation
+├── package.json                   # Root workspace scripts
+└── pnpm-workspace.yaml            # Workspace config
 ```
 
 ---
@@ -262,8 +129,8 @@ pg_cron (45s) → worker-generate-pdf → latexonline.cc → pdf_status=ready
 
 Uses **Claude 3.5 Sonnet** to generate ATS-safe LaTeX code.
 
-- **Engine**: `lib/llm/claudeLatex.ts`
-- **Prompts**: `lib/llm/prompts.ts`
+- **Engine**: `web/lib/llm/claudeLatex.ts`
+- **Prompts**: `web/lib/llm/prompts.ts`
 - **Modes**: Quick, Deep, From Scratch (all implemented)
 
 ### 4. Realtime System
@@ -275,7 +142,7 @@ Supabase Realtime replaces polling for instant updates:
 3. Backend pushes updates (processing → succeeded/failed, pdf_status changes)
 4. Frontend reacts immediately
 
-**CreditsProvider** (`providers/CreditsProvider.tsx`): Wraps the entire dashboard layout so that all `useCredits()` consumers (header, sidebar, credits page, profile dropdown) share a **single Realtime channel** and always display the same value. Components outside the dashboard (e.g. landing page) fall back to their own independent subscription.
+**CreditsProvider** (`web/providers/CreditsProvider.tsx`): Wraps the entire dashboard layout so that all `useCredits()` consumers (header, sidebar, credits page, profile dropdown) share a **single Realtime channel** and always display the same value. Components outside the dashboard (e.g. landing page) fall back to their own independent subscription.
 
 ### 5. PDF Compilation
 
@@ -458,14 +325,16 @@ Added by migration `009_pipeline_split.sql`:
 
 ## Development Scripts
 
-| Script               | Description                             |
-| -------------------- | --------------------------------------- |
-| `pnpm dev`           | Start Next.js + Stripe webhook listener |
-| `pnpm dev:next`      | Start Next.js only (with Turbopack)     |
-| `pnpm stripe:listen` | Start Stripe webhook listener only      |
-| `pnpm build`         | Production build                        |
-| `pnpm start`         | Start production server                 |
-| `pnpm lint`          | Run ESLint                              |
+All commands run from the **monorepo root** and proxy to `web`:
+
+| Script            | Description                          |
+| ----------------- | ------------------------------------ |
+| `pnpm dev`        | Start Next.js dev server (Turbopack) |
+| `pnpm dev:stripe` | Next.js + Stripe webhook listener    |
+| `pnpm build`      | Production build                     |
+| `pnpm start`      | Start production server              |
+| `pnpm lint`       | Run ESLint                           |
+| `pnpm typecheck`  | TypeScript type checking             |
 
 ---
 

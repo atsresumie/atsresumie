@@ -6,22 +6,22 @@
 
 | File                            | Purpose                                                                                     |
 | ------------------------------- | ------------------------------------------------------------------------------------------- |
-| `lib/auth/auth.ts`              | Auth helper functions (`signUpWithEmail`, `signInWithEmail`, `signInWithGoogle`, `signOut`) |
-| `lib/auth/AuthContext.tsx`      | React context with `onAuthStateChange` listener                                             |
-| `hooks/useAuth.ts`              | Hook for consuming auth context                                                             |
-| `middleware.ts`                 | Session refresh on each request                                                             |
-| `app/auth/callback/route.ts`    | PKCE code exchange for OAuth                                                                |
-| `components/auth/AuthModal.tsx` | Login/Signup modal with email + Google OAuth                                                |
+| `web/lib/auth/auth.ts`              | Auth helper functions (`signUpWithEmail`, `signInWithEmail`, `signInWithGoogle`, `signOut`) |
+| `web/lib/auth/AuthContext.tsx`      | React context with `onAuthStateChange` listener                                             |
+| `web/hooks/useAuth.ts`              | Hook for consuming auth context                                                             |
+| `web/middleware.ts`                 | Session refresh on each request                                                             |
+| `web/app/auth/callback/route.ts`    | PKCE code exchange for OAuth                                                                |
+| `web/components/auth/AuthModal.tsx` | Login/Signup modal with email + Google OAuth                                                |
 
 ### Files Modified
 
 | File                                            | Change                                                                           |
 | ----------------------------------------------- | -------------------------------------------------------------------------------- |
-| `app/providers.tsx`                             | Wrapped with `AuthProvider`                                                      |
-| `components/get-started/SignupGateModal.tsx`    | Integrated `AuthModal`, changed prop `onContinue` → `onAuthSuccess`              |
-| `components/landing/Navbar.tsx`                 | Added Sign In/Sign Up buttons, user menu when authenticated                      |
-| `app/get-started/page.tsx`                      | Updated to use `onAuthSuccess` prop                                              |
-| `components/get-started/hooks/useResumeForm.ts` | Replaced `isLoggedIn = false` stub with `useAuth()`, added `claimSession()` call |
+| `web/app/providers.tsx`                             | Wrapped with `AuthProvider`                                                      |
+| `web/components/get-started/SignupGateModal.tsx`    | Integrated `AuthModal`, changed prop `onContinue` → `onAuthSuccess`              |
+| `web/components/landing/Navbar.tsx`                 | Added Sign In/Sign Up buttons, user menu when authenticated                      |
+| `web/app/get-started/page.tsx`                      | Updated to use `onAuthSuccess` prop                                              |
+| `web/components/get-started/hooks/useResumeForm.ts` | Replaced `isLoggedIn = false` stub with `useAuth()`, added `claimSession()` call |
 
 ---
 
@@ -84,7 +84,7 @@ $$;
 
 ### 2026-01-20: TopNav User Menu
 
-**Updated `components/get-started/TopNav.tsx`:**
+**Updated `web/components/get-started/TopNav.tsx`:**
 
 - Added user icon button (top right) when authenticated
 - Dropdown shows email and "Sign out" option
@@ -129,14 +129,14 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 **New Files:**
 
-- `hooks/useCredits.ts` - Fetch and cache credits
-- `app/api/credits/route.ts` - GET endpoint
+- `web/hooks/useCredits.ts` - Fetch and cache credits
+- `web/app/api/credits/route.ts` - GET endpoint
 - `supabase/credits_system.sql` - DB schema
 
 **Modified Files:**
 
 - `TopNav.tsx` - Credits badge (colored by balance)
-- `app/api/export/route.ts` - Auth + credits check + decrement
+- `web/app/api/export/route.ts` - Auth + credits check + decrement
 - `useResumeForm.ts` - NO_CREDITS error handling
 
 **UI Copy:**
@@ -154,8 +154,8 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 **New Files:**
 
 - `supabase/generation_jobs.sql` - Table schema + RPCs
-- `app/api/generate/route.ts` - Create job + mock processing
-- `hooks/useJobPolling.ts` - Polling logic
+- `web/app/api/generate/route.ts` - Create job + mock processing
+- `web/hooks/useJobPolling.ts` - Polling logic
 - `SuccessModal.tsx` - Post-generation UI
 
 **Modified Files:**
@@ -252,11 +252,11 @@ if (uploadedResume && sessionId && !isSessionLocked) {
 
 **New Files:**
 
-- `components/landing/HeaderAuthControls.tsx` - Auth controls component
+- `web/components/landing/HeaderAuthControls.tsx` - Auth controls component
 
 **Modified Files:**
 
-- `components/landing/Navbar.tsx` - Integrated HeaderAuthControls
+- `web/components/landing/Navbar.tsx` - Integrated HeaderAuthControls
 
 **Authenticated State:**
 

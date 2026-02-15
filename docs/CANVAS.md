@@ -69,23 +69,23 @@ The PDF Editor allows users to visually adjust formatting of their AI-generated 
 
 | File                                       | Purpose                                                |
 | ------------------------------------------ | ------------------------------------------------------ |
-| `app/dashboard/editor/[jobId]/page.tsx`    | Main editor page — layout, state, auto-recompile logic |
-| `components/editor/PdfJsPreview.tsx`       | PDF.js renderer — scrollable, zoomable, all-pages view |
-| `components/editor/StyleControls.tsx`      | Formatting panel — font, margins, spacing sliders      |
-| `components/editor/EditorLoadingState.tsx` | Loading skeleton                                       |
-| `components/editor/EditorErrorState.tsx`   | Error display with retry                               |
-| `lib/latex/applyStyleToLatex.ts`           | LaTeX style injection + parsing utility                |
-| `app/api/export-pdf-with-style/route.ts`   | Backend: compile styled LaTeX → PDF                    |
-| `types/editor.ts`                          | `StyleConfig`, `LaTeXFontFamily`, font options         |
+| `web/app/dashboard/editor/[jobId]/page.tsx`    | Main editor page — layout, state, auto-recompile logic |
+| `web/components/editor/PdfJsPreview.tsx`       | PDF.js renderer — scrollable, zoomable, all-pages view |
+| `web/components/editor/StyleControls.tsx`      | Formatting panel — font, margins, spacing sliders      |
+| `web/components/editor/EditorLoadingState.tsx` | Loading skeleton                                       |
+| `web/components/editor/EditorErrorState.tsx`   | Error display with retry                               |
+| `web/lib/latex/applyStyleToLatex.ts`           | LaTeX style injection + parsing utility                |
+| `web/app/api/export-pdf-with-style/route.ts`   | Backend: compile styled LaTeX → PDF                    |
+| `web/types/editor.ts`                          | `StyleConfig`, `LaTeXFontFamily`, font options         |
 
 ### Supporting Files
 
 | File                             | Purpose                                     |
 | -------------------------------- | ------------------------------------------- |
-| `app/api/export-pdf/route.ts`    | Existing PDF export (used for initial load) |
-| `public/pdf.worker.min.mjs`      | PDF.js web worker (copied via postinstall)  |
+| `web/app/api/export-pdf/route.ts`    | Existing PDF export (used for initial load) |
+| `web/public/pdf.worker.min.mjs`      | PDF.js web worker (copied via postinstall)  |
 | `package.json`                   | `pdfjs-dist` dep + `postinstall` script     |
-| `app/auth/verify-email/page.tsx` | Email verification confirmation page        |
+| `web/app/auth/verify-email/page.tsx` | Email verification confirmation page        |
 
 ---
 
