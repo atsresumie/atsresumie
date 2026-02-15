@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently --kill-others \"next dev --turbo\" \"stripe listen --forward-to localhost:3000/api/stripe/webhook\"",
-    "dev:next": "next dev --turbo",
+    "dev": "concurrently --kill-others \"next dev\" \"stripe listen --forward-to localhost:3000/api/stripe/webhook\"",
+    "dev:next": "next dev",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
     "build": "next build",
     "start": "next start",
