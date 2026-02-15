@@ -6,17 +6,28 @@ ATSResumie helps users tailor their resumes for Applicant Tracking Systems (ATS)
 
 ---
 
-## 🚀 Overview
+## 📂 Repository Structure
 
-ATSResumie allows users to:
-
-1. Paste a Job Description
-2. Upload their Resume (PDF/DOCX)
-3. Generate an ATS-optimized resume using AI
-4. Edit styling visually
-5. Download a professionally compiled PDF
-
-The system uses a split background pipeline architecture for scalable AI generation and PDF compilation.
+```
+atsresumie/
+├── web/                        # Next.js 16 app (main web application)
+│   ├── app/                    # App Router pages & API routes
+│   ├── components/             # React components
+│   ├── hooks/                  # Custom hooks
+│   ├── lib/                    # Utilities & server helpers
+│   ├── providers/              # React context providers
+│   ├── public/                 # Static assets
+│   ├── styles/                 # CSS
+│   └── types/                  # TypeScript type definitions
+├── microservices/
+│   └── latex-service/          # (Placeholder) Future LaTeX compilation service
+├── packages/
+│   └── shared/                 # (Placeholder) Future shared utilities
+├── supabase/                   # Edge functions & migrations
+├── docs/                       # Project documentation
+├── package.json                # Root workspace scripts
+└── pnpm-workspace.yaml         # Workspace config
+```
 
 ---
 
@@ -36,7 +47,43 @@ The system uses a split background pipeline architecture for scalable AI generat
 | PDF Engine      | latex-online.cc                      |
 | Payments        | Stripe                               |
 | Animations      | Framer Motion                        |
-| Package Manager | pnpm                                 |
+| Package Manager | pnpm (workspaces)                    |
+
+---
+
+## 🛠 Development
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+
+
+### Install
+
+```bash
+pnpm install
+```
+
+### Run Dev Server
+
+```bash
+pnpm dev           # Next.js only
+pnpm dev:stripe    # Next.js + Stripe webhook listener
+```
+
+### Production Build
+
+```bash
+pnpm build
+pnpm start
+```
+
+### Lint & Typecheck
+
+```bash
+pnpm lint
+pnpm typecheck
+```
 
 ---
 
@@ -64,89 +111,13 @@ Frontend → `enqueue-generation-job`
 
 ---
 
-## 📂 Project Structure
-
-```
-atsresumie/
-├── app/
-│ ├── api/
-│ ├── dashboard/
-│ ├── auth/
-│ ├── get-started/
-│ └── layout.tsx
-├── components/
-├── hooks/
-├── providers/
-├── lib/
-├── supabase/
-├── public/
-└── docs/
-```
-
----
-
 ## 🔑 Key Features
 
-### 1. Soft-Commit Resume Upload
-
-Two-stage upload:
-
-- Temp folder (yellow badge)
-- Final folder (green badge)
-- XHR progress tracking
-
----
-
-### 2. AI Resume Generation
-
-- Claude 3.5 Sonnet
-- Quick / Deep / From Scratch modes
-- Idempotent credit deduction
-- Exponential backoff on failures
-- Atomic job claiming via `FOR UPDATE SKIP LOCKED`
-
----
-
-### 3. Realtime System
-
-- Supabase Realtime
-- No polling
-- Shared `CreditsProvider`
-- Instant job + credit updates
-
----
-
-### 4. PDF Compilation
-
-- Background PDF compilation
-- Fallback API `/api/export-pdf`
-- Signed URLs (10 min expiry)
-- Stored in `generated-pdfs` bucket
-
----
-
-### 5. PDF Editor
-
-Route: `/dashboard/editor/[jobId]`
-
-Features:
-
-- PDF.js live preview
-- Retina rendering
-- Zoom (50–300%)
-- Style controls
-- 800ms debounce auto-recompile
-- Idempotent LaTeX style injection
-
----
-
-### 6. Stripe Integration
-
-- $10/month → 50 credits
-- Webhook signature verification
-- Idempotent credit granting
-- Promotion codes
-- Purchase history
+- **AI Resume Generation** — Claude 3.5 Sonnet with Quick / Deep / From Scratch modes
+- **Realtime System** — Supabase Realtime, no polling, shared CreditsProvider
+- **PDF Compilation** — Background compilation, fallback API, signed URLs
+- **PDF Editor** — PDF.js live preview, retina rendering, zoom, style controls
+- **Stripe Integration** — $10/month → 50 credits, webhook verification, promotion codes
 
 ---
 
@@ -164,63 +135,40 @@ Features:
 
 ---
 
-## 📦 Storage Buckets
+## ☁️ Deployment (Vercel)
 
-| Bucket         | Purpose                   |
-| -------------- | ------------------------- |
-| user-resumes   | Onboarding uploads        |
-| resumes        | Dashboard resume versions |
-| generated-pdfs | Final compiled PDFs       |
+The web app deploys to Vercel. Configure with:
+
+- **Root Directory**: `web`
+- **Build Command**: `next build` (default)
+- **Install Command**: `pnpm install` (default)
+
+> **Note**: Environment variables in Vercel should be set for the `web` project root.
 
 ---
 
-## 🛠 Development
-
-### Install
-
-```bash
-pnpm install
-```
-
-### Run Dev
-
-```bash
-pnpm dev
-```
-
-### Production Build
-
-```bash
-pnpm build
-pnpm start
-```
-
-### 🔐 Security & Reliability
+## 🔐 Security & Reliability
 
 - JWT validation at enqueue layer
-
 - Atomic credit deduction via RPC
-
 - Stale lock recovery
-
 - Retry with exponential backoff
-
 - Idempotent PDF uploads (upsert)
-
 - Stripe webhook verification
 
-### 🧩 Edge Functions
+---
+
+## 🧩 Edge Functions
 
 - enqueue-generation-job
-
 - worker-generate-latex
-
 - worker-generate-pdf
-
 - process-generation-job (legacy fallback)
 
-### 📜 License
+---
 
-## Proprietary — ATSResumie
+## 📜 License
+
+Proprietary — ATSResumie
 
 **sujanshrestha.ca**
