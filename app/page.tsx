@@ -2,6 +2,7 @@
 import { AuthModalProvider } from "@/contexts/AuthModalContext";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
+import { TrustBar } from "@/components/landing/TrustBar";
 import { Problem } from "@/components/landing/Problem";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { BeforeAfter } from "@/components/landing/BeforeAfter";
@@ -18,6 +19,7 @@ export default function Home() {
 				<Navbar />
 				<main>
 					<Hero />
+					<TrustBar />
 					<Problem />
 					<HowItWorks />
 					<BeforeAfter />

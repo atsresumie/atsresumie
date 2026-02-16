@@ -17,7 +17,7 @@ export const Hero = () => {
 
 			{/* Animated gradient orbs - CSS only */}
 			<div
-				className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20 animate-float-slow"
+				className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full opacity-[0.12] animate-float-slow"
 				style={{
 					background:
 						"radial-gradient(circle, hsl(36, 30%, 70%) 0%, transparent 70%)",
@@ -25,7 +25,7 @@ export const Hero = () => {
 				}}
 			/>
 			<div
-				className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15 animate-float-reverse"
+				className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full opacity-10 animate-float-reverse"
 				style={{
 					background:
 						"radial-gradient(circle, hsl(32, 28%, 66%) 0%, transparent 70%)",
@@ -52,7 +52,7 @@ export const Hero = () => {
 
 						{/* Subheadline */}
 						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 animate-fade-in-up animation-delay-300">
-							Upload your resume and paste the job description.
+							Tailor your resume to a job description in minutes.
 							ATSResumie rewrites your bullets to match the role —
 							without inventing experience.
 						</p>
@@ -69,7 +69,7 @@ export const Hero = () => {
 							</Link>
 							<a
 								href="#how-it-works"
-								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border hover:bg-muted/50 transition-all hover:-translate-y-0.5 text-center"
+								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border-visible/80 bg-surface-raised/50 hover:bg-surface-raised hover:border-border-visible shadow-[0_2px_8px_rgba(0,0,0,0.12)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5 text-center"
 							>
 								See how it works
 							</a>
@@ -155,9 +155,9 @@ export const Hero = () => {
 										{/* Warning tags */}
 										<div className="mt-2 flex flex-wrap gap-1.5">
 											{[
-												"Inconsistent results",
-												"Invents experience",
-												"Bad formatting",
+												"Inconsistent formatting",
+												"May add assumptions",
+												"Missing JD keywords",
 											].map((tag) => (
 												<span
 													key={tag}

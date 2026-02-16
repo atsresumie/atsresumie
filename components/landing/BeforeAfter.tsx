@@ -38,6 +38,28 @@ const afterBullets = [
 	},
 ];
 
+/* Mini before/after examples — compact, anonymized */
+const miniExamples = [
+	{
+		before: "Responsible for customer communications and issue resolution",
+		after: "Resolved 50+ customer tickets/week via Zendesk, maintaining 96% CSAT score",
+		role: "Customer Support",
+	},
+	{
+		before: "Analyzed data and created reports for management",
+		after: "Built automated Tableau dashboards tracking $2M pipeline, reducing reporting time by 70%",
+		role: "Data Analyst",
+	},
+];
+
+const commonRoles = [
+	"Software Engineer",
+	"Data Analyst",
+	"Sales Associate",
+	"Restaurant Supervisor",
+	"Customer Support",
+];
+
 export const BeforeAfter = () => {
 	const [showAfter, setShowAfter] = useState(false);
 
@@ -53,8 +75,8 @@ export const BeforeAfter = () => {
 						The transformation
 					</h2>
 					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
-						See how ATSResumie rewrites your bullets for the
-						specific role
+						See how ATSResumie creates an ATS-friendly resume
+						tailored to the role
 					</p>
 				</div>
 
@@ -84,7 +106,7 @@ export const BeforeAfter = () => {
 					</div>
 				</div>
 
-				{/* Content Card */}
+				{/* Main Content Card */}
 				<div className="max-w-2xl mx-auto animate-fade-in-up animation-delay-300">
 					<div className="relative bg-surface-raised rounded-sm border border-border-visible p-8 md:p-10 overflow-hidden">
 						{/* Before content */}
@@ -154,6 +176,56 @@ export const BeforeAfter = () => {
 							</ul>
 						</div>
 					</div>
+				</div>
+
+				{/* Mini before/after examples */}
+				<div className="max-w-4xl mx-auto mt-8 grid md:grid-cols-2 gap-4 animate-fade-in-up animation-delay-400">
+					{miniExamples.map((example) => (
+						<div
+							key={example.role}
+							className="bg-surface-raised/60 rounded-sm border border-border-visible/70 p-5"
+						>
+							<p className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-3">
+								{example.role}
+							</p>
+							<div className="space-y-2.5">
+								<div className="flex items-start gap-2">
+									<X
+										size={12}
+										className="text-error/70 mt-0.5 flex-shrink-0"
+									/>
+									<p className="text-sm text-text-secondary/80 line-through decoration-error/30">
+										{example.before}
+									</p>
+								</div>
+								<div className="flex items-start gap-2">
+									<ArrowRight
+										size={12}
+										className="text-accent mt-0.5 flex-shrink-0"
+									/>
+									<p className="text-sm text-text-primary">
+										{example.after}
+									</p>
+								</div>
+							</div>
+						</div>
+					))}
+				</div>
+
+				{/* Common roles */}
+				<div className="text-center mt-10 animate-fade-in-up animation-delay-500">
+					<p className="text-sm text-text-tertiary">
+						{commonRoles.map((role, i) => (
+							<span key={role}>
+								{role}
+								{i < commonRoles.length - 1 && (
+									<span className="mx-2 text-border-visible">
+										•
+									</span>
+								)}
+							</span>
+						))}
+					</p>
 				</div>
 			</div>
 		</section>
