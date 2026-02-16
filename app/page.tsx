@@ -2,9 +2,10 @@
 import { AuthModalProvider } from "@/contexts/AuthModalContext";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
+import { Problem } from "@/components/landing/Problem";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-import { Features } from "@/components/landing/Features";
 import { BeforeAfter } from "@/components/landing/BeforeAfter";
+import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
@@ -17,9 +18,10 @@ export default function Home() {
 				<Navbar />
 				<main>
 					<Hero />
+					<Problem />
 					<HowItWorks />
-					<Features />
 					<BeforeAfter />
+					<Features />
 					<Pricing />
 					<FAQ />
 					<CTA />

@@ -1,37 +1,41 @@
-import { Shield, Target, Code2, History, FileStack } from "lucide-react";
+import { Target, Shield, Copy, Zap, SlidersHorizontal } from "lucide-react";
 
 /**
  * Features Component - Server Component (no framer-motion)
  *
- * Uses CSS animations for performance. Pure server-rendered.
+ * Benefits-first positioning, no tech implementation details.
  */
 
 const features = [
 	{
-		icon: Shield,
-		title: "ATS-safe layout",
-		description:
-			"Clean, parseable structure that passes automated screening.",
-	},
-	{
 		icon: Target,
-		title: "Keyword alignment",
-		description: "Match your resume to job requirements automatically.",
+		title: "Job-specific tailoring",
+		description:
+			"Aligns your resume to the JD without making things up. Every bullet is grounded in your real experience.",
 	},
 	{
-		icon: Code2,
-		title: "LaTeX precision",
-		description: "Professional typesetting with full source access.",
+		icon: Shield,
+		title: "ATS-friendly formatting",
+		description:
+			"Clean, parsable structure that passes automated screening systems every time.",
 	},
 	{
-		icon: History,
-		title: "Version history",
-		description: "Track changes and revert to previous versions.",
+		icon: Copy,
+		title: "Multiple versions",
+		description:
+			"Tailor a unique resume for each role. Save and manage versions for every application.",
 	},
 	{
-		icon: FileStack,
-		title: "1–2 page control",
-		description: "Automatically fit your content to the right length.",
+		icon: Zap,
+		title: "Fast iterations",
+		description:
+			"Try different job descriptions and compare results. Iterate quickly until it's perfect.",
+	},
+	{
+		icon: SlidersHorizontal,
+		title: "Formatting controls",
+		description:
+			"Fine-tune layout, sections, and styling with an intuitive editor. Full control over the final output.",
 	},
 ];
 

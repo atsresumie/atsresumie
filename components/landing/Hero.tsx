@@ -1,4 +1,4 @@
-import { Sparkles, Download, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, MessageSquare, FileCheck } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -37,7 +37,7 @@ export const Hero = () => {
 			<div className="relative z-10 container mx-auto px-4 py-20 md:py-32">
 				<div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center justify-center">
 					{/* Left: Text Content */}
-					<div className="text-center pt-8 lg:pt-16 max-w-xl">
+					<div className="text-center lg:text-left pt-8 lg:pt-16 max-w-xl">
 						{/* Badge */}
 						<div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground animate-fade-in-up animation-delay-100">
 							<Sparkles size={14} className="text-accent" />
@@ -46,16 +46,15 @@ export const Hero = () => {
 
 						{/* Headline */}
 						<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 animate-fade-in-up animation-delay-200">
-							ATS-optimized resumes,{" "}
-							<span className="text-gradient">
-								generated as LaTeX.
-							</span>
+							Your resume, tailored to the job —{" "}
+							<span className="text-gradient">ATS-ready.</span>
 						</h1>
 
 						{/* Subheadline */}
 						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-fade-in-up animation-delay-300">
-							Paste a job description + your resume. Get an
-							ATS-friendly PDF and LaTeX source in minutes.
+							Upload your resume and paste the job description.
+							ATSResumie rewrites your bullets to match the role —
+							without inventing experience.
 						</p>
 
 						{/* CTAs */}
@@ -65,142 +64,106 @@ export const Hero = () => {
 								className="w-full sm:w-auto"
 							>
 								<button className="w-full sm:w-auto px-8 py-4 bg-accent text-accent-foreground font-semibold rounded-sm hover:bg-accent-hover transition-all hover:-translate-y-0.5 active:scale-[0.98]">
-									Get Started
+									Tailor my resume
 								</button>
 							</Link>
 							<a
 								href="#how-it-works"
-								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border hover:bg-muted/50 transition-all hover:-translate-y-0.5"
+								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border hover:bg-muted/50 transition-all hover:-translate-y-0.5 text-center"
 							>
 								See how it works
 							</a>
 						</div>
 					</div>
 
-					{/* Right: Preview Card */}
-					<div className="relative w-[80vw] max-w-4xl mt-12 lg:mt-16 animate-fade-in-up animation-delay-500">
-						<div className="bg-surface-raised rounded-sm border border-border-visible p-6">
-							{/* ATS Score Ring */}
-							<div className="flex items-center gap-6 mb-6">
-								<div className="relative w-20 h-20">
-									<svg
-										className="w-20 h-20 -rotate-90"
-										viewBox="0 0 80 80"
-									>
-										<circle
-											cx="40"
-											cy="40"
-											r="35"
-											fill="none"
-											stroke="hsl(var(--muted))"
-											strokeWidth="6"
+					{/* Right: Visual — ChatGPT prompt vs ATSResumie output */}
+					<div className="relative w-full max-w-lg mt-12 lg:mt-16 animate-fade-in-up animation-delay-500">
+						<div className="grid gap-4">
+							{/* Left card: Mock ChatGPT prompt */}
+							<div className="bg-surface-raised rounded-sm border border-border-visible p-5 relative">
+								<div className="flex items-center gap-2 mb-3">
+									<div className="w-8 h-8 rounded-full bg-surface-inset flex items-center justify-center">
+										<MessageSquare
+											size={16}
+											className="text-muted-foreground"
 										/>
-										<circle
-											cx="40"
-											cy="40"
-											r="35"
-											fill="none"
-											stroke="var(--accent)"
-											strokeWidth="6"
-											strokeLinecap="round"
-											strokeDasharray="220"
-											strokeDashoffset="44"
-											className="animate-progress-fill"
-										/>
-									</svg>
-									<div className="absolute inset-0 flex items-center justify-center">
-										<span className="font-display text-2xl font-semibold text-foreground animate-fade-in animation-delay-800">
-											80%
-										</span>
 									</div>
+									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+										The old way
+									</span>
 								</div>
-								<div>
-									<h3 className="font-display text-lg font-medium text-foreground mb-1">
-										ATS Score
-									</h3>
-									<p className="text-sm text-muted-foreground">
-										Optimized for tracking systems
+								<div className="bg-surface-inset rounded-sm p-4 text-sm text-muted-foreground leading-relaxed font-mono">
+									<p>
+										&quot;Hey ChatGPT, here is my resume and
+										the JD I&apos;m applying for. Can you
+										rewrite my resume to be ATS-friendly and
+										tailored…&quot;
 									</p>
 								</div>
-							</div>
-
-							{/* Keyword Match Bars */}
-							<div className="space-y-3 mb-6">
-								{[
-									{
-										label: "Keyword Match",
-										value: 85,
-										delay: "600",
-									},
-									{
-										label: "Format Score",
-										value: 92,
-										delay: "700",
-									},
-									{
-										label: "Section Structure",
-										value: 78,
-										delay: "800",
-									},
-								].map((item) => (
-									<div key={item.label}>
-										<div className="flex justify-between text-sm mb-1">
-											<span className="text-muted-foreground">
-												{item.label}
-											</span>
-											<span className="text-foreground font-medium">
-												{item.value}%
-											</span>
-										</div>
-										<div className="h-2 bg-muted rounded-full overflow-hidden">
-											<div
-												className={`h-full rounded-full bg-accent animate-bar-fill animation-delay-${item.delay}`}
-												style={{
-													width: `${item.value}%`,
-												}}
-											/>
-										</div>
-									</div>
-								))}
-							</div>
-
-							{/* Improvements */}
-							<div className="border-t border-border/50 pt-4 mb-6">
-								<h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-									<TrendingUp
-										size={14}
-										className="text-accent"
-									/>
-									Improvements Applied
-								</h4>
-								<div className="space-y-2">
+								<div className="mt-3 flex flex-wrap gap-2">
 									{[
-										"Action verbs optimized",
-										"Skills section enhanced",
-										"ATS-safe formatting",
-									].map((item, i) => (
-										<div
-											key={item}
-											className={`flex items-center gap-2 text-sm text-muted-foreground animate-fade-in-left animation-delay-${900 + i * 100}`}
+										"Inconsistent results",
+										"Invents experience",
+										"Bad formatting",
+									].map((tag) => (
+										<span
+											key={tag}
+											className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-error/10 text-error/80"
 										>
-											<CheckCircle2
-												size={14}
-												className="text-accent"
-											/>
-											{item}
-										</div>
+											<span className="w-1 h-1 rounded-full bg-error/60" />
+											{tag}
+										</span>
 									))}
 								</div>
 							</div>
 
-							{/* Download Button (Demo) */}
-							<button
-								disabled
-								className="w-full py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
-							>
-								<Download size={18} />
-								Download PDF (1 credit)
-							</button>
+							{/* Right card: ATSResumie output */}
+							<div className="bg-surface-raised rounded-sm border border-accent/30 p-5 relative shadow-lg">
+								<div className="flex items-center gap-2 mb-3">
+									<div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+										<FileCheck
+											size={16}
+											className="text-accent"
+										/>
+									</div>
+									<span className="text-xs font-medium text-accent uppercase tracking-wide">
+										The ATSResumie way
+									</span>
+								</div>
+								<div className="space-y-2.5">
+									{[
+										"Led migration of 3 legacy services to cloud-native microservices, reducing deployment time by 40%",
+										"Built real-time data pipeline processing 2M+ events/day using Kafka and Python",
+										"Designed CI/CD workflow adopted by 4 teams, cutting release cycles from 2 weeks to 2 days",
+									].map((bullet, i) => (
+										<div
+											key={i}
+											className={`flex items-start gap-2 text-sm text-text-primary animate-fade-in-left animation-delay-${700 + i * 100}`}
+										>
+											<ArrowRight
+												size={14}
+												className="text-accent mt-0.5 flex-shrink-0"
+											/>
+											<span>{bullet}</span>
+										</div>
+									))}
+								</div>
+								<div className="mt-3 flex flex-wrap gap-2">
+									{[
+										"Job-aligned",
+										"Truthful",
+										"ATS-ready",
+									].map((tag) => (
+										<span
+											key={tag}
+											className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/10 text-accent"
+										>
+											<span className="w-1 h-1 rounded-full bg-accent" />
+											{tag}
+										</span>
+									))}
+								</div>
+							</div>
 						</div>
 
 						{/* Floating decoration */}

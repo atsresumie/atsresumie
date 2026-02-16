@@ -10,24 +10,24 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
 	{
-		question: "Is the ATS score exact?",
-		answer: "Our ATS score is an estimate based on industry-standard parsing algorithms. While no score can guarantee results, we optimize for the most common ATS systems used by employers.",
+		question: "Will it invent experience?",
+		answer: "No. ATSResumie rewrites what you already have and won't fabricate roles, skills, or claims. Every bullet is grounded in your original resume content.",
 	},
 	{
-		question: "Do you support PDF/DOCX upload?",
-		answer: "Yes! You can upload your existing resume as PDF or DOCX, or simply paste the text directly. Our system will parse and analyze your content automatically.",
+		question: "Is this ATS compliant?",
+		answer: "Yes. ATSResumie outputs clean, ATS-readable formatting that passes automated screening systems used by most employers.",
 	},
 	{
-		question: "Do I get the LaTeX source?",
-		answer: "Absolutely. Every export includes both the compiled PDF and the full LaTeX source code, so you can make manual adjustments if needed.",
+		question: "Can I tailor for multiple jobs?",
+		answer: "Absolutely — you can generate and save multiple tailored versions of your resume, one for each role you're applying to.",
 	},
 	{
-		question: "What costs a credit?",
-		answer: "Previewing your ATS score and generating improvements uses 1 credit. Exporting (downloading the PDF and LaTeX source) is free. You get 3 free credits on signup.",
+		question: "What file types are supported?",
+		answer: "PDF and DOCX. Upload your existing resume in either format and we'll parse it automatically.",
 	},
 	{
-		question: "Will it work for non-tech roles?",
-		answer: "Yes! While our templates work exceptionally well for tech and business roles, our ATS optimization applies to any industry. The system adapts to your target job description.",
+		question: "Do I need an account?",
+		answer: "You can preview the experience without an account, but you'll need to sign up (free) to generate and download tailored resumes. You get 3 free credits on signup.",
 	},
 ];
 
@@ -85,7 +85,7 @@ export const FAQ = () => {
 						Frequently asked questions
 					</h2>
 					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
-						Everything you need to know about atsresumie
+						Everything you need to know about ATSResumie
 					</p>
 				</div>
 
