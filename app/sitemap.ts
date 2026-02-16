@@ -8,7 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		{ url: `${baseUrl}/get-started`, lastModified: new Date() },
 		// Uncomment as you create these pages:
 		// { url: `${baseUrl}/pricing`, lastModified: new Date() },
-		// { url: `${baseUrl}/privacy`, lastModified: new Date() },
-		// { url: `${baseUrl}/terms`, lastModified: new Date() },
+		{ url: `${baseUrl}/privacy`, lastModified: new Date() },
+		{ url: `${baseUrl}/terms`, lastModified: new Date() },
 	];
 }
