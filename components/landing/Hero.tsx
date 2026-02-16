@@ -1,4 +1,4 @@
-import { Sparkles, ArrowRight, MessageSquare, FileCheck } from "lucide-react";
+import { Sparkles, ArrowRight, FileCheck } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -34,24 +34,24 @@ export const Hero = () => {
 			/>
 
 			{/* Content */}
-			<div className="relative z-10 container mx-auto px-4 py-20 md:py-32">
-				<div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center justify-center">
+			<div className="relative z-10 container mx-auto px-4 py-12 md:py-16">
+				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start justify-center">
 					{/* Left: Text Content */}
-					<div className="text-center lg:text-left pt-8 lg:pt-16 max-w-xl">
+					<div className="text-center mt-10 lg:text-left pt-8 lg:pt-12 max-w-xl">
 						{/* Badge */}
-						<div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground animate-fade-in-up animation-delay-100">
+						<div className="inline-flex items-center gap-2 px-4 py-1.5 mb-4 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground animate-fade-in-up animation-delay-100">
 							<Sparkles size={14} className="text-accent" />
 							<span>3 free credits included</span>
 						</div>
 
 						{/* Headline */}
-						<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 animate-fade-in-up animation-delay-200">
+						<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-4 animate-fade-in-up animation-delay-200">
 							Your resume, tailored to the job —{" "}
 							<span className="text-gradient">ATS-ready.</span>
 						</h1>
 
 						{/* Subheadline */}
-						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-fade-in-up animation-delay-300">
+						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 animate-fade-in-up animation-delay-300">
 							Upload your resume and paste the job description.
 							ATSResumie rewrites your bullets to match the role —
 							without inventing experience.
@@ -76,106 +76,181 @@ export const Hero = () => {
 						</div>
 					</div>
 
-					{/* Right: Visual — ChatGPT prompt vs ATSResumie output */}
-					<div className="relative w-full max-w-lg mt-12 lg:mt-16 animate-fade-in-up animation-delay-500">
-						<div className="grid gap-4">
-							{/* Left card: Mock ChatGPT prompt */}
-							<div className="bg-surface-raised rounded-sm border border-border-visible p-5 relative">
-								<div className="flex items-center gap-2 mb-3">
-									<div className="w-8 h-8 rounded-full bg-surface-inset flex items-center justify-center">
-										<MessageSquare
-											size={16}
-											className="text-muted-foreground"
-										/>
+					{/* Right: Visual — ChatGPT-style conversation thread */}
+					<div className="relative w-full max-w-lg mt-4 ml-10 lg:mt-4 animate-fade-in-up animation-delay-500">
+						{/* Chat window frame */}
+						<div className="bg-surface-raised rounded-lg border border-border-visible overflow-hidden shadow-lg">
+							{/* Chat header bar */}
+							<div className="flex items-center justify-between px-4 py-2.5 border-b border-border-subtle bg-surface-inset/50">
+								<div className="flex items-center gap-2">
+									<div className="w-5 h-5 rounded-full bg-[hsl(160,60%,45%)] flex items-center justify-center">
+										<span className="text-white text-[10px] font-bold">
+											✦
+										</span>
 									</div>
-									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-										The old way
+									<span className="text-sm font-medium text-text-primary">
+										ChatGPT
+									</span>
+									<span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-inset border border-border-subtle text-text-tertiary">
+										4o
 									</span>
 								</div>
-								<div className="bg-surface-inset rounded-sm p-4 text-sm text-muted-foreground leading-relaxed font-mono">
-									<p>
-										&quot;Hey ChatGPT, here is my resume and
-										the JD I&apos;m applying for. Can you
-										rewrite my resume to be ATS-friendly and
-										tailored…&quot;
-									</p>
-								</div>
-								<div className="mt-3 flex flex-wrap gap-2">
-									{[
-										"Inconsistent results",
-										"Invents experience",
-										"Bad formatting",
-									].map((tag) => (
-										<span
-											key={tag}
-											className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-error/10 text-error/80"
-										>
-											<span className="w-1 h-1 rounded-full bg-error/60" />
-											{tag}
-										</span>
-									))}
+								<div className="flex gap-1.5">
+									<div className="w-2.5 h-2.5 rounded-full bg-text-tertiary/30" />
+									<div className="w-2.5 h-2.5 rounded-full bg-text-tertiary/30" />
+									<div className="w-2.5 h-2.5 rounded-full bg-text-tertiary/30" />
 								</div>
 							</div>
 
-							{/* Right card: ATSResumie output */}
-							<div className="bg-surface-raised rounded-sm border border-accent/30 p-5 relative shadow-lg">
-								<div className="flex items-center gap-2 mb-3">
-									<div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-										<FileCheck
-											size={16}
+							{/* Chat messages area */}
+							<div className="px-4 py-5 space-y-5 overflow-hidden">
+								{/* User message - right aligned */}
+								<div className="flex items-start gap-2.5 justify-end animate-fade-in-up animation-delay-600">
+									<div className="max-w-[85%]">
+										<div className="bg-[hsl(30,8%,18%)] rounded-2xl rounded-br-sm px-4 py-3 text-sm text-text-primary leading-relaxed">
+											Hey ChatGPT, here is my resume and
+											the JD I&apos;m applying for. Can
+											you rewrite my resume to be
+											ATS-friendly and tailored to the
+											role?
+										</div>
+									</div>
+									<div className="w-7 h-7 rounded-full bg-accent/80 flex items-center justify-center flex-shrink-0 mt-0.5">
+										<span className="text-white text-xs font-semibold">
+											U
+										</span>
+									</div>
+								</div>
+
+								{/* ChatGPT response - left aligned */}
+								<div className="flex items-start gap-2.5 animate-fade-in-up animation-delay-800">
+									<div className="w-7 h-7 rounded-full bg-[hsl(160,60%,45%)] flex items-center justify-center flex-shrink-0 mt-0.5">
+										<span className="text-white text-[10px] font-bold">
+											✦
+										</span>
+									</div>
+									<div className="max-w-[85%]">
+										<div className="bg-surface-inset rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-text-secondary leading-relaxed space-y-2">
+											<p>
+												Sure! Here&apos;s a tailored
+												version:
+											</p>
+											<p className="text-text-tertiary italic">
+												• &quot;Spearheaded a
+												transformative digital strategy
+												overhaul resulting in
+												unprecedented operational
+												synergies…&quot;
+											</p>
+											<p className="text-text-tertiary italic">
+												• &quot;Orchestrated
+												cross-functional stakeholder
+												alignment driving 500% ROI
+												across global markets…&quot;
+											</p>
+										</div>
+										{/* Warning tags */}
+										<div className="mt-2 flex flex-wrap gap-1.5">
+											{[
+												"Inconsistent results",
+												"Invents experience",
+												"Bad formatting",
+											].map((tag) => (
+												<span
+													key={tag}
+													className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-error/10 text-error/80"
+												>
+													<span className="w-1 h-1 rounded-full bg-error/60" />
+													{tag}
+												</span>
+											))}
+										</div>
+									</div>
+								</div>
+
+								{/* Divider — "Try ATSResumie instead" */}
+								<div className="flex items-center gap-3 animate-fade-in animation-delay-1000">
+									<div className="flex-1 h-px bg-border-subtle" />
+									<div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20">
+										<ArrowRight
+											size={12}
 											className="text-accent"
 										/>
-									</div>
-									<span className="text-xs font-medium text-accent uppercase tracking-wide">
-										The ATSResumie way
-									</span>
-								</div>
-								<div className="space-y-2.5">
-									{[
-										"Led migration of 3 legacy services to cloud-native microservices, reducing deployment time by 40%",
-										"Built real-time data pipeline processing 2M+ events/day using Kafka and Python",
-										"Designed CI/CD workflow adopted by 4 teams, cutting release cycles from 2 weeks to 2 days",
-									].map((bullet, i) => (
-										<div
-											key={i}
-											className={`flex items-start gap-2 text-sm text-text-primary animate-fade-in-left animation-delay-${700 + i * 100}`}
-										>
-											<ArrowRight
-												size={14}
-												className="text-accent mt-0.5 flex-shrink-0"
-											/>
-											<span>{bullet}</span>
-										</div>
-									))}
-								</div>
-								<div className="mt-3 flex flex-wrap gap-2">
-									{[
-										"Job-aligned",
-										"Truthful",
-										"ATS-ready",
-									].map((tag) => (
-										<span
-											key={tag}
-											className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-accent/10 text-accent"
-										>
-											<span className="w-1 h-1 rounded-full bg-accent" />
-											{tag}
+										<span className="text-[11px] font-medium text-accent">
+											Try ATSResumie instead
 										</span>
-									))}
+									</div>
+									<div className="flex-1 h-px bg-border-subtle" />
+								</div>
+
+								{/* ATSResumie response - left aligned, accent-styled */}
+								<div className="flex items-start gap-2.5 animate-fade-in-up animation-delay-1100">
+									<div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
+										<FileCheck
+											size={13}
+											className="text-white"
+										/>
+									</div>
+									<div className="max-w-[85%]">
+										<div className="bg-accent/5 border border-accent/20 rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-text-primary leading-relaxed space-y-2">
+											{[
+												"Led migration of 3 legacy services to cloud-native microservices, reducing deployment time by 40%",
+												"Built real-time data pipeline processing 2M+ events/day using Kafka and Python",
+												"Designed CI/CD workflow adopted by 4 teams, cutting release cycles from 2 weeks to 2 days",
+											].map((bullet, i) => (
+												<div
+													key={i}
+													className="flex items-start gap-2"
+												>
+													<ArrowRight
+														size={13}
+														className="text-accent mt-0.5 flex-shrink-0"
+													/>
+													<span>{bullet}</span>
+												</div>
+											))}
+										</div>
+										{/* Success tags */}
+										<div className="mt-2 flex flex-wrap gap-1.5">
+											{[
+												"Job-aligned",
+												"Truthful",
+												"ATS-ready",
+											].map((tag) => (
+												<span
+													key={tag}
+													className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-accent/10 text-accent"
+												>
+													<span className="w-1 h-1 rounded-full bg-accent" />
+													{tag}
+												</span>
+											))}
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						{/* Floating decoration */}
-						<div className="absolute -top-4 -right-4 w-24 h-24 rounded-sm bg-surface-raised border border-border/30 hidden lg:flex items-center justify-center animate-float">
-							<span className="font-display text-3xl">📄</span>
+							{/* Fake input bar at the bottom */}
+							<div className="px-4 py-3 border-t border-border-subtle bg-surface-inset/30">
+								<div className="flex items-center gap-2 bg-surface-inset rounded-xl px-4 py-2.5 border border-border-subtle">
+									<span className="text-sm text-text-tertiary flex-1">
+										Message ChatGPT…
+									</span>
+									<div className="w-7 h-7 rounded-lg bg-text-tertiary/20 flex items-center justify-center">
+										<ArrowRight
+											size={14}
+											className="text-text-tertiary -rotate-90"
+										/>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
 			{/* Scroll indicator */}
-			<div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in animation-delay-1000">
+			<div className="absolute bottom-18 left-1/2 -translate-x-1/2 animate-fade-in animation-delay-1000">
 				<div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2 animate-bounce-slow">
 					<div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
 				</div>
