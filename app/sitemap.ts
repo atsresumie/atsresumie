@@ -5,9 +5,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
 	return [
 		{ url: `${baseUrl}/`, lastModified: new Date() },
-		// Add real pages as you create them:
+		{ url: `${baseUrl}/get-started`, lastModified: new Date() },
+		// Uncomment as you create these pages:
 		// { url: `${baseUrl}/pricing`, lastModified: new Date() },
-		// { url: `${baseUrl}/privacy`, lastModified: new Date() },
-		// { url: `${baseUrl}/terms`, lastModified: new Date() },
+		{ url: `${baseUrl}/privacy`, lastModified: new Date() },
+		{ url: `${baseUrl}/terms`, lastModified: new Date() },
 	];
 }
