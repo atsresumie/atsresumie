@@ -1,27 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import { X, Check } from "lucide-react";
+import { X, Check, ArrowRight } from "lucide-react";
 
 /**
  * BeforeAfter Component - Client Component (for toggle state)
  * Uses CSS transitions instead of framer-motion
  */
 
-const beforePoints = [
-	"Generic objective statement",
-	"Inconsistent formatting",
-	"Missing keywords",
-	"Dense paragraphs",
-	"Irrelevant skills listed",
+const beforeBullets = [
+	{
+		label: "General Resume",
+		bullet: "Managed various projects and contributed to team goals across departments",
+	},
+	{
+		label: "General Resume",
+		bullet: "Worked with databases and backend systems to improve performance",
+	},
+	{
+		label: "General Resume",
+		bullet: "Helped develop software solutions for internal and external use",
+	},
 ];
 
-const afterPoints = [
-	"Tailored professional summary",
-	"ATS-compatible structure",
-	"Job-matched keywords",
-	"Clear bullet points",
-	"Role-specific skills highlighted",
+const afterBullets = [
+	{
+		label: "Tailored for this Job",
+		bullet: "Led migration of 3 legacy services to AWS, reducing deployment time by 40%",
+	},
+	{
+		label: "Tailored for this Job",
+		bullet: "Optimized PostgreSQL queries processing 2M+ records/day, cutting latency by 60%",
+	},
+	{
+		label: "Tailored for this Job",
+		bullet: "Built CI/CD pipeline with GitHub Actions adopted by 4 engineering teams",
+	},
 ];
 
 export const BeforeAfter = () => {
@@ -39,7 +53,8 @@ export const BeforeAfter = () => {
 						The transformation
 					</h2>
 					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
-						See how we optimize your resume for ATS success
+						See how ATSResumie rewrites your bullets for the
+						specific role
 					</p>
 				</div>
 
@@ -54,7 +69,7 @@ export const BeforeAfter = () => {
 									: "text-text-secondary hover:text-text-primary"
 							}`}
 						>
-							Before
+							General Resume
 						</button>
 						<button
 							onClick={() => setShowAfter(true)}
@@ -64,7 +79,7 @@ export const BeforeAfter = () => {
 									: "text-text-secondary hover:text-text-primary"
 							}`}
 						>
-							After
+							Tailored for this Job
 						</button>
 					</div>
 				</div>
@@ -85,20 +100,20 @@ export const BeforeAfter = () => {
 									<X size={18} className="text-error" />
 								</div>
 								<h3 className="font-display text-xl font-medium">
-									Common resume issues
+									General Resume
 								</h3>
 							</div>
 							<ul className="space-y-4">
-								{beforePoints.map((point, i) => (
+								{beforeBullets.map((item, i) => (
 									<li
-										key={point}
-										className="flex items-center gap-3 text-text-secondary"
+										key={i}
+										className="flex items-start gap-3 text-text-secondary"
 										style={{
 											animationDelay: `${i * 50}ms`,
 										}}
 									>
-										<div className="w-1.5 h-1.5 rounded-full bg-error/60" />
-										{point}
+										<div className="w-1.5 h-1.5 rounded-full bg-error/60 mt-2 flex-shrink-0" />
+										<span>{item.bullet}</span>
 									</li>
 								))}
 							</ul>
@@ -117,20 +132,23 @@ export const BeforeAfter = () => {
 									<Check size={18} className="text-accent" />
 								</div>
 								<h3 className="font-display text-xl font-medium">
-									After atsresumie
+									Tailored for this Job
 								</h3>
 							</div>
 							<ul className="space-y-4">
-								{afterPoints.map((point, i) => (
+								{afterBullets.map((item, i) => (
 									<li
-										key={point}
-										className="flex items-center gap-3 text-text-primary"
+										key={i}
+										className="flex items-start gap-3 text-text-primary"
 										style={{
 											animationDelay: `${i * 50}ms`,
 										}}
 									>
-										<div className="w-1.5 h-1.5 rounded-full bg-accent" />
-										{point}
+										<ArrowRight
+											size={14}
+											className="text-accent mt-1 flex-shrink-0"
+										/>
+										<span>{item.bullet}</span>
 									</li>
 								))}
 							</ul>

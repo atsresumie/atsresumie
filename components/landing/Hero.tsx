@@ -1,4 +1,4 @@
-import { Sparkles, Download, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -34,28 +34,27 @@ export const Hero = () => {
 			/>
 
 			{/* Content */}
-			<div className="relative z-10 container mx-auto px-4 py-20 md:py-32">
-				<div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center justify-center">
+			<div className="relative z-10 container mx-auto px-4 py-12 md:py-16">
+				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-center justify-center">
 					{/* Left: Text Content */}
-					<div className="text-center pt-8 lg:pt-16 max-w-xl">
+					<div className="text-center mt-10 lg:text-left pt-8 lg:pt-12 max-w-xl">
 						{/* Badge */}
-						<div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground animate-fade-in-up animation-delay-100">
+						<div className="inline-flex items-center gap-2 px-4 py-1.5 mb-4 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground animate-fade-in-up animation-delay-100">
 							<Sparkles size={14} className="text-accent" />
 							<span>3 free credits included</span>
 						</div>
 
 						{/* Headline */}
-						<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 animate-fade-in-up animation-delay-200">
-							ATS-optimized resumes,{" "}
-							<span className="text-gradient">
-								generated as LaTeX.
-							</span>
+						<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-4 animate-fade-in-up animation-delay-200">
+							Your resume, tailored to the job —{" "}
+							<span className="text-gradient">ATS-ready.</span>
 						</h1>
 
 						{/* Subheadline */}
-						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-fade-in-up animation-delay-300">
-							Paste a job description + your resume. Get an
-							ATS-friendly PDF and LaTeX source in minutes.
+						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 animate-fade-in-up animation-delay-300">
+							Upload your resume and paste the job description.
+							ATSResumie rewrites your bullets to match the role —
+							without inventing experience.
 						</p>
 
 						{/* CTAs */}
@@ -65,154 +64,160 @@ export const Hero = () => {
 								className="w-full sm:w-auto"
 							>
 								<button className="w-full sm:w-auto px-8 py-4 bg-accent text-accent-foreground font-semibold rounded-sm hover:bg-accent-hover transition-all hover:-translate-y-0.5 active:scale-[0.98]">
-									Get Started
+									Tailor my resume
 								</button>
 							</Link>
 							<a
 								href="#how-it-works"
-								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border hover:bg-muted/50 transition-all hover:-translate-y-0.5"
+								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border hover:bg-muted/50 transition-all hover:-translate-y-0.5 text-center"
 							>
 								See how it works
 							</a>
 						</div>
 					</div>
 
-					{/* Right: Preview Card */}
-					<div className="relative w-[80vw] max-w-4xl mt-12 lg:mt-16 animate-fade-in-up animation-delay-500">
-						<div className="bg-surface-raised rounded-sm border border-border-visible p-6">
-							{/* ATS Score Ring */}
-							<div className="flex items-center gap-6 mb-6">
-								<div className="relative w-20 h-20">
-									<svg
-										className="w-20 h-20 -rotate-90"
-										viewBox="0 0 80 80"
-									>
-										<circle
-											cx="40"
-											cy="40"
-											r="35"
-											fill="none"
-											stroke="hsl(var(--muted))"
-											strokeWidth="6"
-										/>
-										<circle
-											cx="40"
-											cy="40"
-											r="35"
-											fill="none"
-											stroke="var(--accent)"
-											strokeWidth="6"
-											strokeLinecap="round"
-											strokeDasharray="220"
-											strokeDashoffset="44"
-											className="animate-progress-fill"
-										/>
-									</svg>
-									<div className="absolute inset-0 flex items-center justify-center">
-										<span className="font-display text-2xl font-semibold text-foreground animate-fade-in animation-delay-800">
-											80%
+					{/* Right: Visual — ChatGPT-style conversation thread */}
+					<div
+						className="relative w-full max-w-lg mt-4 ml-10 lg:mt-4 animate-fade-in-up animation-delay-500"
+						style={{ overflow: "visible" }}
+					>
+						{/* Chat window frame */}
+						<div className="bg-surface-raised rounded-lg border border-border-visible overflow-hidden shadow-lg">
+							{/* Chat header bar */}
+							<div className="flex items-center justify-between px-4 py-2.5 border-b border-border-subtle bg-surface-inset/50">
+								<div className="flex items-center gap-2">
+									<div className="w-5 h-5 rounded-full bg-[hsl(160,60%,45%)] flex items-center justify-center">
+										<span className="text-white text-[10px] font-bold">
+											✦
+										</span>
+									</div>
+									<span className="text-sm font-medium text-text-primary">
+										ChatGPT
+									</span>
+									<span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-inset border border-border-subtle text-text-tertiary">
+										4o
+									</span>
+								</div>
+								<div className="flex gap-1.5">
+									<div className="w-2.5 h-2.5 rounded-full bg-text-tertiary/30" />
+									<div className="w-2.5 h-2.5 rounded-full bg-text-tertiary/30" />
+									<div className="w-2.5 h-2.5 rounded-full bg-text-tertiary/30" />
+								</div>
+							</div>
+
+							{/* Chat messages area */}
+							<div className="px-4 py-5 space-y-5 overflow-hidden">
+								{/* User message - right aligned */}
+								<div className="flex items-start gap-2.5 justify-end animate-fade-in-up animation-delay-600">
+									<div className="max-w-[85%]">
+										<div className="bg-[hsl(30,8%,18%)] rounded-2xl rounded-br-sm px-4 py-3 text-sm text-text-primary leading-relaxed">
+											Hey ChatGPT, here is my resume and
+											the JD I&apos;m applying for. Can
+											you rewrite my resume to be
+											ATS-friendly and tailored to the
+											role?
+										</div>
+									</div>
+									<div className="w-7 h-7 rounded-full bg-accent/80 flex items-center justify-center flex-shrink-0 mt-0.5">
+										<span className="text-white text-xs font-semibold">
+											U
 										</span>
 									</div>
 								</div>
-								<div>
-									<h3 className="font-display text-lg font-medium text-foreground mb-1">
-										ATS Score
-									</h3>
-									<p className="text-sm text-muted-foreground">
-										Optimized for tracking systems
-									</p>
-								</div>
-							</div>
 
-							{/* Keyword Match Bars */}
-							<div className="space-y-3 mb-6">
-								{[
-									{
-										label: "Keyword Match",
-										value: 85,
-										delay: "600",
-									},
-									{
-										label: "Format Score",
-										value: 92,
-										delay: "700",
-									},
-									{
-										label: "Section Structure",
-										value: 78,
-										delay: "800",
-									},
-								].map((item) => (
-									<div key={item.label}>
-										<div className="flex justify-between text-sm mb-1">
-											<span className="text-muted-foreground">
-												{item.label}
-											</span>
-											<span className="text-foreground font-medium">
-												{item.value}%
-											</span>
+								{/* ChatGPT response - left aligned */}
+								<div className="flex items-start gap-2.5 animate-fade-in-up animation-delay-800">
+									<div className="w-7 h-7 rounded-full bg-[hsl(160,60%,45%)] flex items-center justify-center flex-shrink-0 mt-0.5">
+										<span className="text-white text-[10px] font-bold">
+											✦
+										</span>
+									</div>
+									<div className="max-w-[85%]">
+										<div className="bg-surface-inset rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-text-secondary leading-relaxed space-y-2">
+											<p>
+												Sure! Here&apos;s a tailored
+												version:
+											</p>
+											<p className="text-text-tertiary italic">
+												• &quot;Spearheaded a
+												transformative digital strategy
+												overhaul resulting in
+												unprecedented operational
+												synergies…&quot;
+											</p>
+											<p className="text-text-tertiary italic">
+												• &quot;Orchestrated
+												cross-functional stakeholder
+												alignment driving 500% ROI
+												across global markets…&quot;
+											</p>
 										</div>
-										<div className="h-2 bg-muted rounded-full overflow-hidden">
-											<div
-												className={`h-full rounded-full bg-accent animate-bar-fill animation-delay-${item.delay}`}
-												style={{
-													width: `${item.value}%`,
-												}}
-											/>
+										{/* Warning tags */}
+										<div className="mt-2 flex flex-wrap gap-1.5">
+											{[
+												"Inconsistent results",
+												"Invents experience",
+												"Bad formatting",
+											].map((tag) => (
+												<span
+													key={tag}
+													className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-error/10 text-error/80"
+												>
+													<span className="w-1 h-1 rounded-full bg-error/60" />
+													{tag}
+												</span>
+											))}
 										</div>
 									</div>
-								))}
-							</div>
+								</div>
 
-							{/* Improvements */}
-							<div className="border-t border-border/50 pt-4 mb-6">
-								<h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-									<TrendingUp
-										size={14}
-										className="text-accent"
-									/>
-									Improvements Applied
-								</h4>
-								<div className="space-y-2">
-									{[
-										"Action verbs optimized",
-										"Skills section enhanced",
-										"ATS-safe formatting",
-									].map((item, i) => (
-										<div
-											key={item}
-											className={`flex items-center gap-2 text-sm text-muted-foreground animate-fade-in-left animation-delay-${900 + i * 100}`}
-										>
-											<CheckCircle2
-												size={14}
-												className="text-accent"
-											/>
-											{item}
+								{/* ChatGPT suggestion reply */}
+								<div className="flex items-start gap-2.5 animate-fade-in-up animation-delay-1000">
+									<div className="w-7 h-7 rounded-full bg-[hsl(160,60%,45%)] flex items-center justify-center flex-shrink-0 mt-0.5">
+										<span className="text-white text-[10px] font-bold">
+											✦
+										</span>
+									</div>
+									<div className="max-w-[85%]">
+										<div className="bg-accent/8 border border-accent/20 rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed">
+											<p className="text-text-secondary">
+												For more{" "}
+												<span className="text-accent font-medium">
+													accurate, job-aligned
+												</span>{" "}
+												results without hallucination,
+												try{" "}
+												<span className="text-accent font-semibold">
+													ATSResumie
+												</span>{" "}
+												→
+											</p>
 										</div>
-									))}
+									</div>
 								</div>
 							</div>
 
-							{/* Download Button (Demo) */}
-							<button
-								disabled
-								className="w-full py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
-							>
-								<Download size={18} />
-								Download PDF (1 credit)
-							</button>
-						</div>
-
-						{/* Floating decoration */}
-						<div className="absolute -top-4 -right-4 w-24 h-24 rounded-sm bg-surface-raised border border-border/30 hidden lg:flex items-center justify-center animate-float">
-							<span className="font-display text-3xl">📄</span>
+							{/* Fake input bar at the bottom */}
+							<div className="px-4 py-3 border-t border-border-subtle bg-surface-inset/30">
+								<div className="flex items-center gap-2 bg-surface-inset rounded-xl px-4 py-2.5 border border-border-subtle">
+									<span className="text-sm text-text-tertiary flex-1">
+										Message ChatGPT…
+									</span>
+									<div className="w-7 h-7 rounded-lg bg-text-tertiary/20 flex items-center justify-center">
+										<ArrowRight
+											size={14}
+											className="text-text-tertiary -rotate-90"
+										/>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
 			{/* Scroll indicator */}
-			<div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in animation-delay-1000">
+			<div className="absolute bottom-18 left-1/2 -translate-x-1/2 animate-fade-in animation-delay-1000">
 				<div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2 animate-bounce-slow">
 					<div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
 				</div>

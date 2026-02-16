@@ -1,4 +1,4 @@
-import { FileText, Eye, Download, ArrowRight } from "lucide-react";
+import { Upload, ClipboardPaste, Download, ArrowRight } from "lucide-react";
 
 /**
  * HowItWorks Component - Server Component (no framer-motion)
@@ -7,24 +7,24 @@ import { FileText, Eye, Download, ArrowRight } from "lucide-react";
 const steps = [
 	{
 		number: "01",
-		icon: FileText,
-		title: "Paste JD + Resume + Focus",
+		icon: Upload,
+		title: "Upload your resume",
 		description:
-			"Upload or paste your current resume and the job description. Add optional focus areas.",
+			"Upload your current resume as PDF or DOCX — we'll parse it automatically.",
 	},
 	{
 		number: "02",
-		icon: Eye,
-		title: "Preview ATS Match",
+		icon: ClipboardPaste,
+		title: "Paste the job description",
 		description:
-			"See your ATS score, keyword matches, and suggested improvements in real-time.",
+			"Paste the job posting you're targeting. We'll identify the key requirements and skills.",
 	},
 	{
 		number: "03",
 		icon: Download,
-		title: "Export PDF + LaTeX",
+		title: "Generate → review → download",
 		description:
-			"Download your optimized resume as PDF and get the LaTeX source. Uses 1 credit.",
+			"Get a tailored, ATS-ready resume. Review the changes, then download your PDF.",
 	},
 ];
 
