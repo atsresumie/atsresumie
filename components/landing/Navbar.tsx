@@ -82,11 +82,11 @@ export const Navbar = () => {
 								className="flex items-center gap-2 font-display text-xl md:text-2xl font-semibold text-foreground"
 							>
 								<Image
-									src="/logo.png"
+									src="/logo3.png"
 									alt="atsresumie logo"
-									width={56}
-									height={56}
-									className="w-14 h-14"
+									width={40}
+									height={40}
+									className="w-10 h-10"
 								/>
 								atsresumie
 							</Link>

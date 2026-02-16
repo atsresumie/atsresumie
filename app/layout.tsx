@@ -40,6 +40,7 @@ export const jsonLd = {
 };
 
 export const metadata = {
+	manifest: "/site.webmanifest",
 	title: "atsresumie – ATS-Optimized Resume Generator",
 	description:
 		"Generate ATS-optimized resumes as LaTeX. Paste your job description and resume, get a professional PDF in minutes. 3 free credits included.",
