@@ -1,4 +1,4 @@
-import { Sparkles, ArrowRight, FileCheck } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -35,7 +35,7 @@ export const Hero = () => {
 
 			{/* Content */}
 			<div className="relative z-10 container mx-auto px-4 py-12 md:py-16">
-				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start justify-center">
+				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-center justify-center">
 					{/* Left: Text Content */}
 					<div className="text-center mt-10 lg:text-left pt-8 lg:pt-12 max-w-xl">
 						{/* Badge */}
@@ -77,7 +77,10 @@ export const Hero = () => {
 					</div>
 
 					{/* Right: Visual — ChatGPT-style conversation thread */}
-					<div className="relative w-full max-w-lg mt-4 ml-10 lg:mt-4 animate-fade-in-up animation-delay-500">
+					<div
+						className="relative w-full max-w-lg mt-4 ml-10 lg:mt-4 animate-fade-in-up animation-delay-500"
+						style={{ overflow: "visible" }}
+					>
 						{/* Chat window frame */}
 						<div className="bg-surface-raised rounded-lg border border-border-visible overflow-hidden shadow-lg">
 							{/* Chat header bar */}
@@ -168,63 +171,27 @@ export const Hero = () => {
 									</div>
 								</div>
 
-								{/* Divider — "Try ATSResumie instead" */}
-								<div className="flex items-center gap-3 animate-fade-in animation-delay-1000">
-									<div className="flex-1 h-px bg-border-subtle" />
-									<div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20">
-										<ArrowRight
-											size={12}
-											className="text-accent"
-										/>
-										<span className="text-[11px] font-medium text-accent">
-											Try ATSResumie instead
+								{/* ChatGPT suggestion reply */}
+								<div className="flex items-start gap-2.5 animate-fade-in-up animation-delay-1000">
+									<div className="w-7 h-7 rounded-full bg-[hsl(160,60%,45%)] flex items-center justify-center flex-shrink-0 mt-0.5">
+										<span className="text-white text-[10px] font-bold">
+											✦
 										</span>
 									</div>
-									<div className="flex-1 h-px bg-border-subtle" />
-								</div>
-
-								{/* ATSResumie response - left aligned, accent-styled */}
-								<div className="flex items-start gap-2.5 animate-fade-in-up animation-delay-1100">
-									<div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
-										<FileCheck
-											size={13}
-											className="text-white"
-										/>
-									</div>
 									<div className="max-w-[85%]">
-										<div className="bg-accent/5 border border-accent/20 rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-text-primary leading-relaxed space-y-2">
-											{[
-												"Led migration of 3 legacy services to cloud-native microservices, reducing deployment time by 40%",
-												"Built real-time data pipeline processing 2M+ events/day using Kafka and Python",
-												"Designed CI/CD workflow adopted by 4 teams, cutting release cycles from 2 weeks to 2 days",
-											].map((bullet, i) => (
-												<div
-													key={i}
-													className="flex items-start gap-2"
-												>
-													<ArrowRight
-														size={13}
-														className="text-accent mt-0.5 flex-shrink-0"
-													/>
-													<span>{bullet}</span>
-												</div>
-											))}
-										</div>
-										{/* Success tags */}
-										<div className="mt-2 flex flex-wrap gap-1.5">
-											{[
-												"Job-aligned",
-												"Truthful",
-												"ATS-ready",
-											].map((tag) => (
-												<span
-													key={tag}
-													className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-accent/10 text-accent"
-												>
-													<span className="w-1 h-1 rounded-full bg-accent" />
-													{tag}
-												</span>
-											))}
+										<div className="bg-accent/8 border border-accent/20 rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed">
+											<p className="text-text-secondary">
+												For more{" "}
+												<span className="text-accent font-medium">
+													accurate, job-aligned
+												</span>{" "}
+												results without hallucination,
+												try{" "}
+												<span className="text-accent font-semibold">
+													ATSResumie
+												</span>{" "}
+												→
+											</p>
 										</div>
 									</div>
 								</div>
