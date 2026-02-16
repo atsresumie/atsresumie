@@ -151,7 +151,7 @@ export const Navbar = () => {
 											>
 												<Link
 													href="/get-started"
-													className="px-5 py-2.5 bg-secondary text-secondary-foreground font-medium text-sm rounded-xl shadow-soft hover:shadow-glow transition-all inline-block"
+													className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-white/5 text-secondary-foreground backdrop-blur-md border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.30)] hover:bg-white/8 hover:border-white/15 transition-all"
 												>
 													Get Started
 												</Link>

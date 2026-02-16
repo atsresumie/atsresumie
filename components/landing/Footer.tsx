@@ -1,10 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-/**
- * Footer Component - Server Component (no framer-motion)
- */
-
 const footerLinks = [
 	{ label: "Privacy", href: "#" },
 	{ label: "Terms", href: "#" },
@@ -22,10 +18,10 @@ export const Footer = () => {
 						className="flex items-center gap-2 font-display text-lg font-semibold text-text-primary hover:text-accent transition-colors"
 					>
 						<Image
-							src="/logo.png"
+							src="/logo3.png"
 							alt="atsresumie logo"
-							width={48}
-							height={48}
+							width={40}
+							height={40}
 							className="w-12 h-12"
 						/>
 						atsresumie
