@@ -1,1 +1,4 @@
-public/pdf.worker.min.mjs linguist-vendored
+# Exclude vendored JS from GitHub language stats
+public/pdf.worker.min.mjs linguist-vendored=true
+eslint.config.mjs linguist-vendored=true
+postcss.config.mjs linguist-vendored=true
