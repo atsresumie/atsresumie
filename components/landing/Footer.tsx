@@ -22,7 +22,25 @@ export const Footer = () => {
 					</Link>
 
 					{/* Links */}
-					<nav className="flex items-center gap-8">
+					<nav className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+						<Link
+							href="/how-it-works"
+							className="text-sm text-text-secondary hover:text-text-primary transition-colors hover:-translate-y-0.5"
+						>
+							How it works
+						</Link>
+						<Link
+							href="/examples"
+							className="text-sm text-text-secondary hover:text-text-primary transition-colors hover:-translate-y-0.5"
+						>
+							Examples
+						</Link>
+						<Link
+							href="/resume-tailor-job-description"
+							className="text-sm text-text-secondary hover:text-text-primary transition-colors hover:-translate-y-0.5"
+						>
+							Tailor to JD
+						</Link>
 						<Link
 							href="/privacy"
 							className="text-sm text-text-secondary hover:text-text-primary transition-colors hover:-translate-y-0.5"
