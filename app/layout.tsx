@@ -29,13 +29,29 @@ export { displayFont, bodyFont, monoFont };
 export const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "SoftwareApplication",
-	name: "atsresumie",
+	name: "ATSResumie",
 	applicationCategory: "BusinessApplication",
-	description: "Generate ATS-optimized resumes as LaTeX and export PDF.",
+	operatingSystem: "Web",
+	description:
+		"ATS-friendly resume tailoring from your resume and a job description.",
 	offers: {
-		"@type": "Offer",
-		price: "0",
+		"@type": "AggregateOffer",
 		priceCurrency: "USD",
+		lowPrice: "0",
+		offerCount: "3",
+		offers: [
+			{
+				"@type": "Offer",
+				price: "0",
+				priceCurrency: "USD",
+				description: "Free tier with starter credits",
+			},
+			{
+				"@type": "Offer",
+				priceCurrency: "USD",
+				description: "Subscription plans available",
+			},
+		],
 	},
 };
 

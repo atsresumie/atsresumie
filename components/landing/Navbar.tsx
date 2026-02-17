@@ -15,6 +15,11 @@ const marketingLinks = [
 	{ label: "FAQ", href: "#faq" },
 ];
 
+const pageLinks = [
+	{ label: "Examples", href: "/examples" },
+	{ label: "Tailor to JD", href: "/resume-tailor-job-description" },
+];
+
 export const Navbar = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { openAuthModal } = useAuthModal();
@@ -104,6 +109,22 @@ export const Navbar = () => {
 								>
 									{link.label}
 								</motion.button>
+							))}
+
+							{/* Page Links */}
+							{pageLinks.map((link) => (
+								<motion.div
+									key={link.label}
+									whileHover={{ y: -1 }}
+									whileTap={{ y: 0 }}
+								>
+									<Link
+										href={link.href}
+										className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+									>
+										{link.label}
+									</Link>
+								</motion.div>
 							))}
 
 							{/* Auth Controls */}
@@ -203,6 +224,36 @@ export const Navbar = () => {
 						>
 							{link.label}
 						</motion.button>
+					))}
+
+					{/* Page Links */}
+					{pageLinks.map((link, i) => (
+						<motion.div
+							key={link.label}
+							initial={{ opacity: 0, y: 20 }}
+							animate={
+								isOpen
+									? {
+											opacity: 1,
+											y: 0,
+											transition: {
+												delay:
+													marketingLinks.length *
+														0.1 +
+													i * 0.1,
+											},
+										}
+									: { opacity: 0, y: 20 }
+							}
+						>
+							<Link
+								href={link.href}
+								onClick={() => setIsOpen(false)}
+								className="text-xl font-display font-medium text-muted-foreground hover:text-foreground transition-colors"
+							>
+								{link.label}
+							</Link>
+						</motion.div>
 					))}
 
 					{/* Mobile Auth Buttons */}
