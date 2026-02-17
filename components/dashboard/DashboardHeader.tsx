@@ -65,7 +65,7 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
 							)}
 						>
 							<Image
-								src="/logo.png"
+								src="/logo3.png"
 								alt="atsresumie logo"
 								width={32}
 								height={32}
