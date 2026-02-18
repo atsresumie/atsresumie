@@ -121,6 +121,7 @@ export default function GetStartedPage() {
 										isExporting={form.isExporting}
 										onEditInputs={() => form.setStep(1)}
 										onExport={form.exportPdf}
+										generationJobId={form.generationJobId}
 									/>
 								)}
 						</div>

@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { useDownloads, type DownloadItem } from "@/hooks/useDownloads";
 import { getRelativeTime } from "@/hooks/useGenerations";
+import { useExportModal } from "@/hooks/useExportModal";
+import { ExportModal } from "@/components/dashboard/ExportModal";
 import { toast } from "sonner";
 
 type SortOrder = "newest" | "oldest";
@@ -133,64 +135,13 @@ function AvailableBadge() {
 function DownloadRow({
 	item,
 	onViewSource,
+	onOpenExport,
 }: {
 	item: DownloadItem;
 	onViewSource: (jobId: string) => void;
+	onOpenExport: (item: DownloadItem) => void;
 }) {
-	const [isDownloading, setIsDownloading] = useState(false);
-	const [downloadError, setDownloadError] = useState<string | null>(null);
-
 	const relativeTime = getRelativeTime(item.createdAt);
-
-	const handleDownload = async () => {
-		setIsDownloading(true);
-		setDownloadError(null);
-
-		// Open window synchronously to avoid popup blocker
-		const newWindow = window.open("", "_blank");
-
-		try {
-			const res = await fetch("/api/export-pdf", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ jobId: item.id }),
-			});
-
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.error || "Failed to get download URL");
-			}
-
-			const { pdfUrl } = await res.json();
-
-			if (newWindow) {
-				newWindow.location.href = pdfUrl;
-			} else {
-				// Fallback if popup was blocked
-				toast.info("Download ready", {
-					description: "Click here to download your PDF",
-					action: {
-						label: "Download",
-						onClick: () => window.open(pdfUrl, "_blank"),
-					},
-					duration: 10000,
-				});
-			}
-		} catch (err) {
-			console.error("Download error:", err);
-			const errorMsg =
-				err instanceof Error ? err.message : "Download failed";
-			setDownloadError(errorMsg);
-			toast.error("Download failed", { description: errorMsg });
-
-			// Close the empty window if we opened one
-			if (newWindow) {
-				newWindow.close();
-			}
-		} finally {
-			setIsDownloading(false);
-		}
-	};
 
 	return (
 		<div className="group flex flex-col gap-3 rounded-xl border border-border/50 bg-card/50 p-4 transition-colors hover:bg-card/80 sm:flex-row sm:items-center sm:justify-between">
@@ -211,9 +162,6 @@ function DownloadRow({
 						{relativeTime}
 					</span>
 				</div>
-				{downloadError && (
-					<p className="text-xs text-red-400">{downloadError}</p>
-				)}
 			</div>
 
 			{/* Right: Actions */}
@@ -222,14 +170,9 @@ function DownloadRow({
 					variant="default"
 					size="sm"
 					className="h-8"
-					disabled={isDownloading}
-					onClick={handleDownload}
+					onClick={() => onOpenExport(item)}
 				>
-					{isDownloading ? (
-						<Loader2 size={16} className="mr-1 animate-spin" />
-					) : (
-						<Download size={16} className="mr-1" />
-					)}
+					<Download size={16} className="mr-1" />
 					Download
 				</Button>
 
@@ -298,6 +241,7 @@ function DownloadFilters({
 function DownloadCenterContent() {
 	const router = useRouter();
 	const { downloads, isLoading, error, refetch } = useDownloads();
+	const exportModal = useExportModal();
 
 	// Filter/sort state
 	const [searchQuery, setSearchQuery] = useState("");
@@ -328,6 +272,58 @@ function DownloadCenterContent() {
 	// View source handler
 	const handleViewSource = (jobId: string) => {
 		router.push(`/dashboard/generations?highlight=${jobId}`);
+	};
+
+	// Open export modal for a download item
+	const handleOpenExport = (item: DownloadItem) => {
+		exportModal.openModal(item.id, item.label);
+	};
+
+	// PDF-specific download handler for the modal
+	const handlePdfExport = async () => {
+		if (!exportModal.jobId) return;
+
+		// Open window synchronously to avoid popup blocker
+		const newWindow = window.open("", "_blank");
+
+		try {
+			const res = await fetch("/api/export-pdf", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ jobId: exportModal.jobId }),
+			});
+
+			if (!res.ok) {
+				const data = await res.json();
+				throw new Error(data.error || "Failed to get download URL");
+			}
+
+			const { pdfUrl } = await res.json();
+
+			if (newWindow) {
+				newWindow.location.href = pdfUrl;
+			} else {
+				toast.info("Download ready", {
+					description: "Click here to download your PDF",
+					action: {
+						label: "Download",
+						onClick: () => window.open(pdfUrl, "_blank"),
+					},
+					duration: 10000,
+				});
+			}
+
+			exportModal.closeModal();
+		} catch (err) {
+			console.error("Download error:", err);
+			const errorMsg =
+				err instanceof Error ? err.message : "Download failed";
+			toast.error("Download failed", { description: errorMsg });
+
+			if (newWindow) {
+				newWindow.close();
+			}
+		}
 	};
 
 	return (
@@ -364,10 +360,21 @@ function DownloadCenterContent() {
 							key={item.id}
 							item={item}
 							onViewSource={handleViewSource}
+							onOpenExport={handleOpenExport}
 						/>
 					))}
 				</div>
 			)}
+
+			{/* Export Modal */}
+			<ExportModal
+				open={exportModal.isOpen}
+				onOpenChange={(open) => !open && exportModal.closeModal()}
+				selectedFormat={exportModal.selectedFormat}
+				onFormatChange={exportModal.setSelectedFormat}
+				onDownload={() => exportModal.handleExport(handlePdfExport)}
+				isExporting={exportModal.isExporting}
+			/>
 		</>
 	);
 }

@@ -19,6 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useExportModal } from "@/hooks/useExportModal";
+import { ExportModal } from "@/components/dashboard/ExportModal";
+import { toast } from "sonner";
 
 /**
  * Returns relative time string (e.g., "2 hours ago")
@@ -83,10 +86,13 @@ function StatusBadge({ status }: { status: GenerationJobStatus }) {
 /**
  * Single job row component
  */
-function JobRow({ job }: { job: GenerationJob }) {
-	const [isDownloading, setIsDownloading] = useState(false);
-	const [downloadError, setDownloadError] = useState<string | null>(null);
-
+function JobRow({
+	job,
+	onOpenExport,
+}: {
+	job: GenerationJob;
+	onOpenExport: (job: GenerationJob) => void;
+}) {
 	const label = deriveJobLabel(job.jd_text);
 	const relativeTime = getRelativeTime(job.created_at);
 	const canDownload = job.status === "succeeded" && job.pdf_object_path;
@@ -99,36 +105,6 @@ function JobRow({ job }: { job: GenerationJob }) {
 		job.pdf_status === "failed" &&
 		!job.pdf_object_path;
 
-	const handleDownload = async () => {
-		if (job.status !== "succeeded") return;
-
-		setIsDownloading(true);
-		setDownloadError(null);
-
-		try {
-			const res = await fetch("/api/export-pdf", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ jobId: job.id }),
-			});
-
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.error || "Failed to download PDF");
-			}
-
-			const { pdfUrl } = await res.json();
-			window.open(pdfUrl, "_blank");
-		} catch (err) {
-			console.error("Download error:", err);
-			setDownloadError(
-				err instanceof Error ? err.message : "Download failed",
-			);
-		} finally {
-			setIsDownloading(false);
-		}
-	};
-
 	return (
 		<div className="flex items-center justify-between gap-4 rounded-lg border border-border/30 bg-muted/20 px-4 py-3">
 			{/* Left: Info */}
@@ -140,9 +116,6 @@ function JobRow({ job }: { job: GenerationJob }) {
 						{relativeTime}
 					</span>
 				</div>
-				{downloadError && (
-					<p className="mt-1 text-xs text-red-400">{downloadError}</p>
-				)}
 			</div>
 
 			{/* Right: Actions */}
@@ -157,10 +130,10 @@ function JobRow({ job }: { job: GenerationJob }) {
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2"
-					disabled={job.status !== "succeeded" || isDownloading}
-					onClick={handleDownload}
+					disabled={job.status !== "succeeded"}
+					onClick={() => onOpenExport(job)}
 				>
-					{isDownloading || isPdfPreparing ? (
+					{isPdfPreparing ? (
 						<Loader2 size={16} className="animate-spin" />
 					) : (
 						<Download size={16} />
@@ -256,6 +229,41 @@ function ErrorState({
  */
 export function RecentGenerationsCard() {
 	const { jobs, isLoading, error, refetch } = useRecentGenerations();
+	const exportModal = useExportModal();
+
+	// Open export modal for a job
+	const handleOpenExport = (job: GenerationJob) => {
+		const label = deriveJobLabel(job.jd_text);
+		exportModal.openModal(job.id, label);
+	};
+
+	// PDF-specific export handler
+	const handlePdfExport = async () => {
+		if (!exportModal.jobId) return;
+
+		try {
+			const res = await fetch("/api/export-pdf", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ jobId: exportModal.jobId }),
+			});
+
+			if (!res.ok) {
+				const data = await res.json();
+				throw new Error(data.error || "Failed to download PDF");
+			}
+
+			const { pdfUrl } = await res.json();
+			window.open(pdfUrl, "_blank");
+			exportModal.closeModal();
+		} catch (err) {
+			console.error("Download error:", err);
+			toast.error("Download failed", {
+				description:
+					err instanceof Error ? err.message : "Download failed",
+			});
+		}
+	};
 
 	return (
 		<div className="rounded-xl border border-border/50 bg-card/50 p-6">
@@ -285,9 +293,25 @@ export function RecentGenerationsCard() {
 				) : jobs.length === 0 ? (
 					<EmptyState />
 				) : (
-					jobs.map((job) => <JobRow key={job.id} job={job} />)
+					jobs.map((job) => (
+						<JobRow
+							key={job.id}
+							job={job}
+							onOpenExport={handleOpenExport}
+						/>
+					))
 				)}
 			</div>
+
+			{/* Export Modal */}
+			<ExportModal
+				open={exportModal.isOpen}
+				onOpenChange={(open) => !open && exportModal.closeModal()}
+				selectedFormat={exportModal.selectedFormat}
+				onFormatChange={exportModal.setSelectedFormat}
+				onDownload={() => exportModal.handleExport(handlePdfExport)}
+				isExporting={exportModal.isExporting}
+			/>
 		</div>
 	);
 }

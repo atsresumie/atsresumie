@@ -31,6 +31,8 @@ import {
 	STYLE_CONFIG_STORAGE_KEY_PREFIX,
 } from "@/types/editor";
 import { parseStyleFromLatex } from "@/lib/latex/applyStyleToLatex";
+import { useExportModal } from "@/hooks/useExportModal";
+import { ExportModal } from "@/components/dashboard/ExportModal";
 
 const FILENAME_STORAGE_KEY_PREFIX = "atsresumie_editor_filename_";
 
@@ -50,6 +52,12 @@ export default function EditorPage() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [hasLatexText, setHasLatexText] = useState(false);
+	const [latexTextContent, setLatexTextContent] = useState<string | null>(
+		null,
+	);
+
+	// Export modal
+	const exportModal = useExportModal();
 
 	// PDF state
 	const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -138,6 +146,7 @@ export default function EditorPage() {
 			}
 
 			setHasLatexText(!!job.latex_text);
+			setLatexTextContent(job.latex_text ?? null);
 
 			// Parse initial style from LaTeX if no saved config in localStorage
 			const storedConfig = localStorage.getItem(
@@ -263,8 +272,8 @@ export default function EditorPage() {
 		setStyleConfig(DEFAULT_STYLE_CONFIG);
 	};
 
-	// Handle download — recompile with saveLatex flag then download
-	const handleDownload = async () => {
+	// Handle PDF download — recompile with saveLatex flag then download
+	const handlePdfDownload = async () => {
 		if (!pdfUrl) return;
 
 		setIsDownloading(true);
@@ -288,6 +297,8 @@ export default function EditorPage() {
 					const response = await fetch(freshUrl);
 					const blob = await response.blob();
 					triggerDownload(blob);
+					// Close modal on success
+					exportModal.closeModal();
 					return;
 				}
 				// If save-compile failed, still download the current preview
@@ -300,11 +311,17 @@ export default function EditorPage() {
 			const response = await fetch(pdfUrl);
 			const blob = await response.blob();
 			triggerDownload(blob);
+			exportModal.closeModal();
 		} catch (err) {
 			console.error("Download failed:", err);
 		} finally {
 			setIsDownloading(false);
 		}
+	};
+
+	// Open export modal
+	const handleDownload = () => {
+		exportModal.openModal(jobId, filename, latexTextContent);
 	};
 
 	const triggerDownload = (blob: Blob) => {
@@ -437,15 +454,11 @@ export default function EditorPage() {
 					<Button
 						size="sm"
 						onClick={handleDownload}
-						disabled={isDownloading || !pdfUrl}
+						disabled={!pdfUrl}
 						className="gap-2"
 					>
-						{isDownloading ? (
-							<Loader2 size={16} className="animate-spin" />
-						) : (
-							<Download size={16} />
-						)}
-						Download PDF
+						<Download size={16} />
+						Download
 					</Button>
 				</div>
 			</header>
@@ -471,6 +484,16 @@ export default function EditorPage() {
 					/>
 				</main>
 			</div>
+
+			{/* Export Modal */}
+			<ExportModal
+				open={exportModal.isOpen}
+				onOpenChange={(open) => !open && exportModal.closeModal()}
+				selectedFormat={exportModal.selectedFormat}
+				onFormatChange={exportModal.setSelectedFormat}
+				onDownload={() => exportModal.handleExport(handlePdfDownload)}
+				isExporting={exportModal.isExporting || isDownloading}
+			/>
 		</div>
 	);
 }
