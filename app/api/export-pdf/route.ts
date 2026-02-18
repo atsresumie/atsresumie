@@ -104,14 +104,23 @@ export async function POST(request: NextRequest) {
 					);
 
 			if (signedUrlError || !signedUrlData) {
-				console.error("Signed URL error:", signedUrlError);
-				return NextResponse.json(
-					{ error: "Failed to generate download URL" },
-					{ status: 500 },
+				// File was deleted from Storage but path remains in DB — clear it
+				// and fall through to recompile from LaTeX
+				console.warn(
+					`[export-pdf] Stale pdf_object_path for job ${jobId}, clearing and recompiling`,
+					signedUrlError,
 				);
+				await admin
+					.from("generation_jobs")
+					.update({
+						pdf_object_path: null,
+						updated_at: new Date().toISOString(),
+					})
+					.eq("id", jobId);
+				// Fall through to compilation below
+			} else {
+				return NextResponse.json({ pdfUrl: signedUrlData.signedUrl });
 			}
-
-			return NextResponse.json({ pdfUrl: signedUrlData.signedUrl });
 		}
 
 		// 5. Compile LaTeX to PDF using latex-online.cc

@@ -5,6 +5,8 @@ import AtsRing from "@/components/ats/AtsRing";
 import KeywordBars from "@/components/ats/KeywordBars";
 import { AnalyzeResult, ExportResult } from "../types";
 import { useAuth } from "@/hooks/useAuth";
+import { useExportModal } from "@/hooks/useExportModal";
+import { ExportModal } from "@/components/dashboard/ExportModal";
 
 interface Step2PreviewProps {
 	analysis: AnalyzeResult | null;
@@ -13,6 +15,7 @@ interface Step2PreviewProps {
 	isExporting: boolean;
 	onEditInputs: () => void;
 	onExport: () => void;
+	generationJobId: string | null;
 }
 
 export default function Step2Preview({
@@ -22,8 +25,10 @@ export default function Step2Preview({
 	isExporting,
 	onEditInputs,
 	onExport,
+	generationJobId,
 }: Step2PreviewProps) {
 	const { isAuthenticated } = useAuth();
+	const exportModal = useExportModal();
 
 	// Use latexText from generation job, fallback to analysis.latexPreview for backward compat
 	const displayLatex = latexText || analysis?.latexPreview || "";
@@ -147,12 +152,22 @@ export default function Step2Preview({
 				</button>
 
 				<button
-					onClick={onExport}
+					onClick={() => {
+						if (generationJobId) {
+							exportModal.openModal(
+								generationJobId,
+								"Resume",
+								displayLatex || null,
+							);
+						} else {
+							onExport();
+						}
+					}}
 					disabled={isExporting}
 					className="inline-flex w-full items-center justify-center rounded-xl bg-[#E9DDC7] px-4 py-3 text-sm font-medium text-[#2a1e18] shadow-[0_10px_30px_rgba(233,221,199,0.12)] hover:-translate-y-px hover:shadow-[0_16px_40px_rgba(233,221,199,0.16)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
 				>
 					<Download className="mr-2 h-4 w-4" />
-					{isExporting ? "Exporting…" : "Download PDF"}
+					{isExporting ? "Exporting…" : "Download"}
 				</button>
 			</div>
 
@@ -182,6 +197,21 @@ export default function Step2Preview({
 					</div>
 				</div>
 			)}
+
+			{/* Export Modal */}
+			<ExportModal
+				open={exportModal.isOpen}
+				onOpenChange={(open) => !open && exportModal.closeModal()}
+				selectedFormat={exportModal.selectedFormat}
+				onFormatChange={exportModal.setSelectedFormat}
+				onDownload={() =>
+					exportModal.handleExport(async () => {
+						onExport();
+						exportModal.closeModal();
+					})
+				}
+				isExporting={exportModal.isExporting || isExporting}
+			/>
 		</section>
 	);
 }
