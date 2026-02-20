@@ -43,9 +43,8 @@ const FORMAT_OPTIONS: FormatOption[] = [
 	{
 		value: "docx",
 		label: "DOCX",
-		sublabel: "Coming soon",
+		sublabel: "Word document · Easy to edit",
 		icon: <FileType size={20} />,
-		disabled: true,
 	},
 ];
 

@@ -8,6 +8,7 @@ import {
 	buildTxtFilename,
 	downloadTextFile,
 } from "@/lib/export/latexToPlainText";
+import { downloadDocxFile } from "@/lib/export/latexToDocx";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,7 +16,7 @@ import {
 
 export type ExportFormat = "pdf" | "txt" | "docx";
 
-const ENABLED_FORMATS: ExportFormat[] = ["pdf", "txt"];
+const ENABLED_FORMATS: ExportFormat[] = ["pdf", "txt", "docx"];
 const STORAGE_KEY = "atsresumie_export_format";
 
 interface ExportModalState {
@@ -177,9 +178,51 @@ export function useExportModal(): UseExportModalReturn {
 					}
 
 					case "docx": {
-						// Should be unreachable (disabled in UI)
-						toast.info("DOCX export is coming soon.");
-						return;
+						// Resolve latex source (same as TXT)
+						let docxLatex = state.latexText;
+
+						if (!docxLatex && state.jobId) {
+							const supabase = supabaseBrowser();
+							const { data, error } = await supabase
+								.from("generation_jobs")
+								.select("latex_text")
+								.eq("id", state.jobId)
+								.single();
+
+							if (error || !data?.latex_text) {
+								toast.error(
+									"DOCX export unavailable for this resume yet.",
+									{
+										description:
+											"Try exporting PDF first or regenerate.",
+									},
+								);
+								return;
+							}
+
+							docxLatex = data.latex_text;
+						}
+
+						if (!docxLatex) {
+							toast.error(
+								"DOCX export unavailable for this resume yet.",
+								{
+									description:
+										"Try exporting PDF first or regenerate.",
+								},
+							);
+							return;
+						}
+
+						await downloadDocxFile(docxLatex, state.jobLabel);
+
+						toast.success("DOCX downloaded!", {
+							description: `ATSResumie_${state.jobLabel}.docx`,
+						});
+
+						// Close modal on success
+						setState((s) => ({ ...s, isOpen: false }));
+						break;
 					}
 				}
 			} catch (err) {

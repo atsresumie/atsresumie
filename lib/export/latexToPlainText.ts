@@ -12,7 +12,7 @@
 // LaTeX stripping (mirrors & extends parseLatexResume.ts logic)
 // ---------------------------------------------------------------------------
 
-function stripLatexCommands(text: string): string {
+export function stripLatexCommands(text: string): string {
 	return (
 		text
 			// Remove comments
@@ -48,7 +48,7 @@ function stripLatexCommands(text: string): string {
 // Section / bullet extraction
 // ---------------------------------------------------------------------------
 
-interface PlainSection {
+export interface PlainSection {
 	heading: string;
 	lines: string[];
 }
@@ -56,7 +56,7 @@ interface PlainSection {
 /**
  * Extract header block (name + contact) from LaTeX preamble.
  */
-function extractHeaderBlock(latex: string): string[] {
+export function extractHeaderBlock(latex: string): string[] {
 	const lines: string[] = [];
 
 	// Name
@@ -99,7 +99,7 @@ function extractHeaderBlock(latex: string): string[] {
 /**
  * Extract sections (\\section{...}) and their content from a LaTeX document.
  */
-function extractSections(latex: string): PlainSection[] {
+export function extractSections(latex: string): PlainSection[] {
 	const sections: PlainSection[] = [];
 
 	const sectionRegex =
@@ -123,7 +123,7 @@ function extractSections(latex: string): PlainSection[] {
  * Extract lines from section body – handles itemize lists, resume entry macros,
  * and plain paragraphs.
  */
-function extractContentLines(body: string): string[] {
+export function extractContentLines(body: string): string[] {
 	const lines: string[] = [];
 
 	// Resume entry macros (common in Jake's template)
