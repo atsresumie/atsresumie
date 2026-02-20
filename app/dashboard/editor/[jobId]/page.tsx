@@ -30,7 +30,10 @@ import {
 	DEFAULT_STYLE_CONFIG,
 	STYLE_CONFIG_STORAGE_KEY_PREFIX,
 } from "@/types/editor";
-import { parseStyleFromLatex } from "@/lib/latex/applyStyleToLatex";
+import {
+	parseStyleFromLatex,
+	applyStyleToLatex,
+} from "@/lib/latex/applyStyleToLatex";
 import { useExportModal } from "@/hooks/useExportModal";
 import { ExportModal } from "@/components/dashboard/ExportModal";
 
@@ -321,7 +324,12 @@ export default function EditorPage() {
 
 	// Open export modal
 	const handleDownload = () => {
-		exportModal.openModal(jobId, filename, latexTextContent);
+		// Pass styled LaTeX (with user's margins/fonts/spacing applied)
+		// so that TXT/DOCX exports reflect the same styles as the PDF.
+		const styledLatex = latexTextContent
+			? applyStyleToLatex(latexTextContent, styleConfig)
+			: latexTextContent;
+		exportModal.openModal(jobId, filename, styledLatex);
 	};
 
 	const triggerDownload = (blob: Blob) => {
