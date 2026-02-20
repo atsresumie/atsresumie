@@ -135,48 +135,26 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 7. Compile LaTeX to PDF using latex-online.cc
-		console.log(
-			`[export-pdf-with-style] Compiling styled LaTeX for job ${jobId}...`,
-		);
+		// 7. Compile LaTeX to PDF (with auto-retry on failure)
+		const compileResult = await compileLatexWithRetry(styledLatex, jobId);
 
-		const compileUrl = new URL(LATEX_ONLINE_URL);
-		compileUrl.searchParams.set("text", styledLatex);
-		compileUrl.searchParams.set("force", "true");
-		compileUrl.searchParams.set("command", "pdflatex");
-
-		const compileResponse = await fetch(compileUrl.toString(), {
-			method: "GET",
-			headers: {
-				Accept: "application/pdf",
-			},
-		});
-
-		if (!compileResponse.ok) {
-			// Compilation failed - get error log
-			const errorLog = await compileResponse.text();
-			const errorSnippet = errorLog.slice(0, 1500);
-			console.error(
-				`[export-pdf-with-style] Compilation failed:`,
-				errorSnippet,
-			);
-
+		if (!compileResult.ok) {
 			return NextResponse.json(
 				{
 					error: "PDF compilation failed with styled settings.",
-					details:
-						"The LaTeX document has compilation errors. Try adjusting style settings or resetting to defaults.",
+					details: compileResult.retried
+						? "Auto-recovery was attempted but compilation still failed. Try resetting to default styles."
+						: "The LaTeX document has compilation errors. Try adjusting style settings or resetting to defaults.",
 				},
 				{ status: 400 },
 			);
 		}
 
 		// 8. Get PDF bytes
-		const pdfBuffer = await compileResponse.arrayBuffer();
-		const pdfBytes = new Uint8Array(pdfBuffer);
+		const pdfBytes = compileResult.pdfBytes!;
 
 		console.log(
-			`[export-pdf-with-style] PDF compiled successfully (${pdfBytes.length} bytes)`,
+			`[export-pdf-with-style] PDF compiled successfully (${pdfBytes.length} bytes)${compileResult.retried ? " (after auto-recovery)" : ""}`,
 		);
 
 		// 9. Upload to Supabase Storage (styled path - preserves original)
@@ -342,4 +320,140 @@ function validateStyleConfig(config: unknown): string | null {
 	}
 
 	return null;
+}
+
+// ---------------------------------------------------------------------------
+// Compile with auto-retry
+// ---------------------------------------------------------------------------
+
+interface CompileResult {
+	ok: boolean;
+	pdfBytes?: Uint8Array;
+	retried: boolean;
+}
+
+/**
+ * Attempt to compile LaTeX via latex-online.cc.
+ * If the first attempt fails, automatically sanitize the LaTeX
+ * (strip known problematic commands) and retry once.
+ */
+async function compileLatexWithRetry(
+	latex: string,
+	jobId: string,
+): Promise<CompileResult> {
+	// --- First attempt ---
+	console.log(
+		`[export-pdf-with-style] Compiling styled LaTeX for job ${jobId}...`,
+	);
+
+	const firstResult = await compileSingleAttempt(latex);
+
+	if (firstResult.ok) {
+		return { ok: true, pdfBytes: firstResult.pdfBytes, retried: false };
+	}
+
+	// --- First attempt failed — try auto-recovery ---
+	console.warn(
+		`[export-pdf-with-style] First compile failed for job ${jobId}, attempting auto-recovery...`,
+	);
+
+	const sanitized = sanitizeLatexForRetry(latex);
+
+	// Only retry if sanitization actually changed something
+	if (sanitized === latex) {
+		console.error(
+			`[export-pdf-with-style] No sanitization changes to try for job ${jobId}`,
+		);
+		return { ok: false, retried: false };
+	}
+
+	console.log(
+		`[export-pdf-with-style] Retrying compilation with sanitized LaTeX for job ${jobId}...`,
+	);
+
+	const retryResult = await compileSingleAttempt(sanitized);
+
+	if (retryResult.ok) {
+		console.log(
+			`[export-pdf-with-style] Auto-recovery succeeded for job ${jobId}`,
+		);
+		return { ok: true, pdfBytes: retryResult.pdfBytes, retried: true };
+	}
+
+	console.error(
+		`[export-pdf-with-style] Auto-recovery also failed for job ${jobId}`,
+	);
+	return { ok: false, retried: true };
+}
+
+/**
+ * Single compilation attempt via latex-online.cc.
+ */
+async function compileSingleAttempt(
+	latex: string,
+): Promise<{ ok: boolean; pdfBytes?: Uint8Array }> {
+	const compileUrl = new URL(LATEX_ONLINE_URL);
+	compileUrl.searchParams.set("text", latex);
+	compileUrl.searchParams.set("force", "true");
+	compileUrl.searchParams.set("command", "pdflatex");
+
+	const response = await fetch(compileUrl.toString(), {
+		method: "GET",
+		headers: { Accept: "application/pdf" },
+	});
+
+	if (!response.ok) {
+		const errorLog = await response.text();
+		console.error(
+			`[export-pdf-with-style] Compilation failed:`,
+			errorLog.slice(0, 1500),
+		);
+		return { ok: false };
+	}
+
+	const pdfBuffer = await response.arrayBuffer();
+	return { ok: true, pdfBytes: new Uint8Array(pdfBuffer) };
+}
+
+/**
+ * Strip known problematic LaTeX commands that commonly cause pdflatex errors.
+ * This is a best-effort recovery — the goal is to produce a compilable PDF
+ * even if some styling is lost.
+ */
+function sanitizeLatexForRetry(latex: string): string {
+	let result = latex;
+
+	// Strip titlesec-related commands (common crash source)
+	result = result.replace(
+		/^[ \t]*\\usepackage(\[[^\]]*\])?\{[^}]*\btitlesec\b[^}]*\}[ \t]*$\n?/gm,
+		"",
+	);
+	result = result.replace(
+		/^[ \t]*\\titlespacing\*?\{[^}]*\}\{[^}]*\}\{[^}]*\}\{[^}]*\}[ \t]*$\n?/gm,
+		"",
+	);
+	result = result.replace(/^[ \t]*\\titleformat\*?\{[^}]*\}.*$\n?/gm, "");
+
+	// Strip XeLaTeX-only packages (break pdflatex)
+	for (const pkg of ["fontspec", "unicode-math", "polyglossia"]) {
+		result = result.replace(
+			new RegExp(
+				`^[ \\t]*\\\\usepackage(\\[[^\\]]*\\])?\\{${pkg}\\}[ \\t]*$\\n?`,
+				"gm",
+			),
+			"",
+		);
+	}
+	result = result.replace(
+		/^[ \t]*\\(?:setmainfont|setsansfont|setmonofont)\{[^}]*\}[ \t]*$\n?/gm,
+		"",
+	);
+
+	// Strip any lingering undefined font commands
+	result = result.replace(
+		/^[ \t]*\\(?:newfontfamily|defaultfontfeatures)\{?[^}\n]*\}?[ \t]*$\n?/gm,
+		"",
+	);
+
+	return result;
 }
