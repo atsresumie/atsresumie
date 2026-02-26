@@ -1,5 +1,6 @@
 import "./globals.css";
 import Providers from "./providers";
+import { Analytics } from "@vercel/analytics/next";
 import { Manrope, DM_Sans, IBM_Plex_Mono } from "next/font/google";
 
 const displayFont = Manrope({
@@ -94,7 +95,10 @@ export default function RootLayout({
 				>
 					Skip to content
 				</a>
-				<Providers>{children}</Providers>
+				<Providers>
+					{children}
+					<Analytics />
+				</Providers>
 			</body>
 		</html>
 	);
