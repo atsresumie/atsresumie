@@ -16,7 +16,7 @@ import { useResumeVersions } from "@/hooks/useResumeVersions";
 interface QuickUploadModalProps {
 	open: boolean;
 	onClose: () => void;
-	onUploadSuccess?: (resumeId: string) => void;
+	onUploadSuccess?: (resumeId: string, objectPath: string) => void;
 }
 
 const ACCEPTED_TYPES = {
@@ -92,7 +92,7 @@ export function QuickUploadModal({
 			if (result) {
 				setUploadComplete(true);
 				setTimeout(() => {
-					onUploadSuccess?.(result.id);
+					onUploadSuccess?.(result.id, result.object_path);
 					handleClose();
 				}, 1000);
 			} else {

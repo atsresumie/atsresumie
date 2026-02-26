@@ -46,16 +46,11 @@ export function ResumeSelector({
 		}
 	};
 
-	const handleUploadSuccess = (resumeId: string) => {
-		// Refetch resumes and select the new one
-		refetch().then(() => {
-			const newResume = resumes.find((r) => r.id === resumeId);
-			if (newResume) {
-				onResumeChange?.(newResume.id, newResume.object_path);
-			}
-		});
-		// Also select immediately using the ID
-		onResumeChange?.(resumeId, null);
+	const handleUploadSuccess = (resumeId: string, objectPath: string) => {
+		// Select immediately with the known objectPath
+		onResumeChange?.(resumeId, objectPath);
+		// Also refetch the list so the dropdown updates
+		refetch();
 	};
 
 	if (isLoading) {

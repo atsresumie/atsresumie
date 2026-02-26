@@ -59,9 +59,15 @@ export function applyStyleToLatex(latex: string, style: StyleConfig): string {
 	// 3. Strip existing packages so we inject our own
 	result = stripPackage(result, "geometry");
 	result = stripPackage(result, "setspace");
+	result = stripPackage(result, "titlesec");
 	for (const pkg of FONT_PACKAGE_NAMES) {
 		result = stripPackage(result, pkg);
 	}
+	// Strip existing titlespacing commands so we inject our own
+	result = result.replace(
+		/^[ \t]*\\titlespacing\*?\{[^}]*\}\{[^}]*\}\{[^}]*\}\{[^}]*\}[ \t]*$\n?/gm,
+		"",
+	);
 
 	// 3a. Strip XeLaTeX-only packages that break pdflatex
 	for (const pkg of ["fontspec", "unicode-math", "polyglossia"]) {
@@ -250,12 +256,14 @@ function buildStyleBlock(style: StyleConfig, latex: string): string {
 	lines.push("\\usepackage{setspace}");
 	lines.push(`\\setstretch{${style.lineHeight.toFixed(2)}}`);
 
-	// Section spacing via titlesec if present in template
-	const hasTitlesec =
-		/\\usepackage(\[[^\]]*\])?\{[^}]*\btitlesec\b[^}]*\}/.test(latex);
-	if (hasTitlesec) {
+	// Section spacing via titlesec
+	// Always inject titlesec + titlespacing when sectionSpacingPt is defined,
+	// since the original \usepackage{titlesec} may have been in a prior style
+	// block that was stripped during re-application.
+	if (style.sectionSpacingPt !== undefined) {
 		const beforePt = style.sectionSpacingPt;
 		const afterPt = Math.round(style.sectionSpacingPt * 0.5);
+		lines.push("\\usepackage{titlesec}");
 		lines.push(
 			`\\titlespacing*{\\section}{0pt}{${beforePt}pt}{${afterPt}pt}`,
 		);

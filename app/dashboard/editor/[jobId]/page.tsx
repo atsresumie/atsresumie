@@ -321,7 +321,9 @@ export default function EditorPage() {
 
 	// Open export modal
 	const handleDownload = () => {
-		exportModal.openModal(jobId, filename, latexTextContent);
+		// Pass styleConfig so the server-side DOCX route can
+		// apply the same styles. latexTextContent is passed for TXT export.
+		exportModal.openModal(jobId, filename, latexTextContent, styleConfig);
 	};
 
 	const triggerDownload = (blob: Blob) => {

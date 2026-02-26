@@ -8,6 +8,7 @@ import {
 	buildTxtFilename,
 	downloadTextFile,
 } from "@/lib/export/latexToPlainText";
+import type { StyleConfig } from "@/types/editor";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,7 +16,7 @@ import {
 
 export type ExportFormat = "pdf" | "txt" | "docx";
 
-const ENABLED_FORMATS: ExportFormat[] = ["pdf", "txt"];
+const ENABLED_FORMATS: ExportFormat[] = ["pdf", "txt", "docx"];
 const STORAGE_KEY = "atsresumie_export_format";
 
 interface ExportModalState {
@@ -24,6 +25,8 @@ interface ExportModalState {
 	jobLabel: string;
 	/** Pre-loaded latex (avoids fetch when already available, e.g. editor page) */
 	latexText: string | null;
+	/** Style config for server-side DOCX export (margins, font, etc.) */
+	styleConfig: StyleConfig | null;
 }
 
 export interface UseExportModalReturn {
@@ -40,6 +43,7 @@ export interface UseExportModalReturn {
 		jobId: string,
 		jobLabel: string,
 		latexText?: string | null,
+		styleConfig?: StyleConfig | null,
 	) => void;
 	closeModal: () => void;
 	handleExport: (onExportPdf: () => Promise<void>) => Promise<void>;
@@ -66,6 +70,7 @@ export function useExportModal(): UseExportModalReturn {
 		jobId: null,
 		jobLabel: "",
 		latexText: null,
+		styleConfig: null,
 	});
 
 	// ----- format selection -----
@@ -95,12 +100,18 @@ export function useExportModal(): UseExportModalReturn {
 
 	// ----- open / close -----
 	const openModal = useCallback(
-		(jobId: string, jobLabel: string, latexText?: string | null) => {
+		(
+			jobId: string,
+			jobLabel: string,
+			latexText?: string | null,
+			styleConfig?: StyleConfig | null,
+		) => {
 			setState({
 				isOpen: true,
 				jobId,
 				jobLabel: jobLabel || "Resume",
 				latexText: latexText ?? null,
+				styleConfig: styleConfig ?? null,
 			});
 		},
 		[],
@@ -177,9 +188,58 @@ export function useExportModal(): UseExportModalReturn {
 					}
 
 					case "docx": {
-						// Should be unreachable (disabled in UI)
-						toast.info("DOCX export is coming soon.");
-						return;
+						if (!state.jobId) {
+							toast.error(
+								"DOCX export unavailable for this resume yet.",
+								{
+									description:
+										"Try exporting PDF first or regenerate.",
+								},
+							);
+							return;
+						}
+
+						// Call server-side Pandoc conversion
+						const docxRes = await fetch("/api/export-docx", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								jobId: state.jobId,
+								styleConfig: state.styleConfig,
+							}),
+						});
+
+						if (!docxRes.ok) {
+							const errBody = await docxRes
+								.json()
+								.catch(() => ({}));
+							throw new Error(
+								errBody.error || "DOCX conversion failed",
+							);
+						}
+
+						const { docxUrl } = await docxRes.json();
+
+						// Download the DOCX file
+						const docxBlob = await fetch(docxUrl).then((r) =>
+							r.blob(),
+						);
+						const downloadUrl = URL.createObjectURL(docxBlob);
+						const link = document.createElement("a");
+						link.href = downloadUrl;
+						link.download = `ATSResumie_${state.jobLabel}_${new Date().toISOString().slice(0, 10)}.docx`;
+						document.body.appendChild(link);
+						link.click();
+						document.body.removeChild(link);
+						URL.revokeObjectURL(downloadUrl);
+
+						toast.success("DOCX downloaded!", {
+							description: `ATSResumie_${state.jobLabel}.docx`,
+						});
+
+						// Close modal on success
+						setState((s) => ({ ...s, isOpen: false }));
+						break;
 					}
 				}
 			} catch (err) {

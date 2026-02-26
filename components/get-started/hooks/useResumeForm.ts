@@ -192,7 +192,10 @@ export function useResumeForm() {
 			toast.success("New session started");
 		} catch (err) {
 			console.error("Failed to start fresh session:", err);
-			toast.error("Failed to start new session");
+			toast.error("Failed to start new session", {
+				description:
+					err instanceof Error ? err.message : "Please try again.",
+			});
 		} finally {
 			setIsLoadingSession(false);
 		}
@@ -583,7 +586,10 @@ export function useResumeForm() {
 					console.error("Failed to commit resume:", err);
 					clearTimeout(timeoutId);
 					toast.error("Couldn't confirm resume", {
-						description: "Please try again.",
+						description:
+							err instanceof Error
+								? err.message
+								: "Please try again.",
 					});
 					setIsAnalyzing(false);
 					return;
@@ -658,7 +664,10 @@ export function useResumeForm() {
 			console.error(e);
 			setIsAnalyzing(false);
 			toast.error("Generation failed", {
-				description: "Something went wrong. Please try again later.",
+				description:
+					e instanceof Error
+						? e.message
+						: "Something went wrong. Please try again later.",
 			});
 		}
 		// Note: setIsAnalyzing(false) is handled by Realtime callbacks
@@ -831,7 +840,8 @@ export function useResumeForm() {
 			console.error(e);
 			setIsExporting(false);
 			toast.error("Export failed", {
-				description: "Please try again.",
+				description:
+					e instanceof Error ? e.message : "Please try again.",
 			});
 		}
 	}, [
