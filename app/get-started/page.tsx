@@ -53,9 +53,8 @@ export default function GetStartedPage() {
 							{headline}
 						</motion.h1>
 						<p className="mt-2 text-sm text-[rgba(233,221,199,0.75)] md:text-base">
-							Start without an account. Get a preview score and
-							suggested improvements. Downloading the PDF is gated
-							behind signup (3 free credits).
+							Paste a job description and your resume — get an
+							ATS-optimized result in minutes.
 						</p>
 					</div>
 

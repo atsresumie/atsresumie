@@ -287,6 +287,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			// Replay intent when user signs in
 			if (event === "SIGNED_IN" && session?.user) {
 				replayIntent();
+				// Fire-and-forget welcome email (API handles dedup)
+				fetch("/api/send-welcome-email", { method: "POST" }).catch(
+					() => {},
+				);
 			}
 		});
 

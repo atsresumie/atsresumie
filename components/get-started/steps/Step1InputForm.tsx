@@ -172,8 +172,7 @@ export default function Step1InputForm({
 						className="h-44 w-full resize-none rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.05)] p-3 text-sm outline-none placeholder:text-[rgba(233,221,199,0.35)] focus:border-[rgba(233,221,199,0.22)]"
 					/>
 					<div className="mt-1 text-xs text-[rgba(233,221,199,0.55)]">
-						Tip: include responsibilities + requirements +
-						nice-to-have keywords.
+						Include responsibilities, requirements, and keywords.
 					</div>
 				</label>
 
@@ -226,7 +225,7 @@ export default function Step1InputForm({
 					)}
 
 					<div className="mt-1 text-xs text-[rgba(233,221,199,0.55)]">
-						We&apos;ll extract text from your resume for analysis.
+						PDF or DOCX, max 10 MB.
 					</div>
 				</div>
 
@@ -250,7 +249,7 @@ export default function Step1InputForm({
 			/>
 
 			<p className="text-xs" style={{ color: "#FFA726" }}>
-				Preview costs 1 credit. Export to PDF is free after signup.
+				1 credit per preview · Export is free after signup.
 			</p>
 		</section>
 	);

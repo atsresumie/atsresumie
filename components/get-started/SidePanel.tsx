@@ -19,24 +19,18 @@ export default function SidePanel() {
 		>
 			<div className="text-sm font-medium">What you&apos;ll get</div>
 			<ul className="mt-3 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
-				<li>• ATS-friendly structure + keyword alignment</li>
-				<li>• Versioned results for each job posting</li>
-				<li>• Export-ready PDF from your dashboard</li>
+				<li>• ATS-optimized structure &amp; keywords</li>
+				<li>• Versioned results per job posting</li>
+				<li>• Export-ready PDF</li>
 			</ul>
 
 			<div className="mt-5 rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
-				<div className="text-xs text-[rgba(233,221,199,0.65)]">
-					Credits
+				<div className="flex items-baseline justify-between">
+					<div className="text-lg font-semibold">3 free credits</div>
+					<div className="text-xs" style={{ color: "#FFA726" }}>
+						1 credit per preview
+					</div>
 				</div>
-				<div className="mt-1 text-lg font-semibold">3 free credits</div>
-				<div className="mt-1 text-xs" style={{ color: "#FFA726" }}>
-					Preview costs 1 credit. Download is free.
-				</div>
-			</div>
-
-			<div className="mt-4 text-xs text-[rgba(233,221,199,0.6)]">
-				Tip: Add measurable impact (&ldquo;reduced latency by
-				32%&rdquo;) to boost your score.
 			</div>
 		</motion.div>
 	);

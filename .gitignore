@@ -43,3 +43,13 @@ next-env.d.ts
 # AI
 .agent
 .claude
+
+# supabase local
+supabase/.branches
+supabase/.temp
+supabase/migrations_backup
+supabase/snippets
+
+# standalone SQL scripts (applied manually in prod, not migrations)
+supabase/credits_system.sql
+supabase/generation_jobs.sql

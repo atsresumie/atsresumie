@@ -94,11 +94,11 @@ export default function TopNav({ onReset }: TopNavProps) {
 		<div className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
 			<div className="flex items-center gap-2">
 				<Image
-					src="/logo.png"
+					src="/logo3.png"
 					alt="atsresumie logo"
-					width={56}
-					height={56}
-					className="h-14 w-14"
+					width={40}
+					height={40}
+					className="h-10 w-10"
 				/>
 				<Link href="/" className="font-semibold tracking-tight">
 					atsresumie
