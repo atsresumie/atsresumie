@@ -30,6 +30,7 @@
 | Realtime        | **Supabase Realtime** (WebSockets)                 |
 | PDF Engine      | **latex-online.cc** (External Compilation Service) |
 | Payments        | **Stripe** (Subscriptions + Checkout)              |
+| Email           | **Resend** (Transactional emails)                  |
 | Animation       | **Framer Motion** (for landing/onboarding)         |
 | Package Manager | pnpm                                               |
 
@@ -57,6 +58,7 @@ atsresumie/
 │   │   │   ├── save-draft/      # Save JD + resume metadata
 │   │   │   └── session-status/  # Get session + draft data
 │   │   ├── resumes/       # Resume management API
+│   │   ├── send-welcome-email/ # Welcome email via Resend
 │   │   └── stripe/        # Stripe integration
 │   │       ├── checkout/  # Create checkout session
 │   │       ├── portal/    # Stripe Customer Portal session
@@ -196,7 +198,7 @@ atsresumie/
 │   └── utils.ts           # cn() utility
 │
 ├── public/                # Static assets
-│   └── logo.png
+│   └── logo3.png
 │
 ├── supabase/              # Supabase config & migrations
 │   ├── functions/         # Edge Functions (Deno)
@@ -360,15 +362,15 @@ Warm dark theme with coffee/beige tones:
 
 ### Key Tables
 
-| Table                    | Purpose                                     |
-| ------------------------ | ------------------------------------------- |
-| `user_profiles`          | User data, credits, profile, subscription   |
-| `generation_jobs`        | Job status, LaTeX, PDF path, pipeline state |
-| `saved_job_descriptions` | Reusable JDs                                |
-| `resume_versions`        | User resume files with versions             |
-| `onboarding_sessions`    | Anonymous session tracking                  |
-| `onboarding_drafts`      | Draft data before signup                    |
-| `credit_purchases`       | Stripe purchase records                     |
+| Table                    | Purpose                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| `user_profiles`          | User data, credits, profile, subscription, welcome email flag |
+| `generation_jobs`        | Job status, LaTeX, PDF path, pipeline state                   |
+| `saved_job_descriptions` | Reusable JDs                                                  |
+| `resume_versions`        | User resume files with versions                               |
+| `onboarding_sessions`    | Anonymous session tracking                                    |
+| `onboarding_drafts`      | Draft data before signup                                      |
+| `credit_purchases`       | Stripe purchase records                                       |
 
 ### Subscription Columns (user_profiles)
 
@@ -453,6 +455,7 @@ Added by migration `009_pipeline_split.sql`:
 - Auth intent preservation
 - User feedback submission
 - Conditional sidebar upgrade button (hidden when user has credits + purchase history)
+- **Welcome email** on first signup (Resend API, dedup via `welcome_email_sent` column)
 
 ---
 
@@ -469,4 +472,4 @@ Added by migration `009_pipeline_split.sql`:
 
 ---
 
-_Last updated: 2026-02-14_
+_Last updated: 2026-03-04_
