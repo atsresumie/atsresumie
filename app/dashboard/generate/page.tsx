@@ -241,6 +241,9 @@ function GeneratePageContent() {
 						placeholder="Paste the job description here..."
 						value={jdText}
 						onChange={(e) => setJdText(e.target.value)}
+						onInput={(e) =>
+							setJdText((e.target as HTMLTextAreaElement).value)
+						}
 						rows={12}
 						className="resize-none font-mono text-sm"
 					/>
