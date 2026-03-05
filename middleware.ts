@@ -53,6 +53,9 @@ export async function middleware(request: NextRequest) {
 	const effectivePath = adminRewritePath || pathname;
 
 	// ── Supabase session refresh ──────────────────────────────────────────
+	const isProduction = process.env.NODE_ENV === "production";
+	const cookieDomain = isProduction ? ".atsresumie.com" : undefined;
+
 	let supabaseResponse = NextResponse.next({
 		request,
 	});
@@ -73,9 +76,18 @@ export async function middleware(request: NextRequest) {
 						request,
 					});
 					cookiesToSet.forEach(({ name, value, options }) =>
-						supabaseResponse.cookies.set(name, value, options),
+						supabaseResponse.cookies.set(name, value, {
+							...options,
+							domain: cookieDomain,
+						}),
 					);
 				},
+			},
+			cookieOptions: {
+				domain: cookieDomain,
+				path: "/",
+				sameSite: "lax" as const,
+				secure: isProduction,
 			},
 		},
 	);
