@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
 	Crown,
 	LogOut,
 	Loader2,
+	Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -59,6 +60,14 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 	const { credits } = useCredits();
 	const { purchases } = usePurchaseHistory();
 	const [isUpgrading, setIsUpgrading] = useState(false);
+	const [isAdmin, setIsAdmin] = useState(false);
+
+	useEffect(() => {
+		fetch("/api/admin/check")
+			.then((r) => r.json())
+			.then((d) => setIsAdmin(d.isAdmin === true))
+			.catch(() => {});
+	}, []);
 
 	const hasPurchasedBefore = purchases.some((p) => p.status === "succeeded");
 	const shouldShowBuyMore =
@@ -211,6 +220,21 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 									Upgrade to Pro
 								</>
 							)}
+						</Button>
+					)}
+
+					{/* Admin Panel Link */}
+					{isAdmin && (
+						<Button
+							variant="outline"
+							className="w-full"
+							onClick={() => {
+								onClose();
+								router.push("/dashboard/admin");
+							}}
+						>
+							<Shield size={16} />
+							Admin Panel
 						</Button>
 					)}
 
