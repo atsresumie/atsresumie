@@ -1,12 +1,13 @@
-import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getIsAdmin } from "@/lib/admin/guard";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 
 /**
  * Admin layout — server component
  *
- * Checks is_admin server-side and redirects non-admins.
- * Renders admin sidebar + content area.
+ * Checks is_admin server-side. Shows access denied page for non-admins
+ * instead of silently redirecting.
  */
 export default async function AdminLayout({
 	children,
@@ -16,7 +17,13 @@ export default async function AdminLayout({
 	const isAdmin = await getIsAdmin();
 
 	if (!isAdmin) {
-		redirect("/dashboard");
+		// Get the user's email for the access denied page
+		const supabase = await createSupabaseServerClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		return <AdminAccessDenied userEmail={user?.email || null} />;
 	}
 
 	return (
