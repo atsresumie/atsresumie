@@ -17,8 +17,19 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error) {
+      // Fire-and-forget welcome email (API handles dedup via welcome_email_sent column).
+      // This ensures the email is sent for email-confirmed signups, not just OAuth.
       const forwardedHost = request.headers.get("x-forwarded-host");
       const isLocalEnv = process.env.NODE_ENV === "development";
+      const baseUrl = isLocalEnv
+        ? origin
+        : forwardedHost
+          ? `https://${forwardedHost}`
+          : origin;
+
+      fetch(`${baseUrl}/api/send-welcome-email`, { method: "POST", headers: { cookie: request.headers.get("cookie") ?? "" } }).catch(
+        () => {},
+      );
       
       if (isLocalEnv) {
         // No load balancer in local dev
