@@ -5,11 +5,11 @@ import Link from "next/link";
 import {
 	Eye,
 	Download,
-	Copy,
 	Trash2,
 	Loader2,
 	FileCheck,
 	Pencil,
+	RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +23,8 @@ import { cn } from "@/lib/utils";
 
 interface GenerationJobRowProps {
 	job: GenerationJobFull;
-	onView: (job: GenerationJobFull) => void;
-	onDuplicate: (job: GenerationJobFull) => void;
+	onRowClick: (job: GenerationJobFull) => void;
+	onTailorAgain: (job: GenerationJobFull) => void;
 	onDelete: (job: GenerationJobFull) => void;
 }
 
@@ -65,12 +65,13 @@ function StatusBadge({ status }: { status: GenerationJobStatus }) {
 
 export function GenerationJobRow({
 	job,
-	onView,
-	onDuplicate,
+	onRowClick,
+	onTailorAgain,
 	onDelete,
 }: GenerationJobRowProps) {
 	const [isDownloading, setIsDownloading] = useState(false);
 	const [downloadError, setDownloadError] = useState<string | null>(null);
+	const [isPreviewing, setIsPreviewing] = useState(false);
 
 	const label = deriveJobLabel(job.jd_text);
 	const relativeTime = getRelativeTime(job.created_at);
@@ -103,7 +104,18 @@ export function GenerationJobRow({
 			}
 
 			const { pdfUrl } = await res.json();
-			window.open(pdfUrl, "_blank");
+
+			// Fetch the PDF and trigger a real file download
+			const pdfRes = await fetch(pdfUrl);
+			const blob = await pdfRes.blob();
+			const blobUrl = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = blobUrl;
+			a.download = `${label.replace(/[^a-zA-Z0-9-_ ]/g, "").trim() || "resume"}.pdf`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(blobUrl);
 		} catch (err) {
 			console.error("Download error:", err);
 			setDownloadError(
@@ -114,8 +126,49 @@ export function GenerationJobRow({
 		}
 	};
 
+	const handlePreviewResume = async (e: React.MouseEvent) => {
+		e.stopPropagation(); // Don't trigger row click
+		if (job.status !== "succeeded") return;
+
+		setIsPreviewing(true);
+		try {
+			const res = await fetch("/api/export-pdf", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ jobId: job.id }),
+			});
+
+			if (!res.ok) {
+				const data = await res.json();
+				throw new Error(data.error || "Failed to load preview");
+			}
+
+			const { pdfUrl } = await res.json();
+			// Open PDF in new tab for viewing
+			window.open(pdfUrl, "_blank");
+		} catch (err) {
+			console.error("Preview error:", err);
+			setDownloadError(
+				err instanceof Error ? err.message : "Preview failed",
+			);
+		} finally {
+			setIsPreviewing(false);
+		}
+	};
+
 	return (
-		<div className="group flex flex-col gap-3 rounded-xl border border-border/50 bg-card/50 p-4 transition-colors hover:bg-card/80 sm:flex-row sm:items-center sm:justify-between">
+		<div
+			className="group flex flex-col gap-3 rounded-xl border border-border/50 bg-card/50 p-4 transition-colors hover:bg-card/80 sm:flex-row sm:items-center sm:justify-between cursor-pointer"
+			onClick={() => onRowClick(job)}
+			role="button"
+			tabIndex={0}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onRowClick(job);
+				}
+			}}
+		>
 			{/* Left: Info */}
 			<div className="min-w-0 flex-1 space-y-1">
 				<div className="flex items-center gap-2">
@@ -147,32 +200,51 @@ export function GenerationJobRow({
 			</div>
 
 			{/* Right: Actions */}
-			<div className="flex flex-wrap items-center gap-2">
+			<div
+				className="flex flex-wrap items-center gap-2"
+				onClick={(e) => e.stopPropagation()}
+			>
+				{/* Preview Resume - opens the actual PDF */}
 				<Button
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2"
-					onClick={() => onView(job)}
+					disabled={job.status !== "succeeded" || isPreviewing}
+					onClick={handlePreviewResume}
 				>
-					<Eye size={16} />
-					<span className="ml-1 hidden sm:inline">View</span>
+					{isPreviewing ? (
+						<Loader2 size={16} className="animate-spin" />
+					) : (
+						<Eye size={16} />
+					)}
+					<span className="ml-1 hidden sm:inline">
+						{isPreviewing ? "Loading…" : "Preview Resume"}
+					</span>
 				</Button>
 
+				{/* Open Editor */}
 				{job.status === "succeeded" && (
-					<Link href={`/dashboard/editor/${job.id}`}>
+					<Link
+						href={`/dashboard/editor/${job.id}`}
+						onClick={(e) => e.stopPropagation()}
+					>
 						<Button variant="ghost" size="sm" className="h-8 px-2">
 							<Pencil size={16} />
-							<span className="ml-1 hidden sm:inline">Edit</span>
+							<span className="ml-1 hidden sm:inline">Open Editor</span>
 						</Button>
 					</Link>
 				)}
 
+				{/* Download */}
 				<Button
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2"
 					disabled={job.status !== "succeeded" || isDownloading}
-					onClick={handleDownload}
+					onClick={(e) => {
+						e.stopPropagation();
+						handleDownload();
+					}}
 				>
 					{isDownloading || isPdfPreparing ? (
 						<Loader2 size={16} className="animate-spin" />
@@ -188,21 +260,29 @@ export function GenerationJobRow({
 					</span>
 				</Button>
 
+				{/* Tailor Again */}
 				<Button
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2"
-					onClick={() => onDuplicate(job)}
+					onClick={(e) => {
+						e.stopPropagation();
+						onTailorAgain(job);
+					}}
 				>
-					<Copy size={16} />
-					<span className="ml-1 hidden sm:inline">Duplicate</span>
+					<RefreshCw size={16} />
+					<span className="ml-1 hidden sm:inline">Tailor Again</span>
 				</Button>
 
+				{/* Delete */}
 				<Button
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2 text-muted-foreground hover:text-red-400"
-					onClick={() => onDelete(job)}
+					onClick={(e) => {
+						e.stopPropagation();
+						onDelete(job);
+					}}
 				>
 					<Trash2 size={16} />
 					<span className="ml-1 hidden sm:inline">Delete</span>

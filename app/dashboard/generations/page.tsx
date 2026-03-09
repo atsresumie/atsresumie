@@ -50,16 +50,15 @@ function EmptyState() {
 				<Sparkles size={32} className="text-muted-foreground" />
 			</div>
 			<h3 className="mb-2 text-lg font-semibold text-foreground">
-				No generations yet
+				No resumes yet
 			</h3>
 			<p className="mb-6 max-w-sm text-muted-foreground">
-				Generate your first ATS-optimized resume tailored to a job
-				description.
+				Tailor your first resume to a job description.
 			</p>
 			<Link href="/dashboard/generate">
 				<Button>
 					<Sparkles size={16} className="mr-2" />
-					Generate your first resume
+					Tailor my first resume
 				</Button>
 			</Link>
 		</div>
@@ -185,7 +184,7 @@ function PastGenerationsContent() {
 		setIsDrawerOpen(true);
 	};
 
-	const handleDuplicate = (job: GenerationJobFull) => {
+	const handleTailorAgain = (job: GenerationJobFull) => {
 		// Navigate to generate page with job ID (page will load JD from DB)
 		router.push(`/dashboard/generate?fromJobId=${job.id}`);
 	};
@@ -238,8 +237,8 @@ function PastGenerationsContent() {
 						<GenerationJobRow
 							key={job.id}
 							job={job}
-							onView={handleView}
-							onDuplicate={handleDuplicate}
+							onRowClick={handleView}
+							onTailorAgain={handleTailorAgain}
 							onDelete={handleDeleteClick}
 						/>
 					))}
@@ -298,7 +297,7 @@ export default function PastGenerationsPage() {
 					Past Generations
 				</h1>
 				<p className="mt-2 text-muted-foreground">
-					View and manage your previously generated resumes.
+					Your tailored resumes in one place.
 				</p>
 			</div>
 
