@@ -249,8 +249,8 @@ export default function Step1InputForm({
 			/>
 
 			<p className="text-xs" style={{ color: "#FFA726" }}>
-				1 credit per preview · Export is free after signup.
-			</p>
+			1 credit per generation · Export is free after signup.
+		</p>
 		</section>
 	);
 }

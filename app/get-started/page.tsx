@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import AnimatedBackground from "@/components/get-started/AnimatedBackground";
-import Stepper from "@/components/get-started/Stepper";
 import SignupGateModal from "@/components/get-started/SignupGateModal";
 import TopNav from "@/components/get-started/TopNav";
 import SidePanel from "@/components/get-started/SidePanel";
@@ -14,17 +13,12 @@ import {
 	Step2Preview,
 } from "@/components/get-started/steps";
 import { useResumeForm } from "@/components/get-started/hooks/useResumeForm";
-import { STEPS } from "@/components/get-started/types";
 
 export default function GetStartedPage() {
 	const reduceMotion = useReducedMotion();
 	const form = useResumeForm();
 
-	const headline = useMemo(() => {
-		if (form.step === 0) return "Choose your optimization mode";
-		if (form.step === 1) return "Paste your job + resume";
-		return "Preview your ATS-ready result";
-	}, [form.step]);
+	const isPreviewStep = form.step === 2 && (form.analysis || form.generatedLatex);
 
 	return (
 		<div className="min-h-screen bg-[#1a120e] text-[#E9DDC7]">
@@ -50,16 +44,15 @@ export default function GetStartedPage() {
 							}}
 							className="text-balance text-3xl font-semibold tracking-tight md:text-4xl"
 						>
-							{headline}
+							{isPreviewStep
+								? "Your tailored resume"
+								: "Set up your resume"}
 						</motion.h1>
 						<p className="mt-2 text-sm text-[rgba(233,221,199,0.75)] md:text-base">
-							Paste a job description and your resume — get an
-							ATS-optimized result in minutes.
+							{isPreviewStep
+								? "Here's what we generated — download or customize it."
+								: "Pick a mode, paste the job posting, and upload your resume."}
 						</p>
-					</div>
-
-					<div className="w-full md:w-90">
-						<Stepper steps={[...STEPS]} current={form.step} />
 					</div>
 				</div>
 
@@ -68,61 +61,61 @@ export default function GetStartedPage() {
 					{/* Left panel */}
 					<div className="md:col-span-7">
 						<div className="rounded-2xl border border-[rgba(233,221,199,0.12)] bg-[rgba(20,14,11,0.55)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur">
-							{form.step === 0 && (
-								<Step0ModeSelection
-									mode={form.mode}
-									onModeChange={form.setMode}
-									canContinue={form.canContinueFromStep0}
-									onContinue={() => form.setStep(1)}
+							{isPreviewStep ? (
+								<Step2Preview
+									analysis={form.analysis}
+									latexText={form.generatedLatex}
+									exportResult={form.exportResult}
+									isExporting={form.isExporting}
+									onEditInputs={() => form.setStep(0)}
+									onExport={form.exportPdf}
+									generationJobId={form.generationJobId}
 								/>
-							)}
-
-							{form.step === 1 && (
-								<Step1InputForm
-									jobDescription={form.jobDescription}
-									onJobDescriptionChange={
-										form.setJobDescription
-									}
-									resumeFile={form.resumeFile}
-									onResumeFileChange={form.setResumeFile}
-									focusPrompt={form.focusPrompt}
-									onFocusPromptChange={form.setFocusPrompt}
-									canAnalyze={form.canAnalyze}
-									isAnalyzing={form.isAnalyzing}
-									isUploadingResume={form.isUploadingResume}
-									isDeletingResume={form.isDeletingResume}
-									previousResumeFilename={
-										form.previousResumeFilename
-									}
-									onClearResume={form.clearUploadedResume}
-									onBack={() => form.setStep(0)}
-									onAnalyze={form.runAnalyze}
-									// Upload progress props (soft-commit flow)
-									uploadState={form.uploadState}
-									uploadProgress={form.uploadProgress}
-									uploadedBytes={form.uploadedBytes}
-									totalBytes={form.totalBytes}
-									estimatedSecondsRemaining={
-										form.estimatedSecondsRemaining
-									}
-									uploadError={form.uploadError}
-									onCancelUpload={form.cancelUpload}
-									onRetryUpload={form.retryUpload}
-								/>
-							)}
-
-							{form.step === 2 &&
-								(form.analysis || form.generatedLatex) && (
-									<Step2Preview
-										analysis={form.analysis}
-										latexText={form.generatedLatex}
-										exportResult={form.exportResult}
-										isExporting={form.isExporting}
-										onEditInputs={() => form.setStep(1)}
-										onExport={form.exportPdf}
-										generationJobId={form.generationJobId}
+							) : (
+								<>
+									{/* Mode selection inline */}
+									<Step0ModeSelection
+										mode={form.mode}
+										onModeChange={form.setMode}
 									/>
-								)}
+
+									{/* Divider */}
+									<div className="my-5 border-t border-[rgba(233,221,199,0.10)]" />
+
+									{/* Input form */}
+									<Step1InputForm
+										jobDescription={form.jobDescription}
+										onJobDescriptionChange={
+											form.setJobDescription
+										}
+										resumeFile={form.resumeFile}
+										onResumeFileChange={form.setResumeFile}
+										focusPrompt={form.focusPrompt}
+										onFocusPromptChange={form.setFocusPrompt}
+										canAnalyze={form.canAnalyze}
+										isAnalyzing={form.isAnalyzing}
+										isUploadingResume={form.isUploadingResume}
+										isDeletingResume={form.isDeletingResume}
+										previousResumeFilename={
+											form.previousResumeFilename
+										}
+										onClearResume={form.clearUploadedResume}
+										onBack={() => {}}
+										onAnalyze={form.runAnalyze}
+										// Upload progress props (soft-commit flow)
+										uploadState={form.uploadState}
+										uploadProgress={form.uploadProgress}
+										uploadedBytes={form.uploadedBytes}
+										totalBytes={form.totalBytes}
+										estimatedSecondsRemaining={
+											form.estimatedSecondsRemaining
+										}
+										uploadError={form.uploadError}
+										onCancelUpload={form.cancelUpload}
+										onRetryUpload={form.retryUpload}
+									/>
+								</>
+							)}
 						</div>
 					</div>
 
@@ -137,9 +130,9 @@ export default function GetStartedPage() {
 				open={form.showGate}
 				onClose={() => form.setShowGate(false)}
 				onAuthSuccess={() => {
-					// After successful auth, trigger PDF export
+					// After successful auth, resume generation (not export)
 					form.setShowGate(false);
-					form.exportPdf();
+					form.runAnalyze();
 				}}
 			/>
 		</div>

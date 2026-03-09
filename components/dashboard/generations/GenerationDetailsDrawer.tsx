@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
 	Download,
-	Copy,
+	RefreshCw,
 	Loader2,
 	ChevronDown,
 	ChevronUp,
@@ -127,7 +127,18 @@ export function GenerationDetailsDrawer({
 			}
 
 			const { pdfUrl } = await res.json();
-			window.open(pdfUrl, "_blank");
+
+			// Fetch the PDF and trigger a real file download
+			const pdfRes = await fetch(pdfUrl);
+			const blob = await pdfRes.blob();
+			const blobUrl = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = blobUrl;
+			a.download = `${label.replace(/[^a-zA-Z0-9-_ ]/g, "").trim() || "resume"}.pdf`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(blobUrl);
 		} catch (err) {
 			console.error("Download error:", err);
 			setDownloadError(
@@ -138,8 +149,8 @@ export function GenerationDetailsDrawer({
 		}
 	};
 
-	const handleDuplicate = () => {
-		// Navigate to generate page with job ID to load JD from DB
+	const handleTailorAgain = () => {
+		// Navigate to generate page with job ID to reuse JD/resume
 		router.push(`/dashboard/generate?fromJobId=${job.id}`);
 		onOpenChange(false);
 	};
@@ -241,6 +252,7 @@ export function GenerationDetailsDrawer({
 
 					{/* Actions */}
 					<div className="space-y-2 pt-4">
+						{/* Open Editor */}
 						{job.status === "succeeded" && (
 							<Link href={`/dashboard/editor/${job.id}`}>
 								<Button
@@ -249,11 +261,12 @@ export function GenerationDetailsDrawer({
 									onClick={() => onOpenChange(false)}
 								>
 									<Pencil size={16} className="mr-2" />
-									Edit & Download
+									Open Editor
 								</Button>
 							</Link>
 						)}
 
+						{/* Download PDF */}
 						<Button
 							className="w-full"
 							disabled={
@@ -281,13 +294,14 @@ export function GenerationDetailsDrawer({
 							</p>
 						)}
 
+						{/* Tailor Again */}
 						<Button
 							variant="outline"
 							className="w-full"
-							onClick={handleDuplicate}
+							onClick={handleTailorAgain}
 						>
-							<Copy size={16} className="mr-2" />
-							Duplicate
+							<RefreshCw size={16} className="mr-2" />
+							Tailor Again
 						</Button>
 					</div>
 				</div>

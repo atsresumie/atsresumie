@@ -8,6 +8,51 @@ const SIGNED_URL_EXPIRY_SECONDS = 600; // 10 minutes
 const MAX_LATEX_LENGTH = 30000; // 30k chars - latex-online uses query string
 
 /**
+ * Safety net: auto-inject missing LaTeX packages based on commands used.
+ * Prevents compile failures when the AI generates LaTeX using commands
+ * without including the required \usepackage declaration.
+ */
+function sanitizeLatex(latex: string): string {
+	// Map: if any of the commands are found, ensure the package is present
+	const packageRules: { pkg: string; commands: RegExp }[] = [
+		{ pkg: "titlesec", commands: /\\titlerule|\\titleformat|\\titlespacing/ },
+		{ pkg: "hyperref", commands: /\\href\{|\\url\{/ },
+		{ pkg: "xcolor", commands: /\\textcolor\{|\\color\{|\\definecolor\{/ },
+		{ pkg: "geometry", commands: /\\geometry\{|\\newgeometry\{/ },
+		{ pkg: "enumitem", commands: /\\begin\{itemize\}\[|\\begin\{enumerate\}\[/ },
+		{ pkg: "fontawesome5", commands: /\\faIcon\{|\\faEnvelope|\\faPhone|\\faLinkedin|\\faGithub/ },
+		{ pkg: "tabularx", commands: /\\begin\{tabularx\}/ },
+		{ pkg: "multicol", commands: /\\begin\{multicols\}/ },
+	];
+
+	let result = latex;
+
+	for (const { pkg, commands } of packageRules) {
+		// Check if command is used but package is not declared
+		const pkgPattern = new RegExp(
+			`\\\\usepackage(\\[[^\\]]*\\])?\\{[^}]*\\b${pkg}\\b[^}]*\\}`,
+		);
+
+		if (commands.test(result) && !pkgPattern.test(result)) {
+			// Inject before \begin{document}
+			const beginDocIdx = result.indexOf("\\begin{document}");
+			if (beginDocIdx !== -1) {
+				const injection = `\\usepackage{${pkg}}\n`;
+				result =
+					result.slice(0, beginDocIdx) +
+					injection +
+					result.slice(beginDocIdx);
+				console.log(
+					`[export-pdf] Auto-injected missing \\usepackage{${pkg}}`,
+				);
+			}
+		}
+	}
+
+	return result;
+}
+
+/**
  * POST /api/export-pdf
  *
  * Compiles LaTeX to PDF using latex-online.cc, uploads to Supabase Storage,
@@ -126,8 +171,11 @@ export async function POST(request: NextRequest) {
 		// 5. Compile LaTeX to PDF using latex-online.cc
 		console.log(`[export-pdf] Compiling LaTeX for job ${jobId}...`);
 
+		// Sanitize LaTeX: auto-inject any missing packages
+		const cleanedLatex = sanitizeLatex(job.latex_text);
+
 		const compileUrl = new URL(LATEX_ONLINE_URL);
-		compileUrl.searchParams.set("text", job.latex_text);
+		compileUrl.searchParams.set("text", cleanedLatex);
 		compileUrl.searchParams.set("force", "true");
 		compileUrl.searchParams.set("command", "pdflatex");
 

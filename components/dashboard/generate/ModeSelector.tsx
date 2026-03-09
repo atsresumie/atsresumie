@@ -16,24 +16,17 @@ interface ModeOption {
 const modes: ModeOption[] = [
 	{
 		key: "quick",
-		title: "Quick Optimize",
-		desc: "Minimal inputs, strong results",
-		badge: "Best for speed",
+		title: "Fast improvement",
+		desc: "Light optimization — keeps your structure",
+		badge: "Fastest",
 		icon: Zap,
 	},
 	{
 		key: "deep",
-		title: "Deep Tailor",
-		desc: "Extra questions for best match",
+		title: "Stronger re-writing",
+		desc: "Deeper rewrite with better keyword alignment",
 		badge: "Best results",
 		icon: Target,
-	},
-	{
-		key: "scratch",
-		title: "From Scratch",
-		desc: "Build from profile details",
-		badge: "New resume",
-		icon: FilePlus,
 	},
 ];
 
@@ -49,7 +42,7 @@ interface ModeSelectorProps {
  */
 export function ModeSelector({ value, onChange, disabled }: ModeSelectorProps) {
 	return (
-		<div className="grid gap-3 sm:grid-cols-3">
+		<div className="grid gap-3 sm:grid-cols-2">
 			{modes.map((mode) => {
 				const selected = value === mode.key;
 				const Icon = mode.icon;

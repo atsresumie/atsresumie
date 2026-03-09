@@ -12,21 +12,15 @@ const modes: {
 }[] = [
 	{
 		key: "QUICK",
-		title: "Quick Optimize",
-		desc: "Minimal inputs, strong results.",
-		badge: "Best for speed",
+		title: "Fast improvement",
+		desc: "Light optimization — keeps your structure intact.",
+		badge: "Fastest",
 	},
 	{
 		key: "DEEP",
-		title: "Deep Tailor",
-		desc: "Extra questions for the best match.",
+		title: "Stronger re-writing",
+		desc: "Deeper rewrite with better keyword alignment.",
 		badge: "Best results",
-	},
-	{
-		key: "FROM_SCRATCH",
-		title: "From Scratch",
-		desc: "Build from profile details.",
-		badge: "New resume",
 	},
 ];
 
@@ -40,7 +34,7 @@ export default function ModeCards({
 	const reduceMotion = useReducedMotion();
 
 	return (
-		<div className="grid gap-3 md:grid-cols-3">
+		<div className="grid gap-3 md:grid-cols-2">
 			{modes.map((m) => {
 				const selected = value === m.key;
 
