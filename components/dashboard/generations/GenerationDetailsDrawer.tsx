@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
 	Download,
-	Copy,
 	Loader2,
 	ChevronDown,
 	ChevronUp,
 	AlertCircle,
 	Pencil,
+	ExternalLink,
+	RefreshCcw,
 } from "lucide-react";
 import {
 	Sheet,
@@ -35,9 +36,6 @@ interface GenerationDetailsDrawerProps {
 	onOpenChange: (open: boolean) => void;
 }
 
-/**
- * Inline status badge for drawer
- */
 function StatusBadge({ status }: { status: GenerationJobStatus }) {
 	const config: Record<GenerationJobStatus, { className: string }> = {
 		queued: {
@@ -70,9 +68,6 @@ function StatusBadge({ status }: { status: GenerationJobStatus }) {
 	);
 }
 
-/**
- * Timestamp display component
- */
 function Timestamp({ label, value }: { label: string; value: string | null }) {
 	if (!value) return null;
 
@@ -97,7 +92,6 @@ export function GenerationDetailsDrawer({
 	if (!job) return null;
 
 	const label = deriveJobLabel(job.jd_text);
-	const hasPdf = job.status === "succeeded" && !!job.pdf_object_path;
 	const isPdfPreparing =
 		job.status === "succeeded" &&
 		!job.pdf_object_path &&
@@ -108,28 +102,49 @@ export function GenerationDetailsDrawer({
 		!job.pdf_object_path;
 	const hasLongJd = job.jd_text && job.jd_text.length > 300;
 
-	const handleDownload = async () => {
-		if (job.status !== "succeeded") return;
+	const getPdfUrl = async () => {
+		const res = await fetch("/api/export-pdf", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ jobId: job.id }),
+		});
 
+		if (!res.ok) {
+			const data = await res.json();
+			throw new Error(data.error || "Failed to fetch PDF");
+		}
+
+		const { pdfUrl } = await res.json();
+		return pdfUrl as string;
+	};
+
+	const handleOpenPdf = async () => {
+		if (job.status !== "succeeded") return;
 		setIsDownloading(true);
 		setDownloadError(null);
-
 		try {
-			const res = await fetch("/api/export-pdf", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ jobId: job.id }),
-			});
-
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.error || "Failed to download PDF");
-			}
-
-			const { pdfUrl } = await res.json();
-			window.open(pdfUrl, "_blank");
+			const pdfUrl = await getPdfUrl();
+			window.open(pdfUrl, "_blank", "noopener,noreferrer");
 		} catch (err) {
-			console.error("Download error:", err);
+			setDownloadError(err instanceof Error ? err.message : "Open failed");
+		} finally {
+			setIsDownloading(false);
+		}
+	};
+
+	const handleDownload = async () => {
+		if (job.status !== "succeeded") return;
+		setIsDownloading(true);
+		setDownloadError(null);
+		try {
+			const pdfUrl = await getPdfUrl();
+			const link = document.createElement("a");
+			link.href = pdfUrl;
+			link.download = `${label}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+		} catch (err) {
 			setDownloadError(
 				err instanceof Error ? err.message : "Download failed",
 			);
@@ -138,8 +153,7 @@ export function GenerationDetailsDrawer({
 		}
 	};
 
-	const handleDuplicate = () => {
-		// Navigate to generate page with job ID to load JD from DB
+	const handleTailorAgain = () => {
 		router.push(`/dashboard/generate?fromJobId=${job.id}`);
 		onOpenChange(false);
 	};
@@ -150,12 +164,11 @@ export function GenerationDetailsDrawer({
 				<SheetHeader className="space-y-3">
 					<SheetTitle className="text-lg">{label}</SheetTitle>
 					<SheetDescription className="sr-only">
-						Job details and actions
+						Resume details and actions
 					</SheetDescription>
 				</SheetHeader>
 
 				<div className="mt-6 space-y-6">
-					{/* Status */}
 					<div className="space-y-3">
 						<h3 className="text-sm font-medium text-muted-foreground">
 							Status
@@ -163,14 +176,12 @@ export function GenerationDetailsDrawer({
 						<StatusBadge status={job.status} />
 					</div>
 
-					{/* Timestamps */}
 					<div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
 						<Timestamp label="Created" value={job.created_at} />
 						<Timestamp label="Started" value={job.started_at} />
 						<Timestamp label="Completed" value={job.completed_at} />
 					</div>
 
-					{/* Error message (if failed) */}
 					{job.status === "failed" && job.error_message && (
 						<div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
 							<div className="flex items-start gap-2">
@@ -190,7 +201,6 @@ export function GenerationDetailsDrawer({
 						</div>
 					)}
 
-					{/* JD Preview */}
 					{job.jd_text && (
 						<div className="space-y-2">
 							<h3 className="text-sm font-medium text-muted-foreground">
@@ -200,9 +210,7 @@ export function GenerationDetailsDrawer({
 								<p
 									className={cn(
 										"whitespace-pre-wrap text-sm text-foreground",
-										!isJdExpanded &&
-											hasLongJd &&
-											"line-clamp-6",
+										!isJdExpanded && hasLongJd && "line-clamp-6",
 									)}
 								>
 									{job.jd_text}
@@ -212,24 +220,16 @@ export function GenerationDetailsDrawer({
 										variant="ghost"
 										size="sm"
 										className="mt-2 h-7 px-2 text-xs"
-										onClick={() =>
-											setIsJdExpanded(!isJdExpanded)
-										}
+										onClick={() => setIsJdExpanded(!isJdExpanded)}
 									>
 										{isJdExpanded ? (
 											<>
-												<ChevronUp
-													size={14}
-													className="mr-1"
-												/>
+												<ChevronUp size={14} className="mr-1" />
 												Show less
 											</>
 										) : (
 											<>
-												<ChevronDown
-													size={14}
-													className="mr-1"
-												/>
+												<ChevronDown size={14} className="mr-1" />
 												Show more
 											</>
 										)}
@@ -239,33 +239,38 @@ export function GenerationDetailsDrawer({
 						</div>
 					)}
 
-					{/* Actions */}
 					<div className="space-y-2 pt-4">
 						{job.status === "succeeded" && (
-							<Link href={`/dashboard/editor/${job.id}`}>
+							<>
 								<Button
 									variant="outline"
 									className="w-full"
-									onClick={() => onOpenChange(false)}
+									onClick={handleOpenPdf}
 								>
-									<Pencil size={16} className="mr-2" />
-									Edit & Download
+									<ExternalLink size={16} className="mr-2" />
+									Open PDF
 								</Button>
-							</Link>
+
+								<Link href={`/dashboard/editor/${job.id}`}>
+									<Button
+										variant="outline"
+										className="w-full"
+										onClick={() => onOpenChange(false)}
+									>
+										<Pencil size={16} className="mr-2" />
+										Open Editor
+									</Button>
+								</Link>
+							</>
 						)}
 
 						<Button
 							className="w-full"
-							disabled={
-								job.status !== "succeeded" || isDownloading
-							}
+							disabled={job.status !== "succeeded" || isDownloading}
 							onClick={handleDownload}
 						>
 							{isDownloading || isPdfPreparing ? (
-								<Loader2
-									size={16}
-									className="mr-2 animate-spin"
-								/>
+								<Loader2 size={16} className="mr-2 animate-spin" />
 							) : (
 								<Download size={16} className="mr-2" />
 							)}
@@ -284,10 +289,10 @@ export function GenerationDetailsDrawer({
 						<Button
 							variant="outline"
 							className="w-full"
-							onClick={handleDuplicate}
+							onClick={handleTailorAgain}
 						>
-							<Copy size={16} className="mr-2" />
-							Duplicate
+							<RefreshCcw size={16} className="mr-2" />
+							Tailor Again
 						</Button>
 					</div>
 				</div>

@@ -38,41 +38,32 @@ export const Hero = () => {
 				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-center justify-center">
 					{/* Left: Text Content */}
 					<div className="text-center mt-10 lg:text-left pt-8 lg:pt-12 max-w-xl">
-						{/* Badge */}
-						<div className="inline-flex items-center gap-2 px-4 py-1.5 mb-4 rounded-full bg-muted/50 border border-border/50 text-sm text-muted-foreground animate-fade-in-up animation-delay-100">
-							<Sparkles size={14} className="text-accent" />
-							<span>3 free credits included</span>
-						</div>
 
 						{/* Headline */}
 						<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-4 animate-fade-in-up animation-delay-200">
-							Your resume, tailored to the job —{" "}
-							<span className="text-gradient">ATS-ready.</span>
+							Tailor your resume for the job you want.
 						</h1>
 
 						{/* Subheadline */}
 						<p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 animate-fade-in-up animation-delay-300">
-							Tailor your resume to a job description in minutes.
-							ATSResumie rewrites your bullets to match the role —
-							without inventing experience.
+							For job seekers who want a faster, stronger resume match.
 						</p>
 
 						{/* CTAs */}
-						<div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-in-up animation-delay-400">
+						<div className="flex items-center justify-center lg:justify-start gap-4 animate-fade-in-up animation-delay-400">
 							<Link
 								href="/get-started"
 								className="w-full sm:w-auto"
 							>
 								<button className="w-full sm:w-auto px-8 py-4 bg-accent text-accent-foreground font-semibold rounded-sm hover:bg-accent-hover transition-all hover:-translate-y-0.5 active:scale-[0.98]">
-									Tailor my resume
+									Tailor My Resume
 								</button>
 							</Link>
-							<a
-								href="#how-it-works"
-								className="w-full sm:w-auto px-8 py-4 text-foreground font-medium rounded-sm border border-border-visible/80 bg-surface-raised/50 hover:bg-surface-raised hover:border-border-visible shadow-[0_2px_8px_rgba(0,0,0,0.12)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5 text-center"
-							>
-								See how it works
-							</a>
+						</div>
+
+						<div className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-muted/40 border border-border/40 text-xs text-muted-foreground animate-fade-in-up animation-delay-500">
+							<Sparkles size={12} className="text-accent" />
+							<span>3 free credits included</span>
 						</div>
 					</div>
 

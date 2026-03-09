@@ -5,6 +5,7 @@ interface ActionButtonsProps {
 	isAnalyzing: boolean;
 	onBack: () => void;
 	onAnalyze: () => void;
+	hideBackButton?: boolean;
 }
 
 export default function ActionButtons({
@@ -12,15 +13,18 @@ export default function ActionButtons({
 	isAnalyzing,
 	onBack,
 	onAnalyze,
+	hideBackButton = false,
 }: ActionButtonsProps) {
 	return (
 		<div className="flex flex-col gap-3 pt-2 sm:flex-row">
+			{!hideBackButton && (
 			<button
 				onClick={onBack}
 				className="inline-flex w-full items-center justify-center rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-4 py-3 text-sm hover:bg-[rgba(233,221,199,0.10)] sm:w-1/2"
 			>
 				Back
 			</button>
+			)}
 			<button
 				disabled={!canAnalyze}
 				onClick={() => {
@@ -28,7 +32,7 @@ export default function ActionButtons({
 				}}
 				className="inline-flex w-full items-center justify-center rounded-xl bg-[#E9DDC7] px-4 py-3 text-sm font-medium text-[#2a1e18] shadow-[0_10px_30px_rgba(233,221,199,0.12)] hover:-translate-y-px hover:shadow-[0_16px_40px_rgba(233,221,199,0.16)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
 			>
-				{isAnalyzing ? "Analyzing…" : "Analyze & Preview (1 Credit)"}
+				{isAnalyzing ? "Tailoring…" : "Tailor My Resume"}
 			</button>
 		</div>
 	);

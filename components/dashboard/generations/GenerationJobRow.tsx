@@ -3,13 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-	Eye,
+	ExternalLink,
 	Download,
-	Copy,
 	Trash2,
 	Loader2,
 	FileCheck,
 	Pencil,
+	RefreshCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,14 +23,11 @@ import { cn } from "@/lib/utils";
 
 interface GenerationJobRowProps {
 	job: GenerationJobFull;
-	onView: (job: GenerationJobFull) => void;
-	onDuplicate: (job: GenerationJobFull) => void;
+	onOpenPdf: (job: GenerationJobFull) => void;
+	onTailorAgain: (job: GenerationJobFull) => void;
 	onDelete: (job: GenerationJobFull) => void;
 }
 
-/**
- * Status badge component with theme-consistent colors
- */
 function StatusBadge({ status }: { status: GenerationJobStatus }) {
 	const config: Record<GenerationJobStatus, { className: string }> = {
 		queued: {
@@ -65,8 +62,8 @@ function StatusBadge({ status }: { status: GenerationJobStatus }) {
 
 export function GenerationJobRow({
 	job,
-	onView,
-	onDuplicate,
+	onOpenPdf,
+	onTailorAgain,
 	onDelete,
 }: GenerationJobRowProps) {
 	const [isDownloading, setIsDownloading] = useState(false);
@@ -103,7 +100,12 @@ export function GenerationJobRow({
 			}
 
 			const { pdfUrl } = await res.json();
-			window.open(pdfUrl, "_blank");
+			const link = document.createElement("a");
+			link.href = pdfUrl;
+			link.download = `${label}.pdf`;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
 		} catch (err) {
 			console.error("Download error:", err);
 			setDownloadError(
@@ -116,12 +118,9 @@ export function GenerationJobRow({
 
 	return (
 		<div className="group flex flex-col gap-3 rounded-xl border border-border/50 bg-card/50 p-4 transition-colors hover:bg-card/80 sm:flex-row sm:items-center sm:justify-between">
-			{/* Left: Info */}
 			<div className="min-w-0 flex-1 space-y-1">
 				<div className="flex items-center gap-2">
-					<p className="truncate font-medium text-foreground">
-						{label}
-					</p>
+					<p className="truncate font-medium text-foreground">{label}</p>
 					{hasPdf && (
 						<FileCheck
 							size={14}
@@ -146,23 +145,25 @@ export function GenerationJobRow({
 				)}
 			</div>
 
-			{/* Right: Actions */}
 			<div className="flex flex-wrap items-center gap-2">
 				<Button
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2"
-					onClick={() => onView(job)}
+					onClick={() => onOpenPdf(job)}
+					disabled={job.status !== "succeeded"}
 				>
-					<Eye size={16} />
-					<span className="ml-1 hidden sm:inline">View</span>
+					<ExternalLink size={16} />
+					<span className="ml-1 hidden sm:inline">Open PDF</span>
 				</Button>
 
 				{job.status === "succeeded" && (
 					<Link href={`/dashboard/editor/${job.id}`}>
 						<Button variant="ghost" size="sm" className="h-8 px-2">
 							<Pencil size={16} />
-							<span className="ml-1 hidden sm:inline">Edit</span>
+							<span className="ml-1 hidden sm:inline">
+								Open Editor
+							</span>
 						</Button>
 					</Link>
 				)}
@@ -183,8 +184,8 @@ export function GenerationJobRow({
 						{isPdfPreparing
 							? "Preparing…"
 							: isPdfFailed
-								? "Retry"
-								: "Download"}
+								? "Retry PDF"
+								: "Download PDF"}
 					</span>
 				</Button>
 
@@ -192,10 +193,10 @@ export function GenerationJobRow({
 					variant="ghost"
 					size="sm"
 					className="h-8 px-2"
-					onClick={() => onDuplicate(job)}
+					onClick={() => onTailorAgain(job)}
 				>
-					<Copy size={16} />
-					<span className="ml-1 hidden sm:inline">Duplicate</span>
+					<RefreshCcw size={16} />
+					<span className="ml-1 hidden sm:inline">Tailor Again</span>
 				</Button>
 
 				<Button
