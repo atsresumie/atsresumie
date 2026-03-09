@@ -36,6 +36,7 @@ interface Step1InputFormProps {
 	uploadError?: string | null;
 	onCancelUpload?: () => void;
 	onRetryUpload?: () => void;
+	hideBackButton?: boolean;
 }
 
 const ACCEPTED_TYPES = [
@@ -54,7 +55,6 @@ export default function Step1InputForm({
 	onFocusPromptChange,
 	canAnalyze,
 	isAnalyzing,
-	isUploadingResume = false,
 	isDeletingResume = false,
 	previousResumeFilename,
 	onClearResume,
@@ -69,6 +69,7 @@ export default function Step1InputForm({
 	uploadError,
 	onCancelUpload,
 	onRetryUpload,
+	hideBackButton = false,
 }: Step1InputFormProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isDragging, setIsDragging] = useState(false);
@@ -158,7 +159,7 @@ export default function Step1InputForm({
 		<section className="space-y-4">
 			<div className="flex items-center gap-2 text-sm text-[rgba(233,221,199,0.75)]">
 				<FileText className="h-4 w-4" />
-				Paste the essentials
+				Add your details
 			</div>
 
 			<div className="space-y-3">
@@ -172,7 +173,7 @@ export default function Step1InputForm({
 						className="h-44 w-full resize-none rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.05)] p-3 text-sm outline-none placeholder:text-[rgba(233,221,199,0.35)] focus:border-[rgba(233,221,199,0.22)]"
 					/>
 					<div className="mt-1 text-xs text-[rgba(233,221,199,0.55)]">
-						Include responsibilities, requirements, and keywords.
+						
 					</div>
 				</label>
 
@@ -231,11 +232,11 @@ export default function Step1InputForm({
 
 				{/* Focus Input */}
 				<label className="block">
-					<div className="mb-1 text-sm">Focus (optional)</div>
+					<div className="mb-1 text-sm">Anything to prioritize? (optional)</div>
 					<input
 						value={focusPrompt}
 						onChange={(e) => onFocusPromptChange(e.target.value)}
-						placeholder="e.g., Emphasize Node.js, scalability, and impact metrics. Keep 1 page."
+						placeholder="e.g., Prioritize product impact and leadership bullets."
 						className="w-full rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.05)] p-3 text-sm outline-none placeholder:text-[rgba(233,221,199,0.35)] focus:border-[rgba(233,221,199,0.22)]"
 					/>
 				</label>
@@ -246,11 +247,9 @@ export default function Step1InputForm({
 				isAnalyzing={isAnalyzing}
 				onBack={onBack}
 				onAnalyze={onAnalyze}
+				hideBackButton={hideBackButton}
 			/>
 
-			<p className="text-xs" style={{ color: "#FFA726" }}>
-				1 credit per preview · Export is free after signup.
-			</p>
 		</section>
 	);
 }

@@ -48,7 +48,7 @@ export function GenerationsFilters({
 				/>
 				<Input
 					type="text"
-					placeholder="Search by job description..."
+					placeholder="Search job title or description..."
 					value={searchQuery}
 					onChange={(e) => onSearchChange(e.target.value)}
 					className="pl-9"

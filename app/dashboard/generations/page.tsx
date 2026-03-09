@@ -50,16 +50,15 @@ function EmptyState() {
 				<Sparkles size={32} className="text-muted-foreground" />
 			</div>
 			<h3 className="mb-2 text-lg font-semibold text-foreground">
-				No generations yet
+				No resumes yet
 			</h3>
 			<p className="mb-6 max-w-sm text-muted-foreground">
-				Generate your first ATS-optimized resume tailored to a job
-				description.
+				You haven&apos;t tailored a resume yet. Start one to see it here.
 			</p>
 			<Link href="/dashboard/generate">
 				<Button>
 					<Sparkles size={16} className="mr-2" />
-					Generate your first resume
+					Tailor your first resume
 				</Button>
 			</Link>
 		</div>
@@ -100,7 +99,7 @@ function NoResultsState() {
 	return (
 		<div className="flex flex-col items-center justify-center py-16 text-center">
 			<p className="text-muted-foreground">
-				No generations match your filters.
+				No resumes match your filters.
 			</p>
 		</div>
 	);
@@ -180,12 +179,23 @@ function PastGenerationsContent() {
 	}, [jobs, statusFilter, searchQuery]);
 
 	// Handlers
-	const handleView = (job: GenerationJobFull) => {
-		setSelectedJob(job);
-		setIsDrawerOpen(true);
+	const handleOpenPdf = async (job: GenerationJobFull) => {
+		if (job.status !== "succeeded") return;
+		try {
+			const res = await fetch("/api/export-pdf", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ jobId: job.id }),
+			});
+			if (!res.ok) return;
+			const { pdfUrl } = await res.json();
+			window.open(pdfUrl, "_blank", "noopener,noreferrer");
+		} catch (error) {
+			console.error("Failed to open PDF:", error);
+		}
 	};
 
-	const handleDuplicate = (job: GenerationJobFull) => {
+	const handleTailorAgain = (job: GenerationJobFull) => {
 		// Navigate to generate page with job ID (page will load JD from DB)
 		router.push(`/dashboard/generate?fromJobId=${job.id}`);
 	};
@@ -238,8 +248,8 @@ function PastGenerationsContent() {
 						<GenerationJobRow
 							key={job.id}
 							job={job}
-							onView={handleView}
-							onDuplicate={handleDuplicate}
+							onOpenPdf={handleOpenPdf}
+							onTailorAgain={handleTailorAgain}
 							onDelete={handleDeleteClick}
 						/>
 					))}
@@ -298,7 +308,7 @@ export default function PastGenerationsPage() {
 					Past Generations
 				</h1>
 				<p className="mt-2 text-muted-foreground">
-					View and manage your previously generated resumes.
+					Your library of tailored resumes.
 				</p>
 			</div>
 
