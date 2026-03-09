@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, RotateCcw, Loader2, Check, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +11,6 @@ import { useDraftJd } from "@/hooks/useDraftJd";
 import { useResumeVersions } from "@/hooks/useResumeVersions";
 import { useGenerations } from "@/hooks/useGenerations";
 import { JdQualityIndicator } from "@/components/dashboard/generate/JdQualityIndicator";
-import { PastGenerationPicker } from "@/components/dashboard/generate/PastGenerationPicker";
 import { ResumeSelector } from "@/components/dashboard/generate/ResumeSelector";
 import {
 	ModeSelector,
@@ -126,19 +125,6 @@ function GeneratePageContent() {
 		}
 	}, [setJdText]);
 
-	// Get most recent JD for "Use last JD" button
-	const lastJd = jobs.length > 0 ? jobs[0].jd_text : null;
-
-	const handleUseLastJd = () => {
-		if (lastJd) {
-			setJdText(lastJd);
-		}
-	};
-
-	const handleSelectFromPast = (selectedJd: string) => {
-		setJdText(selectedJd);
-	};
-
 	const handleClear = () => {
 		clearDraft();
 		setError(null);
@@ -200,12 +186,12 @@ function GeneratePageContent() {
 	return (
 		<>
 			{/* Main Card */}
-			<div className="rounded-xl border border-border/50 bg-card/50 p-6">
+			<div className="rounded-xl border border-border/50 bg-card/50 p-6 pb-8">
 				{/* Mode Selector */}
 				<div className="mb-6">
-					<label className="mb-2 block text-sm font-medium text-foreground">
-						Generation Mode
-					</label>
+					<div className="mb-2 block text-sm font-medium text-foreground">
+						Mode
+					</div>
 					<ModeSelector
 						value={mode}
 						onChange={setMode}
@@ -258,23 +244,9 @@ function GeneratePageContent() {
 					</div>
 				)}
 
-				{/* Helper Actions */}
-				<div className="mb-6 flex flex-wrap gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={handleUseLastJd}
-						disabled={!lastJd || isGenerating}
-						className="gap-2"
-					>
-						<RotateCcw size={16} />
-						Use last JD
-					</Button>
-					<PastGenerationPicker
-						onSelect={handleSelectFromPast}
-						disabled={isGenerating}
-					/>
-					{jdText.trim() && (
+				{/* Clear button */}
+				{jdText.trim() && (
+					<div className="mb-4">
 						<Button
 							variant="ghost"
 							size="sm"
@@ -283,12 +255,14 @@ function GeneratePageContent() {
 						>
 							Clear
 						</Button>
-					)}
-				</div>
+					</div>
+				)}
+			</div>
 
-				{/* Error Display */}
+			{/* Sticky CTA bar — always visible at bottom */}
+			<div className="sticky bottom-0 z-20 -mx-6 mt-6 border-t border-border/50 bg-background/80 backdrop-blur-lg px-6 py-4 md:-mx-8 md:px-8">
 				{error && (
-					<div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+					<div className="mb-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
 						<div className="flex items-start gap-2">
 							<AlertCircle
 								size={16}
@@ -312,7 +286,6 @@ function GeneratePageContent() {
 					</div>
 				)}
 
-				{/* Generate Button */}
 				<Button
 					size="lg"
 					onClick={handleGenerate}
@@ -322,12 +295,12 @@ function GeneratePageContent() {
 					{isGenerating ? (
 						<>
 							<Loader2 size={18} className="animate-spin" />
-							Generating...
+							Tailoring…
 						</>
 					) : (
 						<>
 							<Sparkles size={18} />
-							Generate Resume
+							Tailor My Resume
 						</>
 					)}
 				</Button>
@@ -368,11 +341,10 @@ export default function GeneratePage() {
 			{/* Header */}
 			<div className="mb-6">
 				<h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-					Generate
+					Tailor My Resume
 				</h1>
 				<p className="mt-2 text-muted-foreground">
-					Create an ATS-optimized resume tailored to a job
-					description.
+					Paste a job description, pick a mode, and get a tailored resume.
 				</p>
 			</div>
 
