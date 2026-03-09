@@ -1,6 +1,7 @@
 import "./globals.css";
 import Providers from "./providers";
 import { Analytics } from "@vercel/analytics/next";
+import Script from "next/script";
 import { Manrope, DM_Sans, IBM_Plex_Mono } from "next/font/google";
 
 const displayFont = Manrope({
@@ -88,6 +89,20 @@ export default function RootLayout({
 			suppressHydrationWarning
 			className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}
 		>
+			<head>
+				<Script
+					src="https://www.googletagmanager.com/gtag/js?id=G-YD0572E2MW"
+					strategy="afterInteractive"
+				/>
+				<Script id="google-analytics" strategy="afterInteractive">
+					{`
+						window.dataLayer = window.dataLayer || [];
+						function gtag(){dataLayer.push(arguments);}
+						gtag('js', new Date());
+						gtag('config', 'G-YD0572E2MW');
+					`}
+				</Script>
+			</head>
 			<body className="antialiased font-body">
 				<a
 					href="#main-content"
