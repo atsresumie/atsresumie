@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Mail, ArrowLeft, RefreshCw } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
@@ -10,15 +11,12 @@ import { supabaseBrowser } from "@/lib/supabase/browser";
  * Email verification confirmation page.
  * Shown after a user signs up with email/password.
  */
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
+	const searchParams = useSearchParams();
 	const [isResending, setIsResending] = useState(false);
 	const [resendMessage, setResendMessage] = useState<string | null>(null);
 
-	// Get email from URL params (passed from signup)
-	const email =
-		typeof window !== "undefined"
-			? new URLSearchParams(window.location.search).get("email")
-			: null;
+	const email = searchParams.get("email");
 
 	const handleResend = async () => {
 		if (!email || isResending) return;
@@ -136,5 +134,13 @@ export default function VerifyEmailPage() {
 				</Link>
 			</motion.div>
 		</div>
+	);
+}
+
+export default function VerifyEmailPage() {
+	return (
+		<Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[hsl(24,28%,10%)] text-[#E9DDC7]">Loading…</div>}>
+			<VerifyEmailContent />
+		</Suspense>
 	);
 }

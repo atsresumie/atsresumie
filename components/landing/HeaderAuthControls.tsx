@@ -9,13 +9,11 @@ import { useCredits } from "@/hooks/useCredits";
 import { ProfileDropdown } from "@/components/shared/ProfileDropdown";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface HeaderAuthControlsProps {
-	onOpenAuthModal: (tab: "signin" | "signup") => void;
-}
-
-export function HeaderAuthControls({
-	onOpenAuthModal,
-}: HeaderAuthControlsProps) {
+/**
+ * Header auth controls for the get-started page.
+ * Shows sign-in/get-started for unauthenticated, credits + profile for authenticated.
+ */
+export function HeaderAuthControls() {
 	const { isAuthenticated, isLoading: authLoading } = useAuth();
 	const {
 		credits,
@@ -38,15 +36,18 @@ export function HeaderAuthControls({
 	if (!isAuthenticated) {
 		return (
 			<div className="flex items-center gap-3">
-				<motion.button
-					onClick={() => onOpenAuthModal("signin")}
-					className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+				<motion.div
 					whileHover={{ y: -1 }}
 					whileTap={{ y: 0 }}
 				>
-					Sign in
-				</motion.button>
-				<motion.button
+					<Link
+						href="/auth/login"
+						className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+					>
+						Sign in
+					</Link>
+				</motion.div>
+				<motion.div
 					whileHover={{ scale: 1.02, y: -1 }}
 					whileTap={{ scale: 0.98 }}
 				>
@@ -56,7 +57,7 @@ export function HeaderAuthControls({
 					>
 						Get Started
 					</Link>
-				</motion.button>
+				</motion.div>
 			</div>
 		);
 	}
