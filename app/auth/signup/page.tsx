@@ -48,12 +48,12 @@ function SignUpForm() {
 	return (
 		<div className="w-full max-w-lg rounded-2xl border border-[rgba(233,221,199,0.12)] bg-[rgba(20,14,11,0.95)] p-8 text-[#E9DDC7] shadow-[0_30px_100px_rgba(0,0,0,0.6)] backdrop-blur-xl">
 			<h1 className="text-2xl font-semibold mb-1">Create your account</h1>
-			<p className="text-sm text-[rgba(233,221,199,0.6)] mb-6">
+			<p className="text-sm text-[rgba(233,221,199,0.6)] mb-2">
 				Sign up to generate and download your tailored resume.
-				<span className="ml-1 rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-2 py-0.5 text-xs">
-					3 free credits
-				</span>
 			</p>
+			<span className="inline-block rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-2.5 py-0.5 text-xs text-[rgba(233,221,199,0.7)] mb-6">
+				3 free credits
+			</span>
 
 			<button
 				onClick={handleGoogleSignIn}

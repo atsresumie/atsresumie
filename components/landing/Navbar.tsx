@@ -6,7 +6,6 @@ import { Menu, X, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import { useAuthModal } from "@/contexts/AuthModalContext";
 import { ProfileDropdown } from "@/components/shared/ProfileDropdown";
 
 const marketingLinks = [
@@ -22,7 +21,6 @@ const pageLinks = [
 
 export const Navbar = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { openAuthModal } = useAuthModal();
 	const { user, isAuthenticated, isLoading, signOut } = useAuth();
 
 	const { scrollY } = useScroll();
@@ -52,16 +50,6 @@ export const Navbar = () => {
 		setIsOpen(false);
 		const element = document.querySelector(href);
 		element?.scrollIntoView({ behavior: "smooth" });
-	};
-
-	const openSignIn = () => {
-		openAuthModal("signin");
-		setIsOpen(false);
-	};
-
-	const openSignUp = () => {
-		openAuthModal("signup");
-		setIsOpen(false);
 	};
 
 	const handleSignOut = async () => {
@@ -155,29 +143,32 @@ export const Navbar = () => {
 										</div>
 									) : (
 										<>
-											<motion.button
-												onClick={openSignIn}
+										<motion.div
+											whileHover={{ y: -1 }}
+											whileTap={{ y: 0 }}
+										>
+											<Link
+												href="/auth/login"
 												className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-												whileHover={{ y: -1 }}
-												whileTap={{ y: 0 }}
 											>
 												Sign in
-											</motion.button>
-											<motion.button
-												whileHover={{
-													scale: 1.02,
-													y: -1,
-												}}
-												whileTap={{ scale: 0.98 }}
+											</Link>
+										</motion.div>
+										<motion.div
+											whileHover={{
+												scale: 1.02,
+												y: -1,
+											}}
+											whileTap={{ scale: 0.98 }}
+										>
+											<Link
+												href="/get-started"
+												className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-white/5 text-secondary-foreground backdrop-blur-md border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.30)] hover:bg-white/8 hover:border-white/15 transition-all"
 											>
-												<Link
-													href="/get-started"
-													className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-white/5 text-secondary-foreground backdrop-blur-md border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.30)] hover:bg-white/8 hover:border-white/15 transition-all"
-												>
-													Get Started
-												</Link>
-											</motion.button>
-										</>
+												Get Started
+											</Link>
+										</motion.div>
+									</>
 									)}
 								</>
 							)}
@@ -283,9 +274,7 @@ export const Navbar = () => {
 								</motion.div>
 							) : (
 								<>
-									<motion.button
-										onClick={openSignIn}
-										className="text-lg text-muted-foreground"
+									<motion.div
 										initial={{ opacity: 0, y: 20 }}
 										animate={
 											isOpen
@@ -299,11 +288,15 @@ export const Navbar = () => {
 												: { opacity: 0, y: 20 }
 										}
 									>
-										Sign in
-									</motion.button>
-									<motion.button
-										onClick={openSignUp}
-										className="px-6 py-3 bg-[rgba(233,221,199,0.1)] text-foreground font-medium text-lg rounded-xl border border-[rgba(233,221,199,0.15)]"
+										<Link
+											href="/auth/login"
+											onClick={() => setIsOpen(false)}
+											className="text-lg text-muted-foreground"
+										>
+											Sign in
+										</Link>
+									</motion.div>
+									<motion.div
 										initial={{ opacity: 0, y: 20 }}
 										animate={
 											isOpen
@@ -317,8 +310,14 @@ export const Navbar = () => {
 												: { opacity: 0, y: 20 }
 										}
 									>
-										Sign up
-									</motion.button>
+										<Link
+											href="/auth/signup"
+											onClick={() => setIsOpen(false)}
+											className="px-6 py-3 bg-[rgba(233,221,199,0.1)] text-foreground font-medium text-lg rounded-xl border border-[rgba(233,221,199,0.15)]"
+										>
+											Sign up
+										</Link>
+									</motion.div>
 								</>
 							)}
 						</>
