@@ -103,6 +103,7 @@ export default function RootLayout({
 					`}
 				</Script>
 			</head>
+			<meta name="loadforge-site-verification" content="497bc3931b7141d66a6e013b0308cf9b1f9b0ffe76d07f53fa5f18847ecae446500fbe4e2df37f1bd9f238a1afccb239d4ae4d1c867d76a80e830c9b9b24f13d" />
 			<body className="antialiased font-body">
 				<a
 					href="#main-content"
