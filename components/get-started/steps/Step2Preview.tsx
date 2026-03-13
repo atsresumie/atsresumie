@@ -41,7 +41,7 @@ export default function Step2Preview({
 					{/* Score header */}
 					<div className="flex items-center justify-between gap-3">
 						<div>
-							<div className="text-sm text-[rgba(233,221,199,0.75)]">
+							<div className="text-sm text-text-secondary">
 								Estimated ATS Match
 							</div>
 							<div className="mt-1 text-2xl font-semibold tracking-tight">
@@ -59,11 +59,11 @@ export default function Step2Preview({
 
 					{/* Changes and missing context */}
 					<div className="grid gap-4 md:grid-cols-2">
-						<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
+						<div className="rounded-xl border border-border-visible bg-surface-base p-4">
 							<div className="text-sm font-medium">
 								What we improved
 							</div>
-							<ul className="mt-2 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
+							<ul className="mt-2 space-y-2 text-sm text-text-secondary">
 								{(analysis.changes || []).map((c, i) => (
 									<li key={i} className="leading-relaxed">
 										• {c}
@@ -72,11 +72,11 @@ export default function Step2Preview({
 							</ul>
 						</div>
 
-						<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
+						<div className="rounded-xl border border-border-visible bg-surface-base p-4">
 							<div className="text-sm font-medium">
 								Suggested missing context
 							</div>
-							<ul className="mt-2 space-y-2 text-sm text-[rgba(233,221,199,0.75)]">
+							<ul className="mt-2 space-y-2 text-sm text-text-secondary">
 								{(analysis.missing || []).map((m, i) => (
 									<li key={i} className="leading-relaxed">
 										• {m}
@@ -85,7 +85,7 @@ export default function Step2Preview({
 							</ul>
 							<button
 								onClick={onEditInputs}
-								className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-sm hover:bg-[rgba(233,221,199,0.10)]"
+								className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-border-visible bg-surface-raised px-3 py-2 text-sm hover:bg-surface-inset"
 							>
 								Edit inputs
 							</button>
@@ -95,7 +95,7 @@ export default function Step2Preview({
 			)}
 
 			{/* LaTeX preview - gated behind authentication */}
-			<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.03)] p-4">
+			<div className="rounded-xl border border-border-visible bg-surface-base p-4">
 				<div className="flex items-center justify-between">
 					<div className="text-sm font-medium">Generated LaTeX</div>
 					<button
@@ -106,8 +106,8 @@ export default function Step2Preview({
 						disabled={!isAuthenticated}
 						className={`rounded-lg border px-2 py-1 text-xs ${
 							isAuthenticated
-								? "border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] hover:bg-[rgba(233,221,199,0.10)]"
-								: "border-[rgba(233,221,199,0.08)] bg-[rgba(233,221,199,0.03)] text-[rgba(233,221,199,0.4)] cursor-not-allowed"
+								? "border-border-visible bg-surface-raised hover:bg-surface-inset"
+								: "border-border-subtle bg-surface-base text-text-tertiary cursor-not-allowed"
 						}`}
 					>
 						{isAuthenticated ? "Copy" : "Copy (Sign in required)"}
@@ -115,7 +115,7 @@ export default function Step2Preview({
 				</div>
 				<div className="relative mt-3">
 					<pre
-						className={`max-h-80 overflow-auto rounded-lg bg-[rgba(0,0,0,0.35)] p-3 text-xs text-[rgba(233,221,199,0.75)] font-mono ${
+						className={`max-h-80 overflow-auto rounded-lg bg-code-block p-3 text-xs text-code-block-foreground font-mono ${
 							!isAuthenticated
 								? "blur-sm select-none pointer-events-none"
 								: ""
@@ -126,13 +126,13 @@ export default function Step2Preview({
 
 					{/* Overlay for non-authenticated users */}
 					{!isAuthenticated && displayLatex && (
-						<div className="absolute inset-0 flex items-center justify-center bg-[rgba(26,18,14,0.7)] rounded-lg backdrop-blur-sm">
+						<div className="absolute inset-0 flex items-center justify-center bg-surface-base/70 rounded-lg backdrop-blur-sm">
 							<div className="text-center px-4">
-								<Lock className="h-8 w-8 mx-auto mb-2 text-[rgba(233,221,199,0.6)]" />
-								<p className="text-sm font-medium text-[rgba(233,221,199,0.9)]">
+								<Lock className="h-8 w-8 mx-auto mb-2 text-text-secondary" />
+								<p className="text-sm font-medium text-text-primary">
 									Sign in to view and copy LaTeX code
 								</p>
-								<p className="text-xs text-[rgba(233,221,199,0.6)] mt-1">
+								<p className="text-xs text-text-secondary mt-1">
 									Click &quot;Download PDF&quot; below to
 									authenticate
 								</p>
@@ -146,7 +146,7 @@ export default function Step2Preview({
 			<div className="flex flex-col gap-3 sm:flex-row">
 				<button
 					onClick={onEditInputs}
-					className="inline-flex w-full items-center justify-center rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-4 py-3 text-sm hover:bg-[rgba(233,221,199,0.10)] sm:w-1/2"
+					className="inline-flex w-full items-center justify-center rounded-xl border border-border-visible bg-surface-raised px-4 py-3 text-sm hover:bg-surface-inset sm:w-1/2"
 				>
 					← Go Back
 				</button>
@@ -164,7 +164,7 @@ export default function Step2Preview({
 						}
 					}}
 					disabled={isExporting}
-					className="inline-flex w-full items-center justify-center rounded-xl bg-[#E9DDC7] px-4 py-3 text-sm font-medium text-[#2a1e18] shadow-[0_10px_30px_rgba(233,221,199,0.12)] hover:-translate-y-px hover:shadow-[0_16px_40px_rgba(233,221,199,0.16)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
+					className="inline-flex w-full items-center justify-center rounded-xl bg-cta px-4 py-3 text-sm font-medium text-cta-foreground shadow-card hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
 				>
 					<Download className="mr-2 h-4 w-4" />
 					{isExporting ? "Exporting…" : "Download"}
@@ -173,9 +173,9 @@ export default function Step2Preview({
 
 			{/* Export result */}
 			{exportResult && (
-				<div className="rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] p-4">
+				<div className="rounded-xl border border-border-visible bg-surface-base p-4">
 					<div className="text-sm font-medium">Export ready</div>
-					<div className="mt-2 flex flex-col gap-2 text-sm text-[rgba(233,221,199,0.75)]">
+					<div className="mt-2 flex flex-col gap-2 text-sm text-text-secondary">
 						<a
 							className="underline underline-offset-4 hover:opacity-90"
 							href={exportResult.pdfUrl}
@@ -185,7 +185,7 @@ export default function Step2Preview({
 							Open PDF
 						</a>
 						<button
-							className="w-fit rounded-lg border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-xs hover:bg-[rgba(233,221,199,0.10)]"
+							className="w-fit rounded-lg border border-border-visible bg-surface-raised px-3 py-2 text-xs hover:bg-surface-inset"
 							onClick={() =>
 								navigator.clipboard.writeText(
 									exportResult.latex,

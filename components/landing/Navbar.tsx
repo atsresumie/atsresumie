@@ -27,7 +27,7 @@ export const Navbar = () => {
 	const backgroundColor = useTransform(
 		scrollY,
 		[0, 100],
-		["hsla(24, 28%, 12%, 0)", "hsla(24, 28%, 12%, 0.95)"],
+		["hsla(33, 44%, 82%, 0)", "hsla(33, 44%, 82%, 0.95)"],
 	);
 	const backdropBlur = useTransform(
 		scrollY,
@@ -163,7 +163,7 @@ export const Navbar = () => {
 										>
 											<Link
 												href="/get-started"
-												className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-white/5 text-secondary-foreground backdrop-blur-md border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.30)] hover:bg-white/8 hover:border-white/15 transition-all"
+												className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-cta text-cta-foreground border border-cta shadow-card hover:bg-cta-hover transition-all"
 											>
 												Get Started
 											</Link>
@@ -313,7 +313,7 @@ export const Navbar = () => {
 										<Link
 											href="/auth/signup"
 											onClick={() => setIsOpen(false)}
-											className="px-6 py-3 bg-[rgba(233,221,199,0.1)] text-foreground font-medium text-lg rounded-xl border border-[rgba(233,221,199,0.15)]"
+											className="px-6 py-3 bg-surface-raised text-foreground font-medium text-lg rounded-xl border border-border-visible"
 										>
 											Sign up
 										</Link>

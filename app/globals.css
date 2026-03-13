@@ -18,42 +18,49 @@
 
 :root {
 	/* --------------------------------------------------------------------------
-	   COLORS - Warm matte dark theme with terracotta accent
+	   COLORS - Warm light theme with brown accent (#E5D5BE / #654844)
 	   -------------------------------------------------------------------------- */
 
-	/* Surfaces - The "paper" foundation */
-	--surface-base: hsl(30 8% 8%); /* Deep charcoal with warm undertone */
-	--surface-raised: hsl(30 6% 12%); /* Cards and panels */
-	--surface-inset: hsl(
-		30 6% 6%
-	); /* Pressed/recessed areas (signature motif) */
-	--surface-overlay: hsl(30 6% 14%); /* Modals, dropdowns */
+	/* Surfaces - Warm beige foundation */
+	--surface-base: #e5d5be; /* Main background */
+	--surface-raised: #f0e6d4; /* Cards and panels – slightly lighter */
+	--surface-inset: #d9c8ae; /* Pressed/recessed areas – slightly darker */
+	--surface-overlay: #f5eddf; /* Modals, dropdowns – near white */
 
-	/* Text - Cream tones like aged paper */
-	--text-primary: hsl(40 20% 88%); /* Main text */
-	--text-secondary: hsl(40 10% 58%); /* Captions, labels */
-	--text-tertiary: hsl(40 6% 38%); /* Disabled, placeholders */
+	/* Text - Dark brown tones */
+	--text-primary: #654844; /* Main text */
+	--text-secondary: #8a6f6a; /* Captions, labels */
+	--text-tertiary: #b09a94; /* Disabled, placeholders */
 
-	/* Accent - Terracotta/vermillion (the "wax seal" color) */
-	--accent: hsl(12 72% 52%); /* Primary accent */
-	--accent-hover: hsl(12 72% 58%); /* Hover state */
-	--accent-muted: hsl(12 40% 24%); /* Subtle backgrounds */
-	--accent-foreground: hsl(40 20% 95%); /* Text on accent */
+	/* Accent - Terracotta adapted for light backgrounds */
+	--accent: hsl(12 72% 42%); /* Primary accent (darker for contrast) */
+	--accent-hover: hsl(12 72% 36%); /* Hover state */
+	--accent-muted: hsl(12 30% 85%); /* Subtle accent background */
+	--accent-foreground: hsl(0 0% 100%); /* White text on accent */
 
-	/* Borders - Hair rules */
-	--border-subtle: hsl(30 8% 18%); /* Subtle separators */
-	--border-visible: hsl(30 8% 24%); /* Card outlines, inputs */
-	--border-focus: hsl(12 72% 52%); /* Focus ring */
+	/* CTA Buttons - Primary action color */
+	--cta: #654844; /* CTA button background */
+	--cta-hover: #7a5a55; /* CTA button hover */
+	--cta-foreground: #ffffff; /* Text on CTA */
+
+	/* Code / dark panels */
+	--code-block: #654844; /* LaTeX preview, code panels */
+	--code-block-foreground: rgba(255, 255, 255, 0.8); /* Text on code blocks */
+
+	/* Borders - Warm brown hair rules */
+	--border-subtle: #d4c3a9; /* Subtle separators */
+	--border-visible: #c4b198; /* Card outlines, inputs */
+	--border-focus: hsl(12 72% 42%); /* Focus ring */
 
 	/* Semantic Colors */
-	--success: hsl(158 60% 42%); /* Muted sage green */
-	--success-muted: hsl(158 40% 16%); /* Success background */
-	--warning: hsl(38 70% 50%); /* Muted golden yellow */
-	--warning-muted: hsl(38 50% 16%); /* Warning background */
-	--error: hsl(0 60% 50%); /* Muted red */
-	--error-muted: hsl(0 40% 16%); /* Error background */
-	--info: hsl(210 50% 50%); /* Muted blue */
-	--info-muted: hsl(210 40% 16%); /* Info background */
+	--success: hsl(158 50% 36%); /* Sage green */
+	--success-muted: hsl(158 30% 88%); /* Success background */
+	--warning: hsl(38 70% 50%); /* Golden yellow */
+	--warning-muted: hsl(38 40% 88%); /* Warning background */
+	--error: hsl(0 60% 50%); /* Red */
+	--error-muted: hsl(0 30% 90%); /* Error background */
+	--info: hsl(210 50% 50%); /* Blue */
+	--info-muted: hsl(210 30% 90%); /* Info background */
 
 	/* Legacy shadcn compatibility tokens */
 	--background: var(--surface-base);
@@ -155,9 +162,9 @@
 	   -------------------------------------------------------------------------- */
 
 	--shadow-none: none;
-	--shadow-inset: inset 0 1px 0 0 hsl(30 6% 4%); /* Pressed effect */
-	--shadow-subtle: 0 1px 2px 0 hsl(0 0% 0% / 0.1);
-	--shadow-card: 0 4px 12px -2px hsl(0 0% 0% / 0.15);
+	--shadow-inset: inset 0 1px 0 0 hsl(30 10% 78%); /* Pressed effect */
+	--shadow-subtle: 0 1px 2px 0 hsl(30 10% 50% / 0.12);
+	--shadow-card: 0 4px 12px -2px hsl(30 10% 40% / 0.1);
 
 	/* --------------------------------------------------------------------------
 	   MOTION - Restrained and purposeful
@@ -231,6 +238,13 @@
 	--color-error-muted: var(--error-muted);
 	--color-info: var(--info);
 	--color-info-muted: var(--info-muted);
+
+	/* CTA / code-block */
+	--color-cta: var(--cta);
+	--color-cta-hover: var(--cta-hover);
+	--color-cta-foreground: var(--cta-foreground);
+	--color-code-block: var(--code-block);
+	--color-code-block-foreground: var(--code-block-foreground);
 
 	/* Radius */
 	--radius-sm: calc(var(--radius) - 4px);

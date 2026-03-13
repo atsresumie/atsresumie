@@ -16,7 +16,7 @@ export default function Step0ModeSelection({
 }: Step0ModeSelectionProps) {
 	return (
 		<section className="space-y-4">
-			<div className="flex items-center gap-2 text-sm text-[rgba(233,221,199,0.75)]">
+			<div className="flex items-center gap-2 text-sm text-text-secondary">
 				<Sparkles className="h-4 w-4" />
 				Choose your tailoring mode
 			</div>

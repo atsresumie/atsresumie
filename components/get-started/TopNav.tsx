@@ -108,7 +108,7 @@ export default function TopNav({ onReset }: TopNavProps) {
 			<div className="flex items-center gap-3">
 				<button
 					onClick={onReset}
-					className="hidden rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-sm hover:bg-[rgba(233,221,199,0.10)] md:inline-flex"
+					className="hidden rounded-xl border border-border-visible bg-surface-base px-3 py-2 text-sm hover:bg-surface-inset md:inline-flex"
 				>
 					<RotateCcw className="mr-2 h-4 w-4" />
 					Reset
@@ -117,7 +117,7 @@ export default function TopNav({ onReset }: TopNavProps) {
 				{isAuthenticated && (
 					<Link
 						href="/dashboard"
-						className="hidden rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-2 text-sm hover:bg-[rgba(233,221,199,0.10)] md:inline-flex items-center"
+						className="hidden rounded-xl border border-border-visible bg-surface-base px-3 py-2 text-sm hover:bg-surface-inset md:inline-flex items-center"
 					>
 						Dashboard
 					</Link>
@@ -143,7 +143,7 @@ export default function TopNav({ onReset }: TopNavProps) {
 									? "border-red-500/30 bg-red-500/10 text-red-300"
 									: credits === 1
 										? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
-										: "border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)]"
+										: "border-border-visible bg-surface-base"
 							} ${isAnimating ? "scale-110 ring-2 ring-red-400/50" : ""}`}
 							style={{
 								transition:
@@ -162,7 +162,7 @@ export default function TopNav({ onReset }: TopNavProps) {
 				)}
 
 				{!isAuthenticated && (
-					<div className="rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-3 py-1 text-xs">
+					<div className="rounded-full border border-border-visible bg-surface-base px-3 py-1 text-xs">
 						Preview (1 Credit) • Export free
 					</div>
 				)}
@@ -172,19 +172,19 @@ export default function TopNav({ onReset }: TopNavProps) {
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<motion.button
-								className="rounded-full focus:outline-none focus:ring-2 focus:ring-[rgba(233,221,199,0.3)] focus:ring-offset-2 focus:ring-offset-[#1a120e]"
+								className="rounded-full focus:outline-none focus:ring-2 focus:ring-border-visible focus:ring-offset-2 focus:ring-offset-surface-base"
 								whileHover={{ scale: 1.05 }}
 								whileTap={{ scale: 0.95 }}
 								aria-label="User menu"
 							>
-								<Avatar className="h-9 w-9 cursor-pointer border-2 border-[rgba(233,221,199,0.15)] hover:border-[rgba(233,221,199,0.3)] transition-colors">
+								<Avatar className="h-9 w-9 cursor-pointer border-2 border-border-visible hover:border-border-focus transition-colors">
 									{user?.user_metadata?.avatar_url && (
 										<AvatarImage
 											src={user.user_metadata.avatar_url}
 											alt="User avatar"
 										/>
 									)}
-									<AvatarFallback className="bg-[rgba(233,221,199,0.1)] text-[#E9DDC7] text-sm font-medium">
+									<AvatarFallback className="bg-surface-inset text-text-primary text-sm font-medium">
 										{user?.email?.charAt(0).toUpperCase() ||
 											"U"}
 									</AvatarFallback>

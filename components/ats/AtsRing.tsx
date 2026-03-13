@@ -12,7 +12,7 @@ export default function AtsRing({ value }: { value: number }) {
 				cx="24"
 				cy="24"
 				r={r}
-				stroke="rgba(233,221,199,0.12)"
+				stroke="var(--border-visible)"
 				strokeWidth="6"
 				fill="none"
 			/>
@@ -20,7 +20,7 @@ export default function AtsRing({ value }: { value: number }) {
 				cx="24"
 				cy="24"
 				r={r}
-				stroke="rgba(233,221,199,0.75)"
+				stroke="var(--cta)"
 				strokeWidth="6"
 				fill="none"
 				strokeLinecap="round"
@@ -31,7 +31,7 @@ export default function AtsRing({ value }: { value: number }) {
 				x="24"
 				y="27"
 				textAnchor="middle"
-				className="fill-[#E9DDC7]"
+				className="fill-text-primary"
 				fontSize="10"
 				fontWeight="600"
 			>
