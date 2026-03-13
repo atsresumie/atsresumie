@@ -4,102 +4,85 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 /**
- * FAQ Component - Client Component (for accordion state)
- * Uses CSS transitions instead of framer-motion
+ * FAQ — Client Component (accordion state)
+ *
+ * Clean accordion, concise 1-2 sentence answers.
  */
 
 const faqs = [
 	{
 		question: "Will it invent experience?",
-		answer: "No. ATSResumie rewrites what you already have and won't fabricate roles, skills, or claims. Every bullet is grounded in your original resume content.",
+		answer: "No. Every bullet is grounded in your original resume — nothing fabricated.",
 	},
 	{
-		question: "Is this ATS compliant?",
-		answer: "Yes. ATSResumie outputs clean, ATS-readable formatting that passes automated screening systems used by most employers.",
+		question: "Is it ATS compliant?",
+		answer: "Yes. Output uses clean, parsable formatting that passes automated screening.",
 	},
 	{
-		question: "Can I tailor for multiple jobs?",
-		answer: "Absolutely — you can generate and save multiple tailored versions of your resume, one for each role you're applying to.",
+		question: "What formats are supported?",
+		answer: "Upload PDF or DOCX. Download as PDF or DOCX.",
 	},
 	{
-		question: "What file types are supported?",
-		answer: "PDF and DOCX. Upload your existing resume in either format and we'll parse it automatically.",
+		question: "Do I need to rewrite everything?",
+		answer: "No. It tailors your existing resume to the job description automatically.",
 	},
 	{
-		question: "Do I need an account?",
-		answer: "You can preview the experience without an account, but you'll need to sign up (free) to generate and download tailored resumes. You get 3 free credits on signup.",
+		question: "Can I try it free?",
+		answer: "Yes. You get 3 free credits on signup, no credit card required.",
 	},
 ];
-
-interface FAQItemProps {
-	faq: (typeof faqs)[0];
-	isOpen: boolean;
-	onToggle: () => void;
-}
-
-const FAQItem = ({ faq, isOpen, onToggle }: FAQItemProps) => {
-	return (
-		<div className="border-b border-border-subtle last:border-0">
-			<button
-				onClick={onToggle}
-				className="w-full py-6 flex items-center justify-between text-left group"
-			>
-				<span className="font-display text-lg font-medium group-hover:text-accent transition-colors pr-4">
-					{faq.question}
-				</span>
-				<div
-					className={`flex-shrink-0 transition-transform duration-200 ${
-						isOpen ? "rotate-180" : ""
-					}`}
-				>
-					<ChevronDown size={20} className="text-text-secondary" />
-				</div>
-			</button>
-
-			<div
-				className={`overflow-hidden transition-all duration-300 ease-out ${
-					isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-				}`}
-			>
-				<div className="pb-6">
-					<p className="text-text-secondary leading-relaxed">
-						{faq.answer}
-					</p>
-				</div>
-			</div>
-		</div>
-	);
-};
 
 export const FAQ = () => {
 	const [openIndex, setOpenIndex] = useState<number | null>(null);
 
 	return (
-		<section id="faq" className="relative py-24 md:py-32">
-			<div className="absolute inset-0 bg-gradient-to-b from-surface-base via-surface-raised/10 to-surface-base" />
+		<section id="faq" className="py-20 md:py-28 bg-surface-inset/30">
+			<div className="container mx-auto px-4">
+				<h2 className="font-display text-2xl md:text-3xl font-semibold text-center mb-14">
+					FAQ
+				</h2>
 
-			<div className="container mx-auto relative z-10">
-				{/* Section header */}
-				<div className="text-center mb-12 md:mb-16 animate-fade-in-up">
-					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
-						Frequently asked questions
-					</h2>
-					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
-						Everything you need to know about ATSResumie
-					</p>
-				</div>
-
-				{/* FAQ List */}
-				<div className="max-w-3xl mx-auto bg-surface-raised rounded-sm border border-border-visible px-6 md:px-8 animate-fade-in-up animation-delay-200">
+				<div className="max-w-2xl mx-auto bg-surface-raised rounded-xl border border-border-visible px-5 md:px-7">
 					{faqs.map((faq, index) => (
-						<FAQItem
+						<div
 							key={faq.question}
-							faq={faq}
-							isOpen={openIndex === index}
-							onToggle={() =>
-								setOpenIndex(openIndex === index ? null : index)
-							}
-						/>
+							className="border-b border-border-subtle last:border-0"
+						>
+							<button
+								onClick={() =>
+									setOpenIndex(
+										openIndex === index
+											? null
+											: index,
+									)
+								}
+								className="w-full py-5 flex items-center justify-between text-left group"
+							>
+								<span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors pr-4">
+									{faq.question}
+								</span>
+								<ChevronDown
+									size={16}
+									className={`text-text-tertiary transition-transform duration-200 flex-shrink-0 ${
+										openIndex === index
+											? "rotate-180"
+											: ""
+									}`}
+								/>
+							</button>
+
+							<div
+								className={`overflow-hidden transition-all duration-200 ${
+									openIndex === index
+										? "max-h-40 opacity-100"
+										: "max-h-0 opacity-0"
+								}`}
+							>
+								<p className="pb-5 text-sm text-text-secondary leading-relaxed">
+									{faq.answer}
+								</p>
+							</div>
+						</div>
 					))}
 				</div>
 			</div>

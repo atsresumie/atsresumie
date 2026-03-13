@@ -8,15 +8,10 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { ProfileDropdown } from "@/components/shared/ProfileDropdown";
 
-const marketingLinks = [
-	{ label: "Pricing", href: "#pricing" },
+const navLinks = [
 	{ label: "How it works", href: "#how-it-works" },
+	{ label: "Pricing", href: "#pricing" },
 	{ label: "FAQ", href: "#faq" },
-];
-
-const pageLinks = [
-	{ label: "Examples", href: "/examples" },
-	{ label: "Tailor to JD", href: "/resume-tailor-job-description" },
 ];
 
 export const Navbar = () => {
@@ -26,12 +21,12 @@ export const Navbar = () => {
 	const { scrollY } = useScroll();
 	const backgroundColor = useTransform(
 		scrollY,
-		[0, 100],
-		["hsla(33, 44%, 82%, 0)", "hsla(33, 44%, 82%, 0.95)"],
+		[0, 80],
+		["hsla(30, 50%, 97%, 0)", "hsla(30, 50%, 97%, 0.95)"],
 	);
 	const backdropBlur = useTransform(
 		scrollY,
-		[0, 100],
+		[0, 80],
 		["blur(0px)", "blur(12px)"],
 	);
 
@@ -61,58 +56,35 @@ export const Navbar = () => {
 		<>
 			<motion.nav
 				style={{ backgroundColor, backdropFilter: backdropBlur }}
-				className="fixed top-0 left-0 right-0 z-50 border-b border-border/50"
+				className="fixed top-0 left-0 right-0 z-50 border-b border-border/30"
 			>
-				<div className="container mx-auto">
-					<div className="flex items-center justify-between h-16 md:h-20">
+				<div className="container mx-auto px-4">
+					<div className="flex items-center justify-between h-16 md:h-18">
 						{/* Logo */}
-						<motion.div
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
+						<Link
+							href="/"
+							className="flex items-center gap-2 font-display text-xl font-semibold text-foreground"
 						>
-							<Link
-								href="/"
-								className="flex items-center gap-2 font-display text-xl md:text-2xl font-semibold text-foreground"
-							>
-								<Image
-									src="/logo3.png"
-									alt="atsresumie logo"
-									width={40}
-									height={40}
-									className="w-10 h-10"
-								/>
-								atsresumie
-							</Link>
-						</motion.div>
+							<Image
+								src="/logo3.png"
+								alt="atsresumie logo"
+								width={36}
+								height={36}
+								className="w-9 h-9"
+							/>
+							atsresumie
+						</Link>
 
-						{/* Desktop Navigation - ALWAYS show marketing links */}
-						<div className="hidden md:flex items-center gap-6">
-							{marketingLinks.map((link) => (
-								<motion.button
+						{/* Desktop Navigation */}
+						<div className="hidden md:flex items-center gap-8">
+							{navLinks.map((link) => (
+								<button
 									key={link.label}
 									onClick={() => scrollToSection(link.href)}
-									className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-									whileHover={{ y: -1 }}
-									whileTap={{ y: 0 }}
+									className="text-sm text-muted-foreground hover:text-foreground transition-colors"
 								>
 									{link.label}
-								</motion.button>
-							))}
-
-							{/* Page Links */}
-							{pageLinks.map((link) => (
-								<motion.div
-									key={link.label}
-									whileHover={{ y: -1 }}
-									whileTap={{ y: 0 }}
-								>
-									<Link
-										href={link.href}
-										className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-									>
-										{link.label}
-									</Link>
-								</motion.div>
+								</button>
 							))}
 
 							{/* Auth Controls */}
@@ -120,174 +92,74 @@ export const Navbar = () => {
 								<>
 									{isAuthenticated ? (
 										<div className="flex items-center gap-3">
-											{/* Dashboard Button */}
-											<motion.div
-												whileHover={{
-													scale: 1.02,
-													y: -1,
-												}}
-												whileTap={{ scale: 0.98 }}
+											<Link
+												href="/dashboard"
+												className="px-4 py-2 text-sm font-medium rounded-lg transition-all inline-flex items-center gap-2 bg-surface-inset text-foreground hover:bg-surface-raised"
 											>
-												<Link
-													href="/dashboard"
-													className="px-4 py-2 font-medium text-sm rounded-xl transition-all inline-flex items-center gap-2 bg-secondary text-secondary-foreground shadow-soft hover:shadow-glow"
-												>
-													<LayoutDashboard
-														size={16}
-													/>
-													Dashboard
-												</Link>
-											</motion.div>
-											{/* Profile Avatar Dropdown */}
+												<LayoutDashboard size={15} />
+												Dashboard
+											</Link>
 											<ProfileDropdown />
 										</div>
 									) : (
-										<>
-										<motion.div
-											whileHover={{ y: -1 }}
-											whileTap={{ y: 0 }}
-										>
+										<div className="flex items-center gap-4">
 											<Link
 												href="/auth/login"
-												className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+												className="text-sm text-muted-foreground hover:text-foreground transition-colors"
 											>
 												Sign in
 											</Link>
-										</motion.div>
-										<motion.div
-											whileHover={{
-												scale: 1.02,
-												y: -1,
-											}}
-											whileTap={{ scale: 0.98 }}
-										>
 											<Link
 												href="/get-started"
-												className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-cta text-cta-foreground border border-cta shadow-card hover:bg-cta-hover transition-all"
+												className="px-5 py-2 rounded-lg text-sm font-medium bg-cta text-cta-foreground hover:bg-cta-hover transition-colors"
 											>
-												Get Started
+												Start free
 											</Link>
-										</motion.div>
-									</>
+										</div>
 									)}
 								</>
 							)}
 						</div>
 
 						{/* Mobile Menu Button */}
-						<motion.button
+						<button
 							onClick={() => setIsOpen(!isOpen)}
 							className="md:hidden p-2 text-foreground"
-							whileTap={{ scale: 0.95 }}
 						>
 							{isOpen ? <X size={24} /> : <Menu size={24} />}
-						</motion.button>
+						</button>
 					</div>
 				</div>
 			</motion.nav>
 
 			{/* Mobile Menu */}
-			<motion.div
-				initial={false}
-				animate={
-					isOpen ? { opacity: 1, x: 0 } : { opacity: 0, x: "100%" }
-				}
-				transition={{ type: "spring", damping: 25, stiffness: 200 }}
-				className="fixed inset-0 z-40 md:hidden bg-background/98 backdrop-blur-xl"
-				style={{ pointerEvents: isOpen ? "auto" : "none" }}
-			>
-				<div className="flex flex-col items-center justify-center h-full gap-6">
-					{marketingLinks.map((link, i) => (
-						<motion.button
-							key={link.label}
-							onClick={() => scrollToSection(link.href)}
-							className="text-2xl font-display font-medium text-foreground"
-							initial={{ opacity: 0, y: 20 }}
-							animate={
-								isOpen
-									? {
-											opacity: 1,
-											y: 0,
-											transition: { delay: i * 0.1 },
-										}
-									: { opacity: 0, y: 20 }
-							}
-						>
-							{link.label}
-						</motion.button>
-					))}
-
-					{/* Page Links */}
-					{pageLinks.map((link, i) => (
-						<motion.div
-							key={link.label}
-							initial={{ opacity: 0, y: 20 }}
-							animate={
-								isOpen
-									? {
-											opacity: 1,
-											y: 0,
-											transition: {
-												delay:
-													marketingLinks.length *
-														0.1 +
-													i * 0.1,
-											},
-										}
-									: { opacity: 0, y: 20 }
-							}
-						>
-							<Link
-								href={link.href}
-								onClick={() => setIsOpen(false)}
-								className="text-xl font-display font-medium text-muted-foreground hover:text-foreground transition-colors"
+			{isOpen && (
+				<div className="fixed inset-0 z-40 md:hidden bg-background/98 backdrop-blur-xl">
+					<div className="flex flex-col items-center justify-center h-full gap-8">
+						{navLinks.map((link) => (
+							<button
+								key={link.label}
+								onClick={() => scrollToSection(link.href)}
+								className="text-2xl font-display font-medium text-foreground"
 							>
 								{link.label}
-							</Link>
-						</motion.div>
-					))}
+							</button>
+						))}
 
-					{/* Mobile Auth Buttons */}
-					{!isLoading && (
-						<>
-							{isAuthenticated ? (
-								<motion.div
-									initial={{ opacity: 0, y: 20 }}
-									animate={
-										isOpen
-											? {
-													opacity: 1,
-													y: 0,
-													transition: { delay: 0.3 },
-												}
-											: { opacity: 0, y: 20 }
-									}
-								>
+						{/* Mobile Auth */}
+						{!isLoading && (
+							<>
+								{isAuthenticated ? (
 									<Link
 										href="/dashboard"
 										onClick={() => setIsOpen(false)}
-										className="px-6 py-3 bg-secondary text-secondary-foreground font-medium text-lg rounded-xl inline-flex items-center gap-2"
+										className="px-6 py-3 bg-surface-inset text-foreground font-medium text-lg rounded-xl inline-flex items-center gap-2"
 									>
 										<LayoutDashboard size={20} />
 										Dashboard
 									</Link>
-								</motion.div>
-							) : (
-								<>
-									<motion.div
-										initial={{ opacity: 0, y: 20 }}
-										animate={
-											isOpen
-												? {
-														opacity: 1,
-														y: 0,
-														transition: {
-															delay: 0.3,
-														},
-													}
-												: { opacity: 0, y: 20 }
-										}
-									>
+								) : (
+									<div className="flex flex-col items-center gap-4">
 										<Link
 											href="/auth/login"
 											onClick={() => setIsOpen(false)}
@@ -295,52 +167,20 @@ export const Navbar = () => {
 										>
 											Sign in
 										</Link>
-									</motion.div>
-									<motion.div
-										initial={{ opacity: 0, y: 20 }}
-										animate={
-											isOpen
-												? {
-														opacity: 1,
-														y: 0,
-														transition: {
-															delay: 0.35,
-														},
-													}
-												: { opacity: 0, y: 20 }
-										}
-									>
 										<Link
-											href="/auth/signup"
+											href="/get-started"
 											onClick={() => setIsOpen(false)}
-											className="px-6 py-3 bg-surface-raised text-foreground font-medium text-lg rounded-xl border border-border-visible"
+											className="px-8 py-3 bg-cta text-cta-foreground font-medium text-lg rounded-xl"
 										>
-											Sign up
+											Start free
 										</Link>
-									</motion.div>
-								</>
-							)}
-						</>
-					)}
-
-					<motion.button
-						onClick={() => scrollToSection("#start")}
-						className="mt-4 px-8 py-4 bg-secondary text-secondary-foreground font-medium text-lg rounded-xl"
-						initial={{ opacity: 0, y: 20 }}
-						animate={
-							isOpen
-								? {
-										opacity: 1,
-										y: 0,
-										transition: { delay: 0.4 },
-									}
-								: { opacity: 0, y: 20 }
-						}
-					>
-						Get Started
-					</motion.button>
+									</div>
+								)}
+							</>
+						)}
+					</div>
 				</div>
-			</motion.div>
+			)}
 		</>
 	);
 };

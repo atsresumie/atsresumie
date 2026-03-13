@@ -191,6 +191,41 @@
 }
 
 /* ============================================================================
+   LANDING PAGE THEME SCOPE
+   Espresso-brown palette — applies only inside .landing wrapper
+   ============================================================================ */
+
+.landing {
+	/* Surfaces — brighter, airier */
+	--surface-base: #fcf8f3;
+	--surface-raised: #fffdf9;
+	--surface-inset: #f5ede3;
+	--surface-overlay: #fffdf9;
+
+	/* Text — deeper espresso brown */
+	--text-primary: #3e2c23;
+	--text-secondary: #6e584c;
+	--text-tertiary: #9a8478;
+
+	/* Accent — dark espresso */
+	--accent: #5c3b2e;
+	--accent-hover: #6b4637;
+	--accent-muted: #ead9ca;
+
+	/* CTA — matches accent */
+	--cta: #5c3b2e;
+	--cta-hover: #6b4637;
+
+	/* Borders — warmer, softer */
+	--border-subtle: #e8ddd0;
+	--border-visible: #d8c6b4;
+	--border-focus: #5c3b2e;
+
+	/* Shadows — lighter for bright background */
+	--shadow-card: 0 4px 16px -2px hsl(30 20% 50% / 0.08);
+}
+
+/* ============================================================================
    TAILWIND THEME INTEGRATION
    Maps CSS variables to Tailwind utility classes
    ============================================================================ */

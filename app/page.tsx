@@ -15,15 +15,15 @@ import { Footer } from "@/components/landing/Footer";
 export default function Home() {
 	return (
 		<AuthModalProvider>
-			<div className="relative min-h-screen bg-background">
+			<div className="landing relative min-h-screen bg-background">
 				<Navbar />
 				<main>
 					<Hero />
-
+					<TrustBar />
 					<Problem />
 					<HowItWorks />
-					<BeforeAfter />
 					<Features />
+					<BeforeAfter />
 					<Pricing />
 					<FAQ />
 					<CTA />
