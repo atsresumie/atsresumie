@@ -88,7 +88,7 @@ function LoginForm() {
 				{error && (
 					<p className="text-sm text-red-600 bg-red-100 rounded-lg px-3 py-2">{error}</p>
 				)}
-				<button type="submit" disabled={isLoading} className="w-full rounded-xl bg-[#654844] px-4 py-3 text-sm font-semibold text-white hover:bg-[#7a5a55] hover:-translate-y-px active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2">
+				<button type="submit" disabled={isLoading} className="w-full rounded-xl bg-cta px-4 py-3 text-sm font-semibold text-cta-foreground hover:bg-cta-hover hover:-translate-y-px active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2">
 					{isLoading && <Loader2 className="animate-spin" size={18} />}
 					Sign In
 				</button>

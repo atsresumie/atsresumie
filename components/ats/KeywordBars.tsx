@@ -21,7 +21,7 @@ export default function KeywordBars({
 						</div>
 						<div className="mt-1 h-2 w-full rounded-full bg-surface-inset">
 							<motion.div
-								className="h-2 rounded-full bg-[#654844]"
+								className="h-2 rounded-full bg-cta"
 								initial={false}
 								animate={{ width: `${v}%` }}
 								transition={

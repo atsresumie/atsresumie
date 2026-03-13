@@ -163,7 +163,7 @@ export const Navbar = () => {
 										>
 											<Link
 												href="/get-started"
-												className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-[#654844] text-white border border-[#654844] shadow-card hover:bg-[#7a5a55] transition-all"
+												className="px-5 py-2.5 rounded-xl text-sm font-medium inline-block bg-cta text-cta-foreground border border-cta shadow-card hover:bg-cta-hover transition-all"
 											>
 												Get Started
 											</Link>

@@ -52,7 +52,7 @@ export default function ModeCards({
 						className={[
 							"text-left rounded-2xl border p-4 transition",
 							selected
-								? "border-[#654844] bg-surface-inset shadow-card"
+								? "border-cta bg-surface-inset shadow-card"
 								: "border-border-visible bg-surface-base hover:border-text-secondary",
 						].join(" ")}
 					>
@@ -70,7 +70,7 @@ export default function ModeCards({
 						<div className="relative mt-3 h-0.5 w-full overflow-hidden rounded-full bg-surface-inset">
 							{!reduceMotion && selected && (
 								<motion.div
-									className="absolute inset-y-0 left-0 w-1/3 bg-[#654844]"
+									className="absolute inset-y-0 left-0 w-1/3 bg-cta"
 									animate={{ x: ["-40%", "260%"] }}
 									transition={{
 										duration: 1.8,

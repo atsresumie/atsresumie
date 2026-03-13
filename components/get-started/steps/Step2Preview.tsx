@@ -115,7 +115,7 @@ export default function Step2Preview({
 				</div>
 				<div className="relative mt-3">
 					<pre
-						className={`max-h-80 overflow-auto rounded-lg bg-[#654844] p-3 text-xs text-white/80 font-mono ${
+						className={`max-h-80 overflow-auto rounded-lg bg-code-block p-3 text-xs text-code-block-foreground font-mono ${
 							!isAuthenticated
 								? "blur-sm select-none pointer-events-none"
 								: ""
@@ -164,7 +164,7 @@ export default function Step2Preview({
 						}
 					}}
 					disabled={isExporting}
-					className="inline-flex w-full items-center justify-center rounded-xl bg-[#654844] px-4 py-3 text-sm font-medium text-white shadow-card hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
+					className="inline-flex w-full items-center justify-center rounded-xl bg-cta px-4 py-3 text-sm font-medium text-cta-foreground shadow-card hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-1/2"
 				>
 					<Download className="mr-2 h-4 w-4" />
 					{isExporting ? "Exporting…" : "Download"}

@@ -40,7 +40,7 @@ export default function SuccessModal({
 							href={pdfUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="mt-4 block w-full rounded-xl bg-[#654844] py-3 text-center text-sm font-medium text-white hover:bg-[#7a5a55] transition-colors"
+							className="mt-4 block w-full rounded-xl bg-cta py-3 text-center text-sm font-medium text-cta-foreground hover:bg-cta-hover transition-colors"
 						>
 							Download PDF
 						</a>

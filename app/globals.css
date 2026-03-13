@@ -22,7 +22,7 @@
 	   -------------------------------------------------------------------------- */
 
 	/* Surfaces - Warm beige foundation */
-	--surface-base: #E5D5BE; /* Main background */
+	--surface-base: #e5d5be; /* Main background */
 	--surface-raised: #f0e6d4; /* Cards and panels – slightly lighter */
 	--surface-inset: #d9c8ae; /* Pressed/recessed areas – slightly darker */
 	--surface-overlay: #f5eddf; /* Modals, dropdowns – near white */
@@ -37,6 +37,15 @@
 	--accent-hover: hsl(12 72% 36%); /* Hover state */
 	--accent-muted: hsl(12 30% 85%); /* Subtle accent background */
 	--accent-foreground: hsl(0 0% 100%); /* White text on accent */
+
+	/* CTA Buttons - Primary action color */
+	--cta: #654844; /* CTA button background */
+	--cta-hover: #7a5a55; /* CTA button hover */
+	--cta-foreground: #ffffff; /* Text on CTA */
+
+	/* Code / dark panels */
+	--code-block: #654844; /* LaTeX preview, code panels */
+	--code-block-foreground: rgba(255, 255, 255, 0.8); /* Text on code blocks */
 
 	/* Borders - Warm brown hair rules */
 	--border-subtle: #d4c3a9; /* Subtle separators */
@@ -229,6 +238,13 @@
 	--color-error-muted: var(--error-muted);
 	--color-info: var(--info);
 	--color-info-muted: var(--info-muted);
+
+	/* CTA / code-block */
+	--color-cta: var(--cta);
+	--color-cta-hover: var(--cta-hover);
+	--color-cta-foreground: var(--cta-foreground);
+	--color-code-block: var(--code-block);
+	--color-code-block-foreground: var(--code-block-foreground);
 
 	/* Radius */
 	--radius-sm: calc(var(--radius) - 4px);

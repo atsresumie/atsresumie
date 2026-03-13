@@ -21,7 +21,7 @@ export default function Stepper({
 								className={[
 									"h-2.5 w-2.5 rounded-full border",
 									idx <= current
-										? "border-[#654844] bg-[#654844]"
+										? "border-cta bg-cta"
 										: "border-border-visible bg-transparent",
 								].join(" ")}
 							/>
@@ -39,7 +39,7 @@ export default function Stepper({
 
 			<div className="mt-3 h-1.5 w-full rounded-full bg-surface-inset">
 				<motion.div
-					className="h-1.5 rounded-full bg-[#654844]"
+					className="h-1.5 rounded-full bg-cta"
 					initial={false}
 					animate={{
 						width: `${((current + 1) / steps.length) * 100}%`,

@@ -20,7 +20,7 @@ export default function AtsRing({ value }: { value: number }) {
 				cx="24"
 				cy="24"
 				r={r}
-				stroke="#654844"
+				stroke="var(--cta)"
 				strokeWidth="6"
 				fill="none"
 				strokeLinecap="round"

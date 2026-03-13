@@ -70,7 +70,7 @@ export default function SignupGateModal({
 						<div className="mt-4">
 							<button
 								onClick={handleContinue}
-								className="w-full rounded-xl bg-[#654844] px-4 py-3 text-sm font-medium text-white hover:-translate-y-px active:translate-y-0"
+								className="w-full rounded-xl bg-cta px-4 py-3 text-sm font-medium text-cta-foreground hover:-translate-y-px active:translate-y-0"
 							>
 								Sign up to continue
 							</button>
