@@ -103,7 +103,7 @@ export const Hero = () => {
 								{/* User message - right aligned */}
 								<div className="flex items-start gap-2.5 justify-end animate-fade-in-up animation-delay-600">
 									<div className="max-w-[85%]">
-										<div className="bg-[hsl(30,8%,18%)] rounded-2xl rounded-br-sm px-4 py-3 text-sm text-text-primary leading-relaxed">
+										<div className="bg-surface-inset rounded-2xl rounded-br-sm px-4 py-3 text-sm text-text-primary leading-relaxed">
 											Hey ChatGPT, here is my resume and
 											the JD I&apos;m applying for. Can
 											you rewrite my resume to be

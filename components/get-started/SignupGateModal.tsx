@@ -27,14 +27,14 @@ export default function SignupGateModal({
 			{open && (
 				<>
 					<motion.div
-						className="fixed inset-0 z-40 bg-black/50"
+						className="fixed inset-0 z-40 bg-black/30"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
 						// No onClick={onClose} — login is required, no dismiss
 					/>
 					<motion.div
-						className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[rgba(233,221,199,0.12)] bg-[rgba(20,14,11,0.92)] p-5 text-[#E9DDC7] shadow-[0_30px_100px_rgba(0,0,0,0.6)] backdrop-blur"
+						className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border-visible bg-surface-raised p-5 text-text-primary shadow-card backdrop-blur"
 						initial={
 							reduceMotion
 								? false
@@ -59,10 +59,10 @@ export default function SignupGateModal({
 						<div className="text-lg font-semibold">
 							Create an account to continue
 						</div>
-						<p className="mt-2 text-sm text-[rgba(233,221,199,0.75)]">
+						<p className="mt-2 text-sm text-text-secondary">
 							Sign up to generate and download your
 							tailored resume.
-							<span className="ml-1 rounded-full border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] px-2 py-0.5 text-xs">
+							<span className="ml-1 rounded-full border border-border-visible bg-surface-base px-2 py-0.5 text-xs">
 								3 free credits
 							</span>
 						</p>
@@ -70,7 +70,7 @@ export default function SignupGateModal({
 						<div className="mt-4">
 							<button
 								onClick={handleContinue}
-								className="w-full rounded-xl bg-[#E9DDC7] px-4 py-3 text-sm font-medium text-[#2a1e18] hover:-translate-y-px active:translate-y-0"
+								className="w-full rounded-xl bg-[#654844] px-4 py-3 text-sm font-medium text-white hover:-translate-y-px active:translate-y-0"
 							>
 								Sign up to continue
 							</button>

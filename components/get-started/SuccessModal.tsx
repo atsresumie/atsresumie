@@ -22,16 +22,16 @@ export default function SuccessModal({
 }: SuccessModalProps) {
 	return (
 		<Dialog open={open}>
-			<DialogContent className="sm:max-w-md bg-[#1a120e] border-[rgba(233,221,199,0.15)] text-[#E9DDC7]">
+			<DialogContent className="sm:max-w-md bg-surface-raised border-border-visible text-text-primary">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2 text-xl">
-						<CheckCircle className="h-6 w-6 text-green-400" />
+						<CheckCircle className="h-6 w-6 text-success" />
 						Resume Generated!
 					</DialogTitle>
 				</DialogHeader>
 
 				<div className="py-4">
-					<p className="text-[rgba(233,221,199,0.75)]">
+					<p className="text-text-secondary">
 						Your ATS-optimized resume has been created successfully.
 					</p>
 
@@ -40,7 +40,7 @@ export default function SuccessModal({
 							href={pdfUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="mt-4 block w-full rounded-xl bg-[#C8B08A] py-3 text-center text-sm font-medium text-[#1a120e] hover:bg-[#d4c4a8] transition-colors"
+							className="mt-4 block w-full rounded-xl bg-[#654844] py-3 text-center text-sm font-medium text-white hover:bg-[#7a5a55] transition-colors"
 						>
 							Download PDF
 						</a>
@@ -50,13 +50,13 @@ export default function SuccessModal({
 				<div className="flex gap-3 pt-2">
 					<button
 						onClick={onCreateAnother}
-						className="flex-1 rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] py-3 text-sm font-medium hover:bg-[rgba(233,221,199,0.12)] transition-colors"
+						className="flex-1 rounded-xl border border-border-visible bg-surface-base py-3 text-sm font-medium hover:bg-surface-inset transition-colors"
 					>
 						Create Another
 					</button>
 					<Link
 						href="/dashboard"
-						className="flex-1 rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.06)] py-3 text-center text-sm font-medium hover:bg-[rgba(233,221,199,0.12)] transition-colors"
+						className="flex-1 rounded-xl border border-border-visible bg-surface-base py-3 text-center text-sm font-medium hover:bg-surface-inset transition-colors"
 					>
 						View Dashboard
 					</Link>
