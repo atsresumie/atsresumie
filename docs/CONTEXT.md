@@ -510,17 +510,22 @@ Automated welcome email on first signup:
 
 ### Color Palette
 
-Warm dark theme with coffee/beige tones:
+Warm light theme with beige background and brown accents. **All colors are centralized in `globals.css` — zero hardcoded hex values in component files.**
 
-| Token      | Value                    |
-| ---------- | ------------------------ |
-| background | `hsl(24 28% 12%)`        |
-| foreground | `hsl(36 30% 88%)`        |
-| primary    | `hsl(20 30% 18%)`        |
-| secondary  | `hsl(36 30% 85%)`        |
-| accent     | `hsl(32 28% 66%)` (sand) |
-| muted      | `hsl(24 20% 22%)`        |
-| border     | `hsl(24 20% 25%)`        |
+| Token               | Value                        | Purpose                      |
+| ------------------- | ---------------------------- | ---------------------------- |
+| `--surface-base`    | `#E5D5BE`                    | Main background              |
+| `--surface-raised`  | `#f0e6d4`                    | Cards, panels                |
+| `--surface-inset`   | `#d9c8ae`                    | Pressed/recessed areas       |
+| `--text-primary`    | `#654844`                    | Main text                    |
+| `--text-secondary`  | `#8a6f6a`                    | Captions, labels             |
+| `--text-tertiary`   | `#b09a94`                    | Placeholders, disabled       |
+| `--cta`             | `#654844`                    | CTA button background        |
+| `--cta-hover`       | `#7a5a55`                    | CTA hover state              |
+| `--cta-foreground`  | `#ffffff`                    | Text on CTA                  |
+| `--code-block`      | `#654844`                    | LaTeX preview background     |
+| `--border-visible`  | `#c4b198`                    | Card outlines, inputs        |
+| `--accent`          | `hsl(12 72% 42%)`            | Primary accent (terracotta)  |
 
 ### Landing Page Components
 
@@ -656,6 +661,23 @@ Added by migration `009_pipeline_split.sql`:
 - **Analytics** (Google Analytics + Vercel Analytics)
 - **PWA manifest** (web app manifest with icons)
 - **ATS visualization** components (score ring + keyword bars)
+- **Light theme** with centralized CSS variable design tokens
+
+### 🚧 Planned (alpha/v2.0)
+
+Upcoming features on the `alpha/v2.0` branch (branched from `feat/light-mode`):
+
+| Feature                              | Description                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| **Minimal UI Refresh**               | Simplify the landing page, make it cleaner and fully light-mode consistent                         |
+| **AI Interaction Field**             | Additional text field to instruct the AI where specific changes need to be made in the resume       |
+| **Job Tracking & Application Flow**  | Track job applications with statuses (Applied, Interview, Offer, Rejected), deadlines, and notes   |
+| **ATS Score Determination**          | Score resumes against job descriptions with detailed keyword match analysis                         |
+| **Job Post Crawling**                | Crawl and aggregate job postings from external sources                                              |
+| **Recommendation Algorithm**         | Filter and rank crawled jobs by matching against the user's generated resume and ATS score          |
+| **Real-time JD Parsing**             | Parse job descriptions on-the-fly and compute match rankings                                       |
+
+**Planned subdomain:** `alpha.atsresumie.com`
 
 ---
 
@@ -692,4 +714,4 @@ See `.env.example` for the full list. Key variables:
 
 ---
 
-_Last updated: 2026-03-09_
+_Last updated: 2026-03-13_
