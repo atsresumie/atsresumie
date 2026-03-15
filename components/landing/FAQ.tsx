@@ -38,7 +38,7 @@ export const FAQ = () => {
 	return (
 		<section id="faq" className="py-20 md:py-28 bg-surface-inset/30">
 			<div className="container mx-auto px-4">
-				<h2 className="font-display text-2xl md:text-3xl font-semibold text-center mb-14">
+				<h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-14">
 					FAQ
 				</h2>
 

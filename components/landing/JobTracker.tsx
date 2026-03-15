@@ -200,7 +200,7 @@ export const JobTracker = () => {
 				{/* Section header */}
 				<div className="text-center mb-4">
 					<div className="flex items-center justify-center gap-3 mb-3">
-						<h2 className="font-display text-2xl md:text-3xl font-semibold">
+						<h2 className="font-display text-3xl md:text-4xl font-bold">
 							Track every application
 						</h2>
 						<span className="inline-flex items-center px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-accent-muted text-accent border border-accent/15">

@@ -60,7 +60,7 @@ export const TemplateSelector = () => {
 			<div className="container mx-auto px-4">
 				{/* Section header */}
 				<div className="text-center mb-12">
-					<h2 className="font-display text-2xl md:text-3xl font-semibold">
+					<h2 className="font-display text-3xl md:text-4xl font-bold">
 						Switch templates anytime
 					</h2>
 					<p className="text-sm text-text-secondary mt-3 max-w-sm mx-auto">

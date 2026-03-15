@@ -30,10 +30,10 @@ export const PlatformPreview = () => {
 				{/* Section header */}
 				<div className="text-center mb-14">
 					<span className="inline-block px-3 py-1 mb-4 text-[11px] font-semibold uppercase tracking-wider rounded-full bg-accent-muted text-accent border border-accent/15">
-						Platform preview
+						More than a resume generator
 					</span>
-					<h2 className="font-display text-2xl md:text-3xl font-semibold">
-						One connected workflow
+					<h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary leading-tight">
+						Your Entire Job Search. One Platform.
 					</h2>
 					<p className="text-sm text-text-secondary mt-3 max-w-md mx-auto">
 						From upload to offer — everything in one place.
