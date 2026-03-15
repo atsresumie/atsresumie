@@ -26,14 +26,6 @@ export default function Home() {
 					{/* Core product story */}
 					<Hero />
 					<TrustBar />
-
-					<HowItWorks />
-					<Features />
-					<BeforeAfter />
-
-					{/* Platform direction – broader workflow */}
-					<PlatformPreview />
-
 					{/* ATS Score + Job Discovery — side-by-side on desktop */}
 					<section className="py-20 md:py-28">
 						<div className="container mx-auto px-4">
@@ -52,8 +44,13 @@ export default function Home() {
 						</div>
 					</section>
 
-					<TemplateSelector />
+					<BeforeAfter />
 					<JobTracker />
+					<HowItWorks />
+					<TemplateSelector />
+					<Features />
+					{/* Platform direction – broader workflow */}
+					<PlatformPreview />
 
 					{/* Conversion */}
 					<Pricing />
