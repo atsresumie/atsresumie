@@ -1,26 +1,32 @@
-import { Upload, ClipboardPaste, Download } from "lucide-react";
+import { Upload, ClipboardPaste, Download, ArrowRight } from "lucide-react";
 
 /**
- * HowItWorks — Server Component
+ * HowItWorks Component — Server Component
  *
- * 3 numbered steps, icon-driven, minimal text.
+ * 3 numbered steps with icon, title, description, progress line, and arrows.
  */
 
 const steps = [
 	{
 		number: "01",
 		icon: Upload,
-		label: "Upload your resume",
+		title: "Upload your resume",
+		description:
+			"Upload your current resume as PDF or DOCX — we'll parse it automatically.",
 	},
 	{
 		number: "02",
 		icon: ClipboardPaste,
-		label: "Paste the job description",
+		title: "Paste the job description",
+		description:
+			"Paste the job posting you're targeting. We'll identify the key requirements and skills.",
 	},
 	{
 		number: "03",
 		icon: Download,
-		label: "Download your tailored PDF",
+		title: "Generate → review → download",
+		description:
+			"Get a tailored, ATS-ready resume. Review the changes, then download your PDF.",
 	},
 ];
 
@@ -28,41 +34,77 @@ export const HowItWorks = () => {
 	return (
 		<section
 			id="how-it-works"
-			className="py-20 md:py-28 bg-surface-inset/30"
+			className="relative py-24 md:py-32 overflow-hidden bg-surface-inset/30"
 		>
-			<div className="container mx-auto px-4">
-				<h2 className="font-display text-2xl md:text-3xl font-semibold text-center mb-14">
-					How it works
-				</h2>
+			<div className="container mx-auto relative z-10">
+				{/* Section header */}
+				<div className="text-center mb-16 md:mb-20 animate-fade-in-up">
+					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
+						How it works
+					</h2>
+					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
+						Three simple steps to an ATS-optimized resume
+					</p>
+				</div>
 
-				<div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-					{steps.map((step) => {
-						const Icon = step.icon;
-						return (
-							<div
-								key={step.number}
-								className="relative flex flex-col items-center text-center p-8 rounded-xl bg-surface-raised border border-border-visible"
-							>
-								{/* Step number */}
-								<span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-surface-base border border-border-visible rounded-md text-xs font-semibold text-accent">
-									{step.number}
-								</span>
+				{/* Steps */}
+				<div className="relative">
+					{/* Progress line */}
+					<div className="absolute top-1/2 left-0 right-0 h-px bg-border-subtle hidden lg:block" />
+					<div
+						className="absolute top-1/2 left-0 right-0 h-px hidden lg:block animate-progress-line"
+						style={{
+							background: "var(--accent)",
+						}}
+					/>
 
-								{/* Icon */}
-								<div className="w-12 h-12 rounded-lg bg-accent-muted flex items-center justify-center mb-4 mt-1">
-									<Icon
-										size={22}
-										className="text-accent"
-									/>
+					<div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+						{steps.map((step, index) => {
+							const Icon = step.icon;
+							return (
+								<div
+									key={step.number}
+									className={`relative group animate-fade-in-up animation-delay-${(index + 2) * 100}`}
+								>
+									{/* Card */}
+									<div className="relative bg-surface-raised rounded-sm border border-border-visible p-8 h-full transition-all duration-300 hover:border-accent/30 hover:shadow-lg">
+										{/* Step number */}
+										<div className="absolute -top-4 left-8 px-3 py-1 bg-surface-base border border-border-visible rounded-sm">
+											<span className="font-display text-sm font-semibold text-accent">
+												{step.number}
+											</span>
+										</div>
+
+										{/* Icon */}
+										<div className="w-14 h-14 rounded-sm bg-surface-inset flex items-center justify-center mb-6 mt-2 transition-transform duration-300 group-hover:scale-105">
+											<Icon
+												size={24}
+												className="text-accent"
+											/>
+										</div>
+
+										{/* Content */}
+										<h3 className="font-display text-xl font-medium mb-3 text-text-primary">
+											{step.title}
+										</h3>
+										<p className="text-text-secondary">
+											{step.description}
+										</p>
+
+										{/* Arrow (hidden on last) */}
+										{index < steps.length - 1 && (
+											<div className="absolute -right-6 top-1/2 -translate-y-1/2 hidden lg:block z-10">
+												<ArrowRight
+													size={20}
+													className="text-accent animate-pulse"
+												/>
+											</div>
+										)}
+									</div>
 								</div>
-
-								{/* Label */}
-								<p className="text-sm font-medium text-text-primary">
-									{step.label}
-								</p>
-							</div>
-						);
-					})}
+							);
+						})}
+					</div>
 				</div>
 			</div>
 		</section>
