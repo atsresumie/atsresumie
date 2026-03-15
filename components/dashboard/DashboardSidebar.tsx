@@ -8,6 +8,7 @@ import {
 	Sparkles,
 	History,
 	Bookmark,
+	KanbanSquare,
 	FileText,
 	Download,
 	CreditCard,
@@ -39,6 +40,11 @@ const sidebarLinks = [
 		icon: History,
 	},
 	{ label: "Saved JDs", href: "/dashboard/saved-jds", icon: Bookmark },
+	{
+		label: "My Applications",
+		href: "/dashboard/applications",
+		icon: KanbanSquare,
+	},
 	{ label: "Resume Versions", href: "/dashboard/resumes", icon: FileText },
 	{ label: "Download Center", href: "/dashboard/downloads", icon: Download },
 	{
