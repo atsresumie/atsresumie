@@ -29,8 +29,9 @@ export const CTA = () => {
 
 					{/* Supporting copy */}
 					<p className="text-base md:text-lg text-text-secondary mb-10 max-w-lg mx-auto">
-						Join thousands of job seekers who get more interviews with
-						tailored, ATS-optimized resumes — in minutes, not hours.
+						Join thousands of job seekers who get more interviews
+						with tailored, ATS-optimized resumes — in minutes, not
+						hours.
 					</p>
 
 					{/* CTA buttons */}
@@ -43,10 +44,10 @@ export const CTA = () => {
 							<ArrowRight size={16} />
 						</Link>
 						<Link
-							href="#features"
+							href="/auth/signup"
 							className="inline-flex items-center gap-2 px-8 py-3.5 font-semibold rounded-lg border border-border-visible text-text-primary hover:bg-surface-raised transition-all hover:-translate-y-0.5 active:scale-[0.98]"
 						>
-							Browse live jobs
+							Sign Up for FREE
 						</Link>
 					</div>
 				</div>

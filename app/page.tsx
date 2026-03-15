@@ -33,7 +33,6 @@ export default function Home() {
 
 					{/* Platform direction – broader workflow */}
 					<PlatformPreview />
-					<JobTracker />
 
 					{/* ATS Score + Job Discovery — side-by-side on desktop */}
 					<section className="py-20 md:py-28">
@@ -54,6 +53,7 @@ export default function Home() {
 					</section>
 
 					<TemplateSelector />
+					<JobTracker />
 
 					{/* Conversion */}
 					<Pricing />
