@@ -205,7 +205,7 @@ export function ApplicationBoard({
 							</div>
 
 							{/* Cards */}
-							<div className="p-2 space-y-2 flex-1 min-h-[100px]">
+							<div className="p-2 space-y-2 flex-1 min-h-[400px]">
 								{stageApps.length === 0 && !isDragOver && (
 									<div className="text-center py-8 text-xs text-muted-foreground">
 										No applications
@@ -290,22 +290,22 @@ function ApplicationCard({
 			onDragStart={handleDragStart}
 			onDragEnd={handleDragEnd}
 			onClick={() => onView(app)}
-			className={`rounded-lg bg-white/80 dark:bg-card/30 border border-border/40 p-4 hover:border-primary/20 transition-all group shadow-sm cursor-grab active:cursor-grabbing min-h-[120px] ${
+			className={`rounded-lg bg-white/80 dark:bg-card/30 border border-border/40 p-3 hover:border-primary/20 transition-all group shadow-sm cursor-grab active:cursor-grabbing ${
 				isDragging ? "opacity-40 scale-95 rotate-1" : ""
 			}`}
 		>
 			{/* Initials + role + company */}
-			<div className="flex items-start gap-2.5 mb-2.5">
+			<div className="flex items-start gap-2 mb-1.5">
 				<span
-					className={`w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold text-muted-foreground flex-shrink-0 ${initialsBg}`}
+					className={`w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold text-muted-foreground flex-shrink-0 ${initialsBg}`}
 				>
 					{initials}
 				</span>
 				<div className="min-w-0 flex-1">
-					<p className="text-[13px] font-semibold text-foreground truncate leading-snug">
+					<p className="text-xs font-semibold text-foreground truncate">
 						{app.role}
 					</p>
-					<p className="text-[11px] text-muted-foreground truncate mt-0.5">
+					<p className="text-[10px] text-muted-foreground truncate mt-0.5">
 						{app.company}
 						{app.location && ` · ${app.location}`}
 					</p>
@@ -314,10 +314,10 @@ function ApplicationCard({
 				{/* Actions — appears on hover */}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-					<button
-						onClick={(e) => e.stopPropagation()}
-						className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-					>
+						<button
+							onClick={(e) => e.stopPropagation()}
+							className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+						>
 							<MoreHorizontal
 								size={12}
 								className="text-muted-foreground"
