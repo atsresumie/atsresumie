@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
 	Home,
-	Sparkles,
-	History,
-	Bookmark,
+	Search,
 	KanbanSquare,
 	FileText,
-	Download,
-	CreditCard,
+	Scissors,
+	Bookmark,
+	ScanSearch,
+	Settings,
 	X,
 	Crown,
 	LogOut,
@@ -26,31 +27,29 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 /**
- * DashboardSidebar - The Résumé Atelier Design System
- *
- * Editorial-styled sidebar with underline-style active states.
+ * DashboardSidebar - Brown-themed sidebar with white text.
  */
 
 const sidebarLinks = [
 	{ label: "Dashboard", href: "/dashboard", icon: Home },
-	{ label: "Generate", href: "/dashboard/generate", icon: Sparkles },
-	{
-		label: "Past Generations",
-		href: "/dashboard/generations",
-		icon: History,
-	},
-	{ label: "Saved JDs", href: "/dashboard/saved-jds", icon: Bookmark },
+	{ label: "Browse Jobs", href: "/dashboard/saved-jds", icon: Search },
 	{
 		label: "My Applications",
 		href: "/dashboard/applications",
 		icon: KanbanSquare,
 	},
-	{ label: "Resume Versions", href: "/dashboard/resumes", icon: FileText },
-	{ label: "Download Center", href: "/dashboard/downloads", icon: Download },
+	{ label: "My Resumes", href: "/dashboard/resumes", icon: FileText },
+	{ label: "Tailor Resume", href: "/dashboard/generate", icon: Scissors },
+	{ label: "Saved Jobs", href: "/dashboard/generations", icon: Bookmark },
 	{
-		label: "Credits & Billing",
-		href: "/dashboard/credits",
-		icon: CreditCard,
+		label: "ATS Checker",
+		href: "/dashboard/downloads",
+		icon: ScanSearch,
+	},
+	{
+		label: "Settings",
+		href: "/dashboard/settings",
+		icon: Settings,
 	},
 ];
 
@@ -62,7 +61,7 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { signOut } = useAuth();
+	const { signOut, user } = useAuth();
 	const { credits } = useCredits();
 	const { purchases } = usePurchaseHistory();
 	const [isUpgrading, setIsUpgrading] = useState(false);
@@ -115,12 +114,15 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 		}
 	};
 
+	const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+	const displayInitial = displayName.charAt(0).toUpperCase();
+
 	return (
 		<>
 			{/* Mobile overlay */}
 			{isOpen && (
 				<div
-					className="fixed inset-0 z-40 bg-surface-base/80 backdrop-blur-sm md:hidden"
+					className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
 					onClick={onClose}
 					aria-hidden="true"
 				/>
@@ -130,30 +132,42 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 			<aside
 				className={cn(
 					// Positioning
-					"fixed left-0 z-50",
-					"top-14 md:top-16",
-					"h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)]",
+					"fixed left-0 top-0 z-50",
+					"h-screen",
 					"w-64",
-					// Styling
-					"bg-surface-base",
-					"border-r border-border-subtle",
 					// Layout
 					"flex flex-col",
 					// Transitions
 					"transition-transform duration-200 ease-out",
 					"md:translate-x-0",
-					isOpen ? "translate-x-0" : "-translate-x-full",
+					isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
 				)}
+				style={{ backgroundColor: "#805F4E" }}
 			>
+				{/* Logo / Branding at top */}
+				<div className="px-4 py-4 flex items-center gap-3">
+					<Link href="/" className="flex items-center gap-3" onClick={handleLinkClick}>
+						<Image
+							src="/logo3.png"
+							alt="atsresumie logo"
+							width={40}
+							height={40}
+							className="w-10 h-10"
+						/>
+						<span className="text-base font-bold text-white tracking-tight">
+							atsresumie
+						</span>
+					</Link>
+				</div>
+
 				{/* Mobile close button */}
 				<button
 					onClick={onClose}
 					className={cn(
-						"absolute right-3 top-3 p-1.5 md:hidden",
-						"text-text-tertiary hover:text-text-primary",
+						"absolute right-3 top-4 p-1.5 md:hidden",
+						"text-white/60 hover:text-white",
 						"rounded-sm",
 						"transition-colors duration-150",
-						"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
 					)}
 					aria-label="Close sidebar"
 				>
@@ -161,8 +175,8 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 				</button>
 
 				{/* Navigation links */}
-				<nav className="flex-1 overflow-y-auto p-4 pt-10 md:pt-4">
-					<ul className="flex flex-col gap-1">
+				<nav className="flex-1 overflow-y-auto px-3 pt-2">
+					<ul className="flex flex-col gap-0.5">
 						{sidebarLinks.map((link) => {
 							const isActive =
 								pathname === link.href ||
@@ -180,12 +194,12 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 											"flex items-center gap-3",
 											"px-3 py-2.5",
 											"text-sm font-medium",
-											"rounded-sm",
+											"rounded-md",
 											"transition-colors duration-150",
 											// States
 											isActive
-												? "bg-surface-raised text-text-primary border-l-2 border-accent -ml-[2px] pl-[14px]"
-												: "text-text-secondary hover:text-text-primary hover:bg-surface-raised",
+												? "bg-white/20 text-white"
+												: "text-white/75 hover:text-white hover:bg-white/10",
 										)}
 									>
 										<Icon size={18} />
@@ -198,14 +212,13 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 				</nav>
 
 				{/* Bottom section */}
-				<div className="p-4 border-t border-border-subtle space-y-2">
-					{/* Upgrade / Buy more credits — hidden for returning users with plenty of credits */}
+				<div className="p-3 space-y-2">
+					{/* Upgrade / Buy more credits */}
 					{shouldShowBuyMore && (
-						<Button
-							variant="primary"
-							className="w-full"
+						<button
 							onClick={handleUpgrade}
 							disabled={isUpgrading}
+							className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white bg-white/15 hover:bg-white/25 transition-colors"
 						>
 							{isUpgrading ? (
 								<>
@@ -215,44 +228,49 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 									/>
 									Loading...
 								</>
-							) : hasPurchasedBefore ? (
-								<>
-									<Crown size={16} />
-									Buy more credits ✨
-								</>
 							) : (
 								<>
 									<Crown size={16} />
-									Upgrade to Pro
+									<div className="text-left">
+										<span className="block text-sm font-medium">Upgrade to Pro</span>
+										<span className="block text-xs text-white/60">Unlock more benefits</span>
+									</div>
+									<Crown size={14} className="ml-auto text-white/60" />
 								</>
 							)}
-						</Button>
+						</button>
 					)}
 
 					{/* Admin Panel Link */}
 					{isAdmin && (
-						<Button
-							variant="outline"
-							className="w-full"
+						<button
 							onClick={() => {
 								onClose();
 								router.push("/dashboard/admin");
 							}}
+							className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/75 hover:text-white hover:bg-white/10 transition-colors"
 						>
 							<Shield size={16} />
 							Admin Panel
-						</Button>
+						</button>
 					)}
 
-					{/* Sign Out */}
-					<Button
-						variant="ghost"
-						className="w-full text-text-secondary hover:text-error"
-						onClick={handleSignOut}
-					>
-						<LogOut size={16} />
-						Sign Out
-					</Button>
+					{/* User info + Sign Out */}
+					<div className="flex items-center gap-3 px-3 py-2.5 border-t border-white/10 mt-1 pt-3">
+						<span className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold text-white flex-shrink-0">
+							{displayInitial}
+						</span>
+						<span className="text-sm text-white font-medium truncate flex-1">
+							{displayName}
+						</span>
+						<button
+							onClick={handleSignOut}
+							className="p-1.5 rounded text-white/50 hover:text-white transition-colors"
+							aria-label="Sign out"
+						>
+							<LogOut size={16} />
+						</button>
+					</div>
 				</div>
 			</aside>
 		</>
