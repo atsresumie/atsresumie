@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { CreditsProvider } from "@/providers/CreditsProvider";
 import { cn } from "@/lib/utils";
 
 /**
- * Dashboard Layout - The Résumé Atelier Design System
+ * Dashboard Layout
  *
  * Main application shell for authenticated dashboard pages.
- * Uses new design tokens for consistent styling.
+ * Sidebar-only layout — no top header bar.
  */
 
 export default function DashboardLayout({
@@ -33,9 +32,6 @@ export default function DashboardLayout({
 	return (
 		<CreditsProvider>
 			<div className={cn("min-h-screen", "bg-surface-base")}>
-				{/* Header */}
-				<DashboardHeader onToggleSidebar={handleToggleSidebar} />
-
 				{/* Sidebar */}
 				<DashboardSidebar
 					isOpen={isSidebarOpen}
@@ -47,8 +43,6 @@ export default function DashboardLayout({
 					id="main-content"
 					className={cn(
 						"relative",
-						// Offset for header
-						"pt-14 md:pt-16",
 						// Offset for sidebar on desktop
 						"md:pl-64",
 						// Min height
@@ -61,3 +55,4 @@ export default function DashboardLayout({
 		</CreditsProvider>
 	);
 }
+
