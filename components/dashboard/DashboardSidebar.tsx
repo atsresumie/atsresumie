@@ -32,7 +32,7 @@ import { toast } from "sonner";
 
 const sidebarLinks = [
 	{ label: "Dashboard", href: "/dashboard", icon: Home },
-	{ label: "Browse Jobs", href: "/dashboard/saved-jds", icon: Search },
+	{ label: "Browse Jobs", href: "/dashboard/job-search", icon: Search },
 	{
 		label: "My Applications",
 		href: "/dashboard/applications",
@@ -43,7 +43,7 @@ const sidebarLinks = [
 	{ label: "Saved Jobs", href: "/dashboard/generations", icon: Bookmark },
 	{
 		label: "ATS Checker",
-		href: "/dashboard/downloads",
+		href: "/dashboard/ats-checker",
 		icon: ScanSearch,
 	},
 	{
