@@ -42,7 +42,7 @@ interface ModeSelectorProps {
  */
 export function ModeSelector({ value, onChange, disabled }: ModeSelectorProps) {
 	return (
-		<div className="grid gap-3 sm:grid-cols-2">
+		<div className="grid gap-3 grid-cols-1">
 			{modes.map((mode) => {
 				const selected = value === mode.key;
 				const Icon = mode.icon;

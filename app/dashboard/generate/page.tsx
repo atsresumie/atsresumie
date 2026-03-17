@@ -3,13 +3,14 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Loader2, Check, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, Check, AlertCircle, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDraftJd } from "@/hooks/useDraftJd";
 import { useResumeVersions } from "@/hooks/useResumeVersions";
 import { useGenerations } from "@/hooks/useGenerations";
+import { useCredits } from "@/hooks/useCredits";
 import { JdQualityIndicator } from "@/components/dashboard/generate/JdQualityIndicator";
 import { ResumeSelector } from "@/components/dashboard/generate/ResumeSelector";
 import {
@@ -30,6 +31,7 @@ function GeneratePageContent() {
 		isLoading: resumesLoading,
 	} = useResumeVersions();
 	const { jobs } = useGenerations();
+	const { credits } = useCredits();
 
 	// State
 	const [selectedResumeId, setSelectedResumeId] = useState<string | null>(
@@ -42,6 +44,7 @@ function GeneratePageContent() {
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [isNoCredits, setIsNoCredits] = useState(false);
+	const [additionalReqs, setAdditionalReqs] = useState("");
 	const hasLoadedFromJobRef = useRef(false);
 
 	// Auto-select default resume when loaded
@@ -184,14 +187,111 @@ function GeneratePageContent() {
 		jdText.trim().length >= 50 && !!selectedObjectPath && !isGenerating;
 
 	return (
-		<>
-			{/* Main Card */}
-			<div className="rounded-xl border border-border/50 bg-card/50 p-6 pb-8">
-				{/* Mode Selector */}
-				<div className="mb-6">
-					<div className="mb-2 block text-sm font-medium text-foreground">
-						Mode
+		<div
+			className="grid grid-cols-1 lg:grid-cols-[1fr_340px] items-start mx-auto"
+			style={{ maxWidth: "1128px", gap: "24px" }}
+		>
+			{/* LEFT COLUMN — single card */}
+			<div className="rounded-xl border border-border-visible bg-surface-raised p-5 space-y-5">
+				{/* Step 1 — Select Your Base Resume */}
+				<div>
+					<h3 className="text-sm font-semibold text-text-primary mb-3 font-body">
+						Step 1 — Select Your Base Resume
+					</h3>
+
+					<ResumeSelector
+						selectedId={selectedResumeId}
+						onResumeChange={handleResumeChange}
+					/>
+
+					{/* Drag & drop upload area */}
+					<div className="mt-3 rounded-lg border-2 border-dashed border-border-visible py-4 px-4 text-center">
+						<Upload className="mx-auto h-5 w-5 text-text-tertiary mb-1.5" />
+						<p className="text-sm text-text-secondary font-medium">
+							Drag & drop or click to upload
+						</p>
+						<p className="text-xs text-text-tertiary mt-0.5">
+							PDF or DOCX, max 5MB
+						</p>
 					</div>
+				</div>
+
+				{/* Divider */}
+				<hr className="border-border-visible" />
+
+				{/* Additional Requirements */}
+				<div>
+					<h3 className="text-sm font-semibold text-text-primary mb-2 font-body">
+						Additional Requirements (Optional)
+					</h3>
+					<textarea
+						value={additionalReqs}
+						onChange={(e) => setAdditionalReqs(e.target.value)}
+						placeholder="If you have any additional requirements......"
+						rows={2}
+						className="w-full px-3 py-2.5 rounded-lg border border-border-visible bg-surface-raised text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+					/>
+				</div>
+
+				{/* Divider */}
+				<hr className="border-border-visible" />
+
+				{/* Step 2 — Job Description */}
+				<div>
+					<div className="mb-2 flex items-center justify-between">
+						<h3 className="text-sm font-semibold text-text-primary font-body">
+							Step 2 — Job Description
+						</h3>
+						{isDraftSaved && jdText.trim() && (
+							<span className="flex items-center gap-1 text-xs text-success">
+								<Check size={12} />
+								Draft saved
+							</span>
+						)}
+					</div>
+					<Textarea
+						placeholder="Paste the full job description here......."
+						value={jdText}
+						onChange={(e) => setJdText(e.target.value)}
+						onInput={(e) =>
+							setJdText((e.target as HTMLTextAreaElement).value)
+						}
+						rows={8}
+						className="resize-none text-sm border-border-visible bg-surface-raised"
+					/>
+
+					{/* JD Quality Indicator */}
+					{jdText.trim().length > 0 && (
+						<div className="mt-2">
+							<JdQualityIndicator
+								characterCount={jdText.trim().length}
+							/>
+						</div>
+					)}
+
+					{/* Clear button */}
+					{jdText.trim() && (
+						<div className="mt-2">
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleClear}
+								disabled={isGenerating}
+							>
+								Clear
+							</Button>
+						</div>
+					)}
+				</div>
+			</div>
+
+			{/* RIGHT COLUMN */}
+			<div className="space-y-6 lg:sticky lg:top-20">
+				{/* Step 3 — Tailoring Options */}
+				<div className="rounded-xl border border-border-visible bg-surface-raised p-6">
+					<h3 className="text-base font-semibold text-text-primary mb-4 font-body">
+						Step 3 — Tailoring Options
+					</h3>
 					<ModeSelector
 						value={mode}
 						onChange={setMode}
@@ -199,113 +299,81 @@ function GeneratePageContent() {
 					/>
 				</div>
 
-				{/* Resume Selector */}
-				<div className="mb-6">
-					<label className="mb-2 block text-sm font-medium text-foreground">
-						Resume
-					</label>
-					<ResumeSelector
-						selectedId={selectedResumeId}
-						onResumeChange={handleResumeChange}
-					/>
+				{/* What happens next */}
+				<div className="rounded-xl border border-border-visible bg-surface-raised p-6">
+					<h3 className="text-base font-semibold text-text-primary mb-3 font-body">
+						What happens next
+					</h3>
+					<ul className="space-y-2 text-sm text-text-secondary">
+						<li className="flex items-start gap-2">
+							<span className="text-text-tertiary mt-0.5">•</span>
+							We analyze the JD for key skills & requirements
+						</li>
+						<li className="flex items-start gap-2">
+							<span className="text-text-tertiary mt-0.5">•</span>
+							Your bullets get rewritten to match — no fabrications
+						</li>
+						<li className="flex items-start gap-2">
+							<span className="text-text-tertiary mt-0.5">•</span>
+							ATS compliance is verified automatically
+						</li>
+						<li className="flex items-start gap-2">
+							<span className="text-text-tertiary mt-0.5">•</span>
+							PDF ready to download in under 60 seconds
+						</li>
+					</ul>
 				</div>
 
-				{/* JD Textarea */}
-				<div className="mb-4">
-					<div className="mb-2 flex items-center justify-between">
-						<label className="text-sm font-medium text-foreground">
-							Job Description
-						</label>
-						{isDraftSaved && jdText.trim() && (
-							<span className="flex items-center gap-1 text-xs text-emerald-400">
-								<Check size={12} />
-								Draft saved
-							</span>
-						)}
-					</div>
-					<Textarea
-						placeholder="Paste the job description here..."
-						value={jdText}
-						onChange={(e) => setJdText(e.target.value)}
-						onInput={(e) =>
-							setJdText((e.target as HTMLTextAreaElement).value)
-						}
-						rows={12}
-						className="resize-none font-mono text-sm"
-					/>
-				</div>
-
-				{/* JD Quality Indicator */}
-				{jdText.trim().length > 0 && (
-					<div className="mb-4">
-						<JdQualityIndicator
-							characterCount={jdText.trim().length}
-						/>
-					</div>
-				)}
-
-				{/* Clear button */}
-				{jdText.trim() && (
-					<div className="mb-4">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleClear}
-							disabled={isGenerating}
-						>
-							Clear
-						</Button>
-					</div>
-				)}
-			</div>
-
-			{/* Sticky CTA bar — always visible at bottom */}
-			<div className="sticky bottom-0 z-20 -mx-6 mt-6 border-t border-border/50 bg-background/80 backdrop-blur-lg px-6 py-4 md:-mx-8 md:px-8">
-				{error && (
-					<div className="mb-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3">
-						<div className="flex items-start gap-2">
-							<AlertCircle
-								size={16}
-								className="mt-0.5 flex-shrink-0 text-red-400"
-							/>
-							<div className="flex-1">
-								<p className="text-sm text-red-400">{error}</p>
-								{isNoCredits && (
-									<Link href="/dashboard/credits">
-										<Button
-											variant="link"
-											size="sm"
-											className="h-auto p-0 text-red-400 underline"
-										>
-											Get more credits →
-										</Button>
-									</Link>
-								)}
+				{/* Generate button */}
+				<div>
+					{error && (
+						<div className="mb-3 rounded-lg border border-error/20 bg-error-muted p-3">
+							<div className="flex items-start gap-2">
+								<AlertCircle
+									size={16}
+									className="mt-0.5 flex-shrink-0 text-error"
+								/>
+								<div className="flex-1">
+									<p className="text-sm text-error">{error}</p>
+									{isNoCredits && (
+										<Link href="/dashboard/credits">
+											<Button
+												variant="link"
+												size="sm"
+												className="h-auto p-0 text-error underline"
+											>
+												Get more credits →
+											</Button>
+										</Link>
+									)}
+								</div>
 							</div>
 						</div>
-					</div>
-				)}
-
-				<Button
-					size="lg"
-					onClick={handleGenerate}
-					disabled={!canGenerate}
-					className="w-full gap-2"
-				>
-					{isGenerating ? (
-						<>
-							<Loader2 size={18} className="animate-spin" />
-							Tailoring…
-						</>
-					) : (
-						<>
-							<Sparkles size={18} />
-							Tailor My Resume
-						</>
 					)}
-				</Button>
+
+					<button
+						onClick={handleGenerate}
+						disabled={!canGenerate}
+						className="w-full py-3.5 rounded-full text-sm font-semibold text-white bg-cta hover:bg-cta-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{isGenerating ? (
+							<span className="inline-flex items-center gap-2">
+								<Loader2 size={16} className="animate-spin" />
+								Tailoring…
+							</span>
+						) : (
+							"Generate Tailor Resume"
+						)}
+					</button>
+
+					{credits !== null && (
+						<p className="text-center text-xs text-text-tertiary mt-2">
+							{credits} credits remaining this month
+						</p>
+					)}
+				</div>
 			</div>
-		</>
+		</div>
 	);
 }
 
@@ -314,20 +382,17 @@ function GeneratePageContent() {
  */
 function GeneratePageSkeleton() {
 	return (
-		<div className="rounded-xl border border-border/50 bg-card/50 p-6">
-			<div className="mb-6 space-y-2">
-				<Skeleton className="h-4 w-16" />
-				<Skeleton className="h-16 w-full" />
+		<div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+			<div className="space-y-6">
+				<Skeleton className="h-64 w-full rounded-xl" />
+				<Skeleton className="h-32 w-full rounded-xl" />
+				<Skeleton className="h-80 w-full rounded-xl" />
 			</div>
-			<div className="mb-4 space-y-2">
-				<Skeleton className="h-4 w-24" />
-				<Skeleton className="h-64 w-full" />
+			<div className="space-y-6">
+				<Skeleton className="h-48 w-full rounded-xl" />
+				<Skeleton className="h-40 w-full rounded-xl" />
+				<Skeleton className="h-14 w-full rounded-full" />
 			</div>
-			<div className="mb-6 flex gap-2">
-				<Skeleton className="h-9 w-28" />
-				<Skeleton className="h-9 w-40" />
-			</div>
-			<Skeleton className="h-11 w-full" />
 		</div>
 	);
 }
@@ -337,15 +402,23 @@ function GeneratePageSkeleton() {
  */
 export default function GeneratePage() {
 	return (
-		<div className="p-6 md:p-8">
+		<div className="applications-page p-6 md:p-8 min-h-screen" style={{ backgroundColor: "var(--surface-base)" }}>
 			{/* Header */}
-			<div className="mb-6">
-				<h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-					Tailor My Resume
-				</h1>
-				<p className="mt-2 text-muted-foreground">
-					Paste a job description, pick a mode, and get a tailored resume.
-				</p>
+			<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+				<div>
+					<h1 className="text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">
+						Tailor Resume
+					</h1>
+					<p className="mt-1.5 text-sm text-text-secondary">
+						AI-powered resume tailoring · Grounded in your real experience · Zero hallucinations
+					</p>
+				</div>
+				<button
+					onClick={() => window.location.reload()}
+					className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-accent hover:bg-accent-hover transition-colors flex-shrink-0"
+				>
+					Tailor New Version
+				</button>
 			</div>
 
 			<Suspense fallback={<GeneratePageSkeleton />}>
