@@ -2,15 +2,9 @@
 
 import { useState, useCallback } from "react";
 import {
-	Bookmark,
-	Send,
-	ScanSearch,
-	MessageSquare,
-	Trophy,
 	MoreHorizontal,
 	ArrowRight,
 	Calendar,
-	DollarSign,
 	CheckCircle2,
 	Pencil,
 	ExternalLink,
@@ -31,63 +25,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 /**
- * Stage visual config — mirrors the landing page JobTracker.
+ * Stage visual config — action labels for each stage.
  */
-const STAGE_CONFIG: Record<
+const STAGE_ACTION: Record<
 	ApplicationStage,
-	{
-		icon: typeof Bookmark;
-		accentClass: string;
-		headerBg: string;
-		actionColor: string;
-		actionLabel: string;
-	}
+	{ actionLabel: string }
 > = {
-	saved: {
-		icon: Bookmark,
-		accentClass: "text-muted-foreground",
-		headerBg: "bg-muted/30",
-		actionColor: "text-primary",
-		actionLabel: "Apply →",
-	},
-	applied: {
-		icon: Send,
-		accentClass: "text-blue-500",
-		headerBg: "bg-blue-50 dark:bg-blue-500/10",
-		actionColor: "text-muted-foreground",
-		actionLabel: "View",
-	},
-	screening: {
-		icon: ScanSearch,
-		accentClass: "text-muted-foreground",
-		headerBg: "bg-muted/20",
-		actionColor: "text-muted-foreground",
-		actionLabel: "View",
-	},
-	interview: {
-		icon: MessageSquare,
-		accentClass: "text-amber-500",
-		headerBg: "bg-amber-50 dark:bg-amber-500/10",
-		actionColor: "text-amber-500",
-		actionLabel: "Prep →",
-	},
-	offer: {
-		icon: Trophy,
-		accentClass: "text-green-500",
-		headerBg: "bg-green-50 dark:bg-green-500/10",
-		actionColor: "text-green-500",
-		actionLabel: "Decide",
-	},
+	saved: { actionLabel: "View →" },
+	applied: { actionLabel: "View →" },
+	screening: { actionLabel: "View →" },
+	interview: { actionLabel: "Prep →" },
+	offer: { actionLabel: "Decide →" },
 };
-
-const INITIALS_BG = [
-	"bg-primary/10",
-	"bg-blue-500/10",
-	"bg-green-500/10",
-	"bg-amber-500/10",
-	"bg-purple-500/10",
-	"bg-rose-500/10",
-];
 
 function getInitials(company: string): string {
 	return company
@@ -98,18 +47,30 @@ function getInitials(company: string): string {
 		.toUpperCase();
 }
 
-function getInitialsBg(company: string): string {
-	let hash = 0;
-	for (let i = 0; i < company.length; i++) {
-		hash = company.charCodeAt(i) + ((hash << 5) - hash);
-	}
-	return INITIALS_BG[Math.abs(hash) % INITIALS_BG.length];
-}
-
 function formatDate(dateStr: string | null): string {
 	if (!dateStr) return "";
 	const d = new Date(dateStr);
 	return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatDateWithPrefix(dateStr: string | null, stage: ApplicationStage): string {
+	if (!dateStr) return "";
+	const formatted = formatDate(dateStr);
+	if (stage === "saved") return `Saved on${formatted}`;
+	return formatted;
+}
+
+function getInterviewLabel(dateStr: string | null): string | null {
+	if (!dateStr) return null;
+	const now = new Date();
+	const interview = new Date(dateStr);
+	const diffDays = Math.ceil(
+		(interview.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+	);
+	if (diffDays === 0) return "Today";
+	if (diffDays === 1) return "Tomorrow";
+	if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+	return null;
 }
 
 // ─── Board ───────────────────────────────────────────────────────────────────
@@ -166,11 +127,9 @@ export function ApplicationBoard({
 	);
 
 	return (
-		<div className="max-w-6xl mx-auto overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-			<div className="flex gap-3 min-w-[900px]">
+		<div className="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+			<div className="flex gap-4 min-w-[900px]">
 				{APPLICATION_STAGES.map((stage) => {
-					const config = STAGE_CONFIG[stage];
-					const Icon = config.icon;
 					const stageApps = applications.filter(
 						(app) => app.stage === stage,
 					);
@@ -179,41 +138,35 @@ export function ApplicationBoard({
 					return (
 						<div
 							key={stage}
-							className={`flex-1 min-w-[170px] rounded-xl border flex flex-col transition-colors duration-150 ${
+							className={`flex-1 min-w-[200px] rounded-xl border flex flex-col transition-colors duration-150 ${
 								isDragOver
-									? "bg-primary/5 border-primary/30 ring-2 ring-primary/10"
-									: "bg-white/50 dark:bg-card/30 border-border/40"
+									? "bg-accent-muted/30 border-accent/30 ring-2 ring-accent/10"
+									: "bg-surface-raised border-border-visible"
 							}`}
 							onDragOver={(e) => handleDragOver(e, stage)}
 							onDragLeave={handleDragLeave}
 							onDrop={(e) => handleDrop(e, stage)}
 						>
 							{/* Column header */}
-							<div
-								className={`flex items-center gap-2 px-3.5 py-2.5 rounded-t-xl ${config.headerBg}`}
-							>
-								<Icon
-									size={13}
-									className={config.accentClass}
-								/>
-								<span className="text-xs font-semibold text-foreground uppercase tracking-wide">
+							<div className="flex items-center justify-between px-4 py-3">
+								<span className="text-sm font-semibold text-text-primary">
 									{STAGE_LABELS[stage]}
 								</span>
-								<span className="ml-auto text-[10px] text-muted-foreground font-semibold bg-white/60 dark:bg-background/60 px-1.5 py-0.5 rounded">
+								<span className="text-sm font-semibold text-accent">
 									{stageApps.length}
 								</span>
 							</div>
 
 							{/* Cards */}
-							<div className="p-2 space-y-2 flex-1 min-h-[400px]">
+							<div className="px-3 pb-3 space-y-3 flex-1 min-h-[420px]">
 								{stageApps.length === 0 && !isDragOver && (
-									<div className="text-center py-8 text-xs text-muted-foreground">
+									<div className="text-center py-10 text-xs text-text-tertiary">
 										No applications
 									</div>
 								)}
 
 								{isDragOver && stageApps.length === 0 && (
-									<div className="text-center py-8 text-xs text-primary font-medium">
+									<div className="text-center py-10 text-xs text-accent font-medium">
 										Drop here
 									</div>
 								)}
@@ -223,20 +176,21 @@ export function ApplicationBoard({
 										key={app.id}
 										app={app}
 										stage={stage}
-										config={config}
 										onView={onView}
 										onEdit={onEdit}
 										onDelete={onDelete}
 										onMove={onMove}
 									/>
 								))}
+							</div>
 
-								{/* "+ Add job" button */}
+							{/* "Add +" button at bottom */}
+							<div className="px-3 pb-3">
 								<button
 									onClick={onAdd}
-									className="w-full py-2 text-[10px] text-muted-foreground hover:text-primary transition-colors rounded-lg border border-dashed border-border/50 hover:border-primary/30"
+									className="w-full py-2.5 text-sm text-text-secondary hover:text-accent transition-colors rounded-full border border-border-visible hover:border-accent/40 bg-surface-raised"
 								>
-									+ Add job
+									Add &nbsp;+
 								</button>
 							</div>
 						</div>
@@ -252,7 +206,6 @@ export function ApplicationBoard({
 interface ApplicationCardProps {
 	app: JobApplication;
 	stage: ApplicationStage;
-	config: (typeof STAGE_CONFIG)[ApplicationStage];
 	onView: (app: JobApplication) => void;
 	onEdit: (app: JobApplication) => void;
 	onDelete: (app: JobApplication) => void;
@@ -262,16 +215,16 @@ interface ApplicationCardProps {
 function ApplicationCard({
 	app,
 	stage,
-	config,
 	onView,
 	onEdit,
 	onDelete,
 	onMove,
 }: ApplicationCardProps) {
 	const initials = getInitials(app.company);
-	const initialsBg = getInitialsBg(app.company);
 	const otherStages = APPLICATION_STAGES.filter((s) => s !== stage);
 	const [isDragging, setIsDragging] = useState(false);
+	const interviewLabel = stage === "interview" ? getInterviewLabel(app.interview_date) : null;
+	const stageAction = STAGE_ACTION[stage];
 
 	const handleDragStart = (e: React.DragEvent) => {
 		e.dataTransfer.setData("application/app-id", app.id);
@@ -290,22 +243,23 @@ function ApplicationCard({
 			onDragStart={handleDragStart}
 			onDragEnd={handleDragEnd}
 			onClick={() => onView(app)}
-			className={`rounded-lg bg-white/80 dark:bg-card/30 border border-border/40 p-3 hover:border-primary/20 transition-all group shadow-sm cursor-grab active:cursor-grabbing ${
+			className={`rounded-lg bg-surface-raised border border-border-visible p-3.5 hover:border-accent/30 transition-all group cursor-grab active:cursor-grabbing ${
 				isDragging ? "opacity-40 scale-95 rotate-1" : ""
 			}`}
+			style={{ boxShadow: "var(--shadow-card)" }}
 		>
 			{/* Initials + role + company */}
-			<div className="flex items-start gap-2 mb-1.5">
+			<div className="flex items-start gap-3 mb-2">
 				<span
-					className={`w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold text-muted-foreground flex-shrink-0 ${initialsBg}`}
+					className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-text-secondary flex-shrink-0 bg-surface-inset border border-border-subtle"
 				>
 					{initials}
 				</span>
 				<div className="min-w-0 flex-1">
-					<p className="text-xs font-semibold text-foreground truncate">
+					<p className="text-sm font-semibold text-text-primary truncate leading-tight">
 						{app.role}
 					</p>
-					<p className="text-[10px] text-muted-foreground truncate mt-0.5">
+					<p className="text-xs text-text-secondary truncate mt-0.5">
 						{app.company}
 						{app.location && ` · ${app.location}`}
 					</p>
@@ -316,11 +270,11 @@ function ApplicationCard({
 					<DropdownMenuTrigger asChild>
 						<button
 							onClick={(e) => e.stopPropagation()}
-							className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+							className="p-1 rounded hover:bg-surface-inset opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
 						>
 							<MoreHorizontal
-								size={12}
-								className="text-muted-foreground"
+								size={14}
+								className="text-text-tertiary"
 							/>
 						</button>
 					</DropdownMenuTrigger>
@@ -363,22 +317,21 @@ function ApplicationCard({
 				</DropdownMenu>
 			</div>
 
-			{/* Salary */}
+			{/* Salary (for offer stage) */}
 			{app.salary && (
-				<div className="flex items-center gap-1.5 mb-2">
-					<DollarSign size={12} className="text-green-500" />
-					<span className="text-[13px] font-bold text-green-500">
+				<div className="mb-2">
+					<span className="text-base font-bold text-accent">
 						{app.salary}
 					</span>
 				</div>
 			)}
 
 			{/* Interview date badge */}
-			{app.interview_date && (
+			{interviewLabel && (
 				<div className="flex items-center gap-1.5 mb-2">
-					<Calendar size={11} className="text-amber-500" />
-					<span className="text-[11px] font-medium text-muted-foreground">
-						{formatDate(app.interview_date)}
+					<span className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary bg-surface-inset px-2 py-1 rounded">
+						<Calendar size={11} className="text-text-tertiary" />
+						{interviewLabel}
 					</span>
 				</div>
 			)}
@@ -386,26 +339,26 @@ function ApplicationCard({
 			{/* Offer badge */}
 			{stage === "offer" && (
 				<div className="flex items-center gap-1.5 mb-2">
-					<CheckCircle2 size={11} className="text-green-500" />
-					<span className="text-[11px] font-medium text-muted-foreground">
-						Offer received ✓
+					<CheckCircle2 size={11} className="text-text-tertiary" />
+					<span className="text-xs text-text-secondary">
+						Offer received
 					</span>
 				</div>
 			)}
 
 			{/* Footer */}
-			<div className="flex items-center justify-between mt-3 pt-2 border-t border-border/30">
-				<span className="text-[11px] text-muted-foreground">
-					{formatDate(app.applied_at || app.created_at)}
+			<div className="flex items-center justify-between mt-2.5 pt-2">
+				<span className="text-xs text-text-tertiary">
+					{formatDateWithPrefix(app.applied_at || app.created_at, stage)}
 				</span>
 				<button
 					onClick={(e) => {
 						e.stopPropagation();
-						onEdit(app);
+						onView(app);
 					}}
-					className={`text-[10px] font-semibold ${config.actionColor} inline-flex items-center gap-0.5 hover:underline`}
+					className="text-xs font-semibold text-accent inline-flex items-center gap-0.5 hover:underline"
 				>
-					{config.actionLabel}
+					{stageAction.actionLabel}
 				</button>
 			</div>
 		</div>

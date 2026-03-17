@@ -226,6 +226,37 @@
 }
 
 /* ============================================================================
+   APPLICATIONS PAGE THEME SCOPE
+   Clean white background — applies only inside .applications-page wrapper
+   ============================================================================ */
+
+.applications-page {
+	/* Surfaces — clean white */
+	--surface-base: #f7f7f8;
+	--surface-raised: #ffffff;
+	--surface-inset: #f0f0f2;
+	--surface-overlay: #ffffff;
+
+	/* Text — neutral dark */
+	--text-primary: #1a1a2e;
+	--text-secondary: #6b7280;
+	--text-tertiary: #9ca3af;
+
+	/* Accent — orange to match design */
+	--accent: #e8693a;
+	--accent-hover: #d45a2e;
+	--accent-muted: #fef0ea;
+
+	/* Borders — light gray */
+	--border-subtle: #f0f0f2;
+	--border-visible: #e5e7eb;
+	--border-focus: #e8693a;
+
+	/* Shadows — subtle for white bg */
+	--shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+}
+
+/* ============================================================================
    TAILWIND THEME INTEGRATION
    Maps CSS variables to Tailwind utility classes
    ============================================================================ */

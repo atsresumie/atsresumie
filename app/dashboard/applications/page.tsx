@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,23 +93,29 @@ function ApplicationsPageContent() {
 	return (
 		<>
 			{/* Header */}
-			<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+					<h1 className="text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">
 						My Applications
 					</h1>
-					<div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-						<span>{total} total</span>
-						<span className="w-px h-3 bg-border-visible" />
-						<span>{interviewCount} interviews</span>
-						<span className="w-px h-3 bg-border-visible" />
-						<span>{offerCount} offers</span>
-					</div>
+					<p className="mt-1.5 text-sm text-text-secondary">
+						{total} total · {interviewCount} active interview{interviewCount !== 1 ? "s" : ""} · {offerCount} offer{offerCount !== 1 ? "s" : ""} pending decision
+					</p>
 				</div>
-				<Button onClick={handleAdd} className="gap-2">
-					<Plus size={18} />
-					Add Application
-				</Button>
+				<div className="flex items-center gap-3">
+					<button
+						onClick={handleAdd}
+						className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border-visible text-sm font-medium text-text-primary bg-surface-raised hover:bg-surface-inset transition-colors"
+					>
+						Add <Plus size={14} />
+					</button>
+					<Link
+						href="/dashboard/generate"
+						className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-accent hover:bg-accent-hover transition-colors"
+					>
+						Tailor & Apply
+					</Link>
+				</div>
 			</div>
 
 			{/* Error */}
@@ -166,20 +173,23 @@ function ApplicationsPageContent() {
 function ApplicationsPageSkeleton() {
 	return (
 		<>
-			<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<Skeleton className="h-8 w-52" />
 					<Skeleton className="mt-2 h-5 w-48" />
 				</div>
-				<Skeleton className="h-10 w-40" />
+				<div className="flex gap-3">
+					<Skeleton className="h-10 w-24" />
+					<Skeleton className="h-10 w-36" />
+				</div>
 			</div>
-			<div className="flex gap-3">
-				{[1, 2, 3, 4, 5].map((i) => (
-					<div key={i} className="flex-1 min-w-[180px]">
+			<div className="flex gap-4">
+				{[1, 2, 3, 4].map((i) => (
+					<div key={i} className="flex-1 min-w-[200px]">
 						<Skeleton className="h-10 w-full rounded-t-xl" />
-						<div className="p-2 space-y-2">
-							<Skeleton className="h-24 w-full rounded-lg" />
-							<Skeleton className="h-24 w-full rounded-lg" />
+						<div className="p-3 space-y-3">
+							<Skeleton className="h-28 w-full rounded-lg" />
+							<Skeleton className="h-28 w-full rounded-lg" />
 						</div>
 					</div>
 				))}
@@ -190,7 +200,7 @@ function ApplicationsPageSkeleton() {
 
 export default function ApplicationsPage() {
 	return (
-		<div className="p-6 md:p-8">
+		<div className="applications-page p-6 md:p-8 min-h-screen" style={{ backgroundColor: "var(--surface-base)" }}>
 			<Suspense fallback={<ApplicationsPageSkeleton />}>
 				<ApplicationsPageContent />
 			</Suspense>
