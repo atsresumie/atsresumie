@@ -1,148 +1,50 @@
-import { Check, ArrowLeftRight } from "lucide-react";
-
-/**
- * TemplateSelector — Server Component
- *
- * Template flexibility block. Shows template thumbnails with
- * one selected and switch indicator. No future-label needed.
- */
+import Image from "next/image";
 
 const templates = [
-	{
-		name: "Classic",
-		lines: [
-			{ w: "w-16", pos: "top" },
-			{ w: "w-full", pos: "mid" },
-			{ w: "w-3/4", pos: "mid" },
-			{ w: "w-full", pos: "bot" },
-			{ w: "w-5/6", pos: "bot" },
-		],
-		selected: false,
-	},
-	{
-		name: "Modern",
-		lines: [
-			{ w: "w-20", pos: "top" },
-			{ w: "w-full", pos: "mid" },
-			{ w: "w-5/6", pos: "mid" },
-			{ w: "w-full", pos: "bot" },
-			{ w: "w-2/3", pos: "bot" },
-		],
-		selected: true,
-	},
-	{
-		name: "Minimal",
-		lines: [
-			{ w: "w-14", pos: "top" },
-			{ w: "w-full", pos: "mid" },
-			{ w: "w-2/3", pos: "mid" },
-			{ w: "w-full", pos: "bot" },
-			{ w: "w-4/5", pos: "bot" },
-		],
-		selected: false,
-	},
-	{
-		name: "Executive",
-		lines: [
-			{ w: "w-24", pos: "top" },
-			{ w: "w-full", pos: "mid" },
-			{ w: "w-4/5", pos: "mid" },
-			{ w: "w-full", pos: "bot" },
-			{ w: "w-3/4", pos: "bot" },
-		],
-		selected: false,
-	},
+	{ src: "/landing/template-1.png", top: 0 },
+	{ src: "/landing/template-2.png", top: 40 },
+	{ src: "/landing/template-3.png", top: 90 },
+	{ src: "/landing/template-4.png", top: 150 },
+	{ src: "/landing/template-5.png", top: 220 },
 ];
 
 export const TemplateSelector = () => {
 	return (
-		<section className="py-20 md:py-28">
-			<div className="container mx-auto px-4">
-				{/* Section header */}
-				<div className="text-center mb-12">
-					<h2 className="font-display text-3xl md:text-4xl font-bold">
+		<section className="bg-surface-inset py-[60px] px-4 md:px-[116px]">
+			<div className="max-w-[1208px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-12">
+				{/* Left text */}
+				<div className="flex flex-col gap-5 max-w-[480px]">
+					<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary leading-tight">
 						Switch templates anytime
 					</h2>
-					<p className="text-sm text-text-secondary mt-3 max-w-sm mx-auto">
+					<p className="text-text-secondary text-base">
 						Keep content, change format.
 					</p>
 				</div>
 
-				{/* Template grid */}
-				<div className="max-w-3xl mx-auto">
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-						{templates.map((tpl) => (
-							<div key={tpl.name} className="flex flex-col items-center">
-								{/* Template thumbnail */}
-								<div
-									className={`relative w-full aspect-[3/4] rounded-lg border-2 p-3 transition-all cursor-pointer hover:shadow-card ${
-										tpl.selected
-											? "border-accent bg-surface-raised shadow-card"
-											: "border-border-visible bg-surface-raised/60 hover:border-accent/30"
-									}`}
-								>
-									{/* Selected badge */}
-									{tpl.selected && (
-										<div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-											<Check
-												size={10}
-												className="text-white"
-											/>
-										</div>
-									)}
-
-									{/* Faux resume lines */}
-									<div className="space-y-2.5">
-										{/* Name area */}
-										<div className={`h-2 rounded-full bg-accent/25 ${tpl.lines[0].w}`} />
-
-										{/* Separator */}
-										<div className="border-t border-border-subtle/60" />
-
-										{/* Experience section */}
-										<div className="space-y-1.5">
-											<div className={`h-1.5 rounded-full bg-text-primary/10 ${tpl.lines[1].w}`} />
-											<div className={`h-1.5 rounded-full bg-text-primary/10 ${tpl.lines[2].w}`} />
-										</div>
-
-										{/* Separator */}
-										<div className="border-t border-border-subtle/60" />
-
-										{/* Skills section */}
-										<div className="space-y-1.5">
-											<div className={`h-1.5 rounded-full bg-text-primary/10 ${tpl.lines[3].w}`} />
-											<div className={`h-1.5 rounded-full bg-text-primary/10 ${tpl.lines[4].w}`} />
-										</div>
-									</div>
-								</div>
-
-								{/* Template name */}
-								<div className="flex items-center gap-1.5 mt-2.5">
-									<span
-										className={`text-xs font-medium ${
-											tpl.selected
-												? "text-accent"
-												: "text-text-secondary"
-										}`}
-									>
-										{tpl.name}
-									</span>
-									{tpl.selected && (
-										<ArrowLeftRight
-											size={10}
-											className="text-accent"
-										/>
-									)}
-								</div>
-							</div>
-						))}
-					</div>
+				{/* Right - cascading template images */}
+				<div className="relative w-[500px] md:w-[592px] h-[400px] md:h-[514px] flex-shrink-0 overflow-hidden">
+					{templates.map((tmpl, i) => (
+						<div
+							key={i}
+							className="absolute shadow-[0_0_4px_rgba(0,0,0,0.12)] rounded-sm overflow-hidden"
+							style={{
+								left: `${i * 96.4}px`,
+								top: `${tmpl.top}px`,
+								width: "206px",
+								height: "292px",
+							}}
+						>
+							<Image
+								src={tmpl.src}
+								alt={`Template ${i + 1}`}
+								fill
+								className="object-cover"
+								sizes="206px"
+							/>
+						</div>
+					))}
 				</div>
-
-				{/* Reassurance */}
-				<p className="text-center text-xs text-text-tertiary mt-8">
-					Choose the layout that fits your style — switch without losing content.
-				</p>
 			</div>
 		</section>
 	);
