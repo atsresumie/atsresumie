@@ -1,87 +1,69 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
-/**
- * FAQ — Client Component (accordion state)
- *
- * Clean accordion, concise 1-2 sentence answers.
- */
-
-const faqs = [
+const faqItems = [
 	{
 		question: "Will it invent experience?",
 		answer: "No. Every bullet is grounded in your original resume — nothing fabricated.",
 	},
 	{
 		question: "Is it ATS compliant?",
-		answer: "Yes. Output uses clean, parsable formatting that passes automated screening.",
+		answer: "Yes. Our output uses clean, single-column formatting with standard section headers that all major ATS systems can parse reliably.",
 	},
 	{
 		question: "What formats are supported?",
-		answer: "Upload PDF or DOCX. Download as PDF or DOCX.",
+		answer: "You can upload PDF or DOCX resumes, and download your tailored resume as a clean PDF optimized for ATS parsing.",
 	},
 	{
 		question: "Do I need to rewrite everything?",
-		answer: "No. It tailors your existing resume to the job description automatically.",
+		answer: "No. We preserve your original structure and experience — we only adjust wording, keywords, and formatting to match the target job description.",
 	},
 	{
 		question: "Can I try it free?",
-		answer: "Yes. You get 3 free credits on signup, no credit card required.",
+		answer: "Yes. You get 3 free credits on signup — no credit card required. Each credit generates one tailored resume.",
 	},
 ];
 
 export const FAQ = () => {
-	const [openIndex, setOpenIndex] = useState<number | null>(null);
+	const [openIndex, setOpenIndex] = useState(0);
 
 	return (
-		<section id="faq" className="py-20 md:py-28 bg-surface-inset/30">
-			<div className="container mx-auto px-4">
-				<h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-14">
+		<section id="faq" className="py-[60px] px-4 md:px-[116px]">
+			<div className="max-w-[1208px] mx-auto flex flex-col items-center gap-10">
+				<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary text-center">
 					FAQ
 				</h2>
 
-				<div className="max-w-2xl mx-auto bg-surface-raised rounded-xl border border-border-visible px-5 md:px-7">
-					{faqs.map((faq, index) => (
-						<div
-							key={faq.question}
-							className="border-b border-border-subtle last:border-0"
-						>
+				<div className="border border-border-visible rounded-[5px] w-full max-w-[900px]">
+					{faqItems.map((item, i) => (
+						<div key={i}>
 							<button
 								onClick={() =>
-									setOpenIndex(
-										openIndex === index
-											? null
-											: index,
-									)
+									setOpenIndex(openIndex === i ? -1 : i)
 								}
-								className="w-full py-5 flex items-center justify-between text-left group"
+								className="w-full p-5 flex items-start justify-between text-left cursor-pointer"
 							>
-								<span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors pr-4">
-									{faq.question}
+								<span className="font-semibold text-sm text-black">
+									{item.question}
 								</span>
-								<ChevronDown
-									size={16}
-									className={`text-text-tertiary transition-transform duration-200 flex-shrink-0 ${
-										openIndex === index
-											? "rotate-180"
-											: ""
-									}`}
-								/>
+								{openIndex === i ? (
+									<ChevronUp className="w-6 h-6 text-text-tertiary flex-shrink-0" />
+								) : (
+									<ChevronDown className="w-6 h-6 text-text-tertiary flex-shrink-0" />
+								)}
 							</button>
-
-							<div
-								className={`overflow-hidden transition-all duration-200 ${
-									openIndex === index
-										? "max-h-40 opacity-100"
-										: "max-h-0 opacity-0"
-								}`}
-							>
-								<p className="pb-5 text-sm text-text-secondary leading-relaxed">
-									{faq.answer}
-								</p>
-							</div>
+							{openIndex === i && (
+								<div className="px-5 pb-5">
+									<p className="text-sm text-text-secondary leading-[22px]">
+										{item.answer}
+									</p>
+								</div>
+							)}
+							{i < faqItems.length - 1 && (
+								<div className="h-px bg-[#d9d9d9]" />
+							)}
 						</div>
 					))}
 				</div>

@@ -18,49 +18,58 @@
 
 :root {
 	/* --------------------------------------------------------------------------
-	   COLORS - Warm light theme with brown accent (#E5D5BE / #654844)
+	   COLORS - Clean white theme with orange accent
 	   -------------------------------------------------------------------------- */
 
-	/* Surfaces - Warm beige foundation */
-	--surface-base: #e5d5be; /* Main background */
-	--surface-raised: #f0e6d4; /* Cards and panels – slightly lighter */
-	--surface-inset: #d9c8ae; /* Pressed/recessed areas – slightly darker */
-	--surface-overlay: #f5eddf; /* Modals, dropdowns – near white */
+	/* Surfaces — white foundation */
+	--surface-base: #ffffff;
+	--surface-raised: #ffffff;
+	--surface-inset: #f8fafb;
+	--surface-overlay: #ffffff;
 
-	/* Text - Dark brown tones */
-	--text-primary: #654844; /* Main text */
-	--text-secondary: #8a6f6a; /* Captions, labels */
-	--text-tertiary: #b09a94; /* Disabled, placeholders */
+	/* Text — neutral dark */
+	--text-primary: #292929;
+	--text-secondary: #656565;
+	--text-tertiary: #989898;
 
-	/* Accent - Terracotta adapted for light backgrounds */
-	--accent: hsl(12 72% 42%); /* Primary accent (darker for contrast) */
-	--accent-hover: hsl(12 72% 36%); /* Hover state */
-	--accent-muted: hsl(12 30% 85%); /* Subtle accent background */
-	--accent-foreground: hsl(0 0% 100%); /* White text on accent */
+	/* Accent — orange */
+	--accent: #e4662b;
+	--accent-hover: #d45a21;
+	--accent-muted: #fdf6ef;
+	--accent-foreground: #ffffff;
 
-	/* CTA Buttons - Primary action color */
-	--cta: #654844; /* CTA button background */
-	--cta-hover: #7a5a55; /* CTA button hover */
-	--cta-foreground: #ffffff; /* Text on CTA */
+	/* CTA — orange */
+	--cta: #e4662b;
+	--cta-hover: #d45a21;
+	--cta-foreground: #fcfcfc;
+
+	/* Primary (brown) */
+	--primary-brown: #805f4e;
+	--primary-brown-light: #f9f6f3;
+	--primary-brown-dark: #9a755c;
+	--primary-brown-bg: #a78668;
 
 	/* Code / dark panels */
-	--code-block: #654844; /* LaTeX preview, code panels */
-	--code-block-foreground: rgba(255, 255, 255, 0.8); /* Text on code blocks */
+	--code-block: #292929;
+	--code-block-foreground: rgba(255, 255, 255, 0.8);
 
-	/* Borders - Warm brown hair rules */
-	--border-subtle: #d4c3a9; /* Subtle separators */
-	--border-visible: #c4b198; /* Card outlines, inputs */
-	--border-focus: hsl(12 72% 42%); /* Focus ring */
+	/* Borders — cool gray */
+	--border-subtle: #e5e7eb;
+	--border-visible: #cbd5db;
+	--border-focus: #e4662b;
 
 	/* Semantic Colors */
-	--success: hsl(158 50% 36%); /* Sage green */
-	--success-muted: hsl(158 30% 88%); /* Success background */
-	--warning: hsl(38 70% 50%); /* Golden yellow */
-	--warning-muted: hsl(38 40% 88%); /* Warning background */
-	--error: hsl(0 60% 50%); /* Red */
-	--error-muted: hsl(0 30% 90%); /* Error background */
-	--info: hsl(210 50% 50%); /* Blue */
-	--info-muted: hsl(210 30% 90%); /* Info background */
+	--success: #34c759;
+	--success-muted: rgba(52, 199, 89, 0.1);
+	--warning: hsl(38 70% 50%);
+	--warning-muted: hsl(38 40% 88%);
+	--error: #ff383c;
+	--error-muted: rgba(255, 56, 60, 0.1);
+	--info: hsl(210 50% 50%);
+	--info-muted: hsl(210 30% 90%);
+
+	/* Shadows — subtle */
+	--shadow-card: 0 0 4px 0 rgba(0, 0, 0, 0.12);
 
 	/* Legacy shadcn compatibility tokens */
 	--background: var(--surface-base);
@@ -196,33 +205,47 @@
    ============================================================================ */
 
 .landing {
-	/* Surfaces — brighter, airier */
-	--surface-base: #fcf8f3;
-	--surface-raised: #fffdf9;
-	--surface-inset: #f5ede3;
-	--surface-overlay: #fffdf9;
+	/* Surfaces — clean white */
+	--surface-base: #ffffff;
+	--surface-raised: #ffffff;
+	--surface-inset: #f8fafb;
+	--surface-overlay: #ffffff;
 
-	/* Text — deeper espresso brown */
-	--text-primary: #3e2c23;
-	--text-secondary: #6e584c;
-	--text-tertiary: #9a8478;
+	/* Text — neutral dark */
+	--text-primary: #292929;
+	--text-secondary: #656565;
+	--text-tertiary: #989898;
 
-	/* Accent — dark espresso */
-	--accent: #5c3b2e;
-	--accent-hover: #6b4637;
-	--accent-muted: #ead9ca;
+	/* Accent — orange */
+	--accent: #e4662b;
+	--accent-hover: #d45a21;
+	--accent-muted: #fdf6ef;
+	--accent-foreground: #ffffff;
 
-	/* CTA — matches accent */
-	--cta: #5c3b2e;
-	--cta-hover: #6b4637;
+	/* CTA — orange */
+	--cta: #e4662b;
+	--cta-hover: #d45a21;
+	--cta-foreground: #fcfcfc;
 
-	/* Borders — warmer, softer */
-	--border-subtle: #e8ddd0;
-	--border-visible: #d8c6b4;
-	--border-focus: #5c3b2e;
+	/* Primary (brown) */
+	--primary-brown: #805f4e;
+	--primary-brown-light: #f9f6f3;
+	--primary-brown-dark: #9a755c;
+	--primary-brown-bg: #a78668;
 
-	/* Shadows — lighter for bright background */
-	--shadow-card: 0 4px 16px -2px hsl(30 20% 50% / 0.08);
+	/* Borders — cool gray */
+	--border-subtle: #e5e7eb;
+	--border-visible: #cbd5db;
+	--border-focus: #e4662b;
+
+	/* Semantic */
+	--success: #34c759;
+	--success-muted: rgba(52, 199, 89, 0.1);
+	--error: #ff383c;
+	--error-muted: rgba(255, 56, 60, 0.1);
+
+	/* Shadows — subtle */
+	--shadow-card: 0 0 4px 0 rgba(0, 0, 0, 0.12);
 }
 
 /* ============================================================================
@@ -232,28 +255,10 @@
 
 .applications-page {
 	/* Surfaces — clean white */
-	--surface-base: #f7f7f8;
+	--surface-base: #ffffff;
 	--surface-raised: #ffffff;
-	--surface-inset: #f0f0f2;
+	--surface-inset: #f8fafb;
 	--surface-overlay: #ffffff;
-
-	/* Text — neutral dark */
-	--text-primary: #1a1a2e;
-	--text-secondary: #6b7280;
-	--text-tertiary: #9ca3af;
-
-	/* Accent — orange to match design */
-	--accent: #e8693a;
-	--accent-hover: #d45a2e;
-	--accent-muted: #fef0ea;
-
-	/* Borders — light gray */
-	--border-subtle: #f0f0f2;
-	--border-visible: #e5e7eb;
-	--border-focus: #e8693a;
-
-	/* Shadows — subtle for white bg */
-	--shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04);
 }
 
 /* ============================================================================
@@ -326,6 +331,12 @@
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
+	}
+
+	button,
+	a,
+	[role="button"] {
+		cursor: pointer;
 	}
 
 	html {

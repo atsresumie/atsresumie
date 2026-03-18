@@ -1,29 +1,20 @@
-import { Upload, ClipboardPaste, Download, ArrowRight } from "lucide-react";
-
-/**
- * HowItWorks Component — Server Component
- *
- * 3 numbered steps with icon, title, description, progress line, and arrows.
- */
+import { Upload, ClipboardList, FileOutput } from "lucide-react";
 
 const steps = [
 	{
-		number: "01",
 		icon: Upload,
 		title: "Upload your resume",
 		description:
 			"Upload your current resume as PDF or DOCX — we'll parse it automatically.",
 	},
 	{
-		number: "02",
-		icon: ClipboardPaste,
+		icon: ClipboardList,
 		title: "Paste the job description",
 		description:
 			"Paste the job posting you're targeting. We'll identify the key requirements and skills.",
 	},
 	{
-		number: "03",
-		icon: Download,
+		icon: FileOutput,
 		title: "Generate → review → download",
 		description:
 			"Get a tailored, ATS-ready resume. Review the changes, then download your PDF.",
@@ -32,79 +23,43 @@ const steps = [
 
 export const HowItWorks = () => {
 	return (
-		<section
-			id="how-it-works"
-			className="relative py-24 md:py-32 overflow-hidden bg-surface-inset/30"
-		>
-			<div className="container mx-auto relative z-10">
-				{/* Section header */}
-				<div className="text-center mb-16 md:mb-20 animate-fade-in-up">
-					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
+		<section id="how-it-works" className="py-[120px] px-4 md:px-[116px]">
+			<div className="max-w-[1208px] mx-auto flex flex-col items-center gap-10">
+				{/* Header */}
+				<div className="text-center flex flex-col gap-5">
+					<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary">
 						How it works
 					</h2>
-					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
+					<p className="text-text-secondary text-base">
 						Three simple steps to an ATS-optimized resume
 					</p>
 				</div>
 
 				{/* Steps */}
-				<div className="relative">
-					{/* Progress line */}
-					<div className="absolute top-1/2 left-0 right-0 h-px bg-border-subtle hidden lg:block" />
-					<div
-						className="absolute top-1/2 left-0 right-0 h-px hidden lg:block animate-progress-line"
-						style={{
-							background: "var(--accent)",
-						}}
-					/>
-
-					<div className="grid md:grid-cols-3 gap-8 lg:gap-12">
-						{steps.map((step, index) => {
-							const Icon = step.icon;
-							return (
-								<div
-									key={step.number}
-									className={`relative group animate-fade-in-up animation-delay-${(index + 2) * 100}`}
-								>
-									{/* Card */}
-									<div className="relative bg-surface-raised rounded-sm border border-border-visible p-8 h-full transition-all duration-300 hover:border-accent/30 hover:shadow-lg">
-										{/* Step number */}
-										<div className="absolute -top-4 left-8 px-3 py-1 bg-surface-base border border-border-visible rounded-sm">
-											<span className="font-display text-sm font-semibold text-accent">
-												{step.number}
-											</span>
-										</div>
-
-										{/* Icon */}
-										<div className="w-14 h-14 rounded-sm bg-surface-inset flex items-center justify-center mb-6 mt-2 transition-transform duration-300 group-hover:scale-105">
-											<Icon
-												size={24}
-												className="text-accent"
-											/>
-										</div>
-
-										{/* Content */}
-										<h3 className="font-display text-xl font-medium mb-3 text-text-primary">
-											{step.title}
-										</h3>
-										<p className="text-text-secondary">
-											{step.description}
-										</p>
-
-										{/* Arrow (hidden on last) */}
-										{index < steps.length - 1 && (
-											<div className="absolute -right-6 top-1/2 -translate-y-1/2 hidden lg:block z-10">
-												<ArrowRight
-													size={20}
-													className="text-accent animate-pulse"
-												/>
-											</div>
-										)}
-									</div>
+				<div className="flex flex-col md:flex-row items-stretch justify-between w-full gap-6 md:gap-0">
+					{steps.map((step, i) => (
+						<div key={i} className="flex items-center">
+							{/* Step card */}
+							<div className="border border-dashed border-border-visible rounded-[5px] p-5 flex flex-col gap-3 w-full md:w-[312px]">
+								<div className="bg-[var(--primary-brown-light)] w-[34px] h-[34px] flex items-center justify-center">
+									<step.icon className="w-6 h-6 text-[var(--primary-brown)]" />
 								</div>
-							);
-						})}
-					</div>
+								<h3 className="font-semibold text-lg text-text-primary">
+									{step.title}
+								</h3>
+								<p className="text-sm text-text-secondary leading-normal">
+									{step.description}
+								</p>
+							</div>
+
+							{/* Arrow connector */}
+							{i < steps.length - 1 && (
+								<div className="hidden md:block w-[90px] flex-shrink-0 mx-auto">
+									<div className="border-t border-dashed border-border-visible w-full" />
+								</div>
+							)}
+						</div>
+					))}
 				</div>
 			</div>
 		</section>

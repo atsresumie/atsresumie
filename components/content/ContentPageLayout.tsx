@@ -65,16 +65,18 @@ export function ContentPageLayout({
 				<div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
 					<Link
 						href="/"
-						className="flex items-center gap-2 font-display text-lg font-semibold text-text-primary no-underline hover:text-accent transition-colors"
+						className="flex items-center gap-2.5 no-underline"
 					>
 						<Image
-							src="/logo3.png"
-							alt="atsresumie logo"
-							width={32}
-							height={32}
-							className="w-8 h-8"
+							src="/landing/ats-logo.png"
+							alt="ATSResumie logo"
+							width={42}
+							height={36}
+							className="h-9 w-[42px] object-contain"
 						/>
-						atsresumie
+						<span className="font-semibold text-sm text-accent">
+							ATSResumie
+						</span>
 					</Link>
 					<Link
 						href="/"
