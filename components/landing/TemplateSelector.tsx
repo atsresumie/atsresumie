@@ -1,11 +1,11 @@
 import Image from "next/image";
 
 const templates = [
-	{ src: "/landing/template-1.png", top: 0 },
-	{ src: "/landing/template-2.png", top: 40 },
-	{ src: "/landing/template-3.png", top: 90 },
-	{ src: "/landing/template-4.png", top: 150 },
-	{ src: "/landing/template-5.png", top: 220 },
+	{ src: "/landing/template-1.png", topPct: 0 },
+	{ src: "/landing/template-2.png", topPct: 7.8 },
+	{ src: "/landing/template-3.png", topPct: 17.5 },
+	{ src: "/landing/template-4.png", topPct: 29.2 },
+	{ src: "/landing/template-5.png", topPct: 42.8 },
 ];
 
 export const TemplateSelector = () => {
@@ -23,16 +23,16 @@ export const TemplateSelector = () => {
 				</div>
 
 				{/* Right - cascading template images */}
-				<div className="relative w-[500px] md:w-[592px] h-[400px] md:h-[514px] flex-shrink-0 overflow-hidden">
+				<div className="relative w-full max-w-[592px] aspect-[592/514] shrink-0 overflow-hidden">
 					{templates.map((tmpl, i) => (
 						<div
 							key={i}
 							className="absolute shadow-[0_0_4px_rgba(0,0,0,0.12)] rounded-sm overflow-hidden"
 							style={{
-								left: `${i * 96.4}px`,
-								top: `${tmpl.top}px`,
-								width: "206px",
-								height: "292px",
+								left: `${i * 19.28}%`,
+								top: `${tmpl.topPct}%`,
+								width: "34.8%",
+								height: "56.8%",
 							}}
 						>
 							<Image
@@ -40,7 +40,7 @@ export const TemplateSelector = () => {
 								alt={`Template ${i + 1}`}
 								fill
 								className="object-cover"
-								sizes="206px"
+								sizes="(max-width: 768px) 35vw, 206px"
 							/>
 						</div>
 					))}

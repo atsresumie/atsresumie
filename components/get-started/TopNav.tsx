@@ -238,7 +238,7 @@ export default function TopNav({ onReset }: TopNavProps) {
 							{/* Upgrade */}
 							<DropdownMenuItem
 								onClick={() => {
-									window.location.href = "/#pricing";
+									window.location.href = "/dashboard/credits";
 								}}
 								className="cursor-pointer"
 							>

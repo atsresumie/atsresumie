@@ -69,16 +69,20 @@ export const Footer = () => {
 								<MapPin className="w-[18px] h-[18px] flex-shrink-0" />
 								<span>Toronto, Ontario</span>
 							</div>
-							<div className="flex items-center gap-4 text-sm text-white">
-								<Phone className="w-[18px] h-[18px] flex-shrink-0" />
-								<span>(123) 456-7890</span>
-							</div>
-							<Link
-								href="#"
-								className="text-white hover:opacity-80 transition-opacity cursor-pointer"
-							>
-								<Linkedin className="w-[18px] h-[18px]" />
-							</Link>
+						<div className="flex items-center gap-4 text-sm text-white">
+							<Phone className="w-[18px] h-[18px] flex-shrink-0" />
+							<a href="tel:+14372321280" className="hover:opacity-80 transition-opacity">
+								(437) 232-1280
+							</a>
+						</div>
+						<a
+							href="https://linkedin.com/company/atsresumie/"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-white hover:opacity-80 transition-opacity cursor-pointer"
+						>
+							<Linkedin className="w-[18px] h-[18px]" />
+						</a>
 						</div>
 					</div>
 
