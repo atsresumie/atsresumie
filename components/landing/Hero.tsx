@@ -1,148 +1,75 @@
-import { ArrowRight, Check, FileText, Sparkles } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
-/**
- * Hero Component — Server Component
- *
- * Visual-first, minimal text. Two-column layout:
- * Left = short headline + CTA, Right = before→after resume preview.
- */
+const resumeImages = [
+	"/landing/resume-1.png",
+	"/landing/resume-2.png",
+	"/landing/resume-3.png",
+	"/landing/resume-4.png",
+	"/landing/resume-5.png",
+];
+
 export const Hero = () => {
 	return (
 		<section
 			id="start"
-			className="relative min-h-[90vh] flex items-center overflow-hidden"
+			className="relative flex items-center justify-center min-h-[calc(100vh-80px)] overflow-hidden"
 		>
-			{/* Subtle background gradient */}
-			<div className="absolute inset-0 bg-gradient-to-br from-surface-base via-surface-base to-surface-inset/30" />
+			<div className="relative z-10 flex flex-col items-center gap-10 w-full max-w-[792px] mx-auto px-4 py-20">
+				<h1 className="font-display text-[36px] md:text-[52px] font-bold leading-tight text-center text-text-primary">
+					Tailor Your Resume to{" "}
+					<span className="text-accent">Any</span>
+					<br />
+					<span className="text-accent">Job</span> in Seconds.
+				</h1>
 
-			<div className="relative z-10 container mx-auto px-4 pt-24 pb-16 md:pt-28 md:pb-20">
-				<div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center">
-					{/* Left — Copy */}
-					<div className="text-center lg:text-left max-w-lg">
-						<h1 className="font-display text-4xl md:text-5xl lg:text-[3.5rem] font-semibold leading-[1.1] tracking-tight mb-5">
-							Tailor your resume to{" "}
-							<span className="text-accent">any job</span>
-						</h1>
-
-						<p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto lg:mx-0">
-							Paste a job description. Get a tailored, ATS-ready
-							resume.
-						</p>
-
-						{/* CTAs */}
-						<div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 mb-8">
-							<Link
-								href="/get-started"
-								className="w-full sm:w-auto px-8 py-3.5 bg-cta text-cta-foreground font-semibold rounded-lg hover:bg-cta-hover transition-all hover:-translate-y-0.5 active:scale-[0.98] text-center"
-							>
-								Start free
-							</Link>
-							<button
-								onClick={undefined}
-								className="w-full sm:w-auto px-6 py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center justify-center gap-1.5"
-							>
-								See how it works
-								<ArrowRight size={14} />
-							</button>
-						</div>
-
-						{/* Micro-reassurance */}
-						<div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-sm text-muted-foreground">
-							{[
-								"ATS-friendly",
-								"Your real experience",
-								"Free to try",
-							].map((item) => (
-								<span
-									key={item}
-									className="inline-flex items-center gap-1.5"
-								>
-									<Check
-										size={13}
-										className="text-accent"
+				{/* Resume fan */}
+				<div className="flex isolate items-start pr-2.5 w-full max-w-[1000px]">
+					{resumeImages.map((src, i) => (
+						<div
+							key={i}
+							className="flex flex-[1_0_0] h-[200px] md:h-[314px] items-center justify-center min-h-0 min-w-0 -mr-2.5 relative"
+							style={{ zIndex: resumeImages.length - i }}
+						>
+							<div className="-rotate-6 flex-none w-full">
+								<div className="aspect-[1414/2000] relative shadow-[0_0_4px_0_rgba(0,0,0,0.12)] w-full overflow-hidden rounded-sm">
+									<Image
+										src={src}
+										alt={`Resume template ${i + 1}`}
+										fill
+										className="object-cover pointer-events-none"
+										sizes="(max-width: 768px) 40vw, 240px"
 									/>
-									{item}
-								</span>
-							))}
-						</div>
-					</div>
-
-					{/* Right — Before / After resume preview card */}
-					<div className="relative w-full max-w-md lg:max-w-lg">
-						<div className="bg-surface-raised rounded-xl border border-border-visible shadow-card overflow-hidden">
-							{/* Card header */}
-							<div className="flex items-center gap-2 px-5 py-3 border-b border-border-subtle bg-surface-inset/50">
-								<FileText
-									size={15}
-									className="text-accent"
-								/>
-								<span className="text-sm font-medium text-text-primary">
-									Resume preview
-								</span>
-							</div>
-
-							{/* Before section */}
-							<div className="px-5 py-4 border-b border-border-subtle/60">
-								<div className="flex items-center gap-2 mb-3">
-									<span className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
-										Before
-									</span>
-									<span className="text-[10px] px-1.5 py-0.5 rounded bg-error-muted text-error font-medium">
-										Generic
-									</span>
 								</div>
-								<ul className="space-y-2">
-									{[
-										"Managed projects and contributed to team goals",
-										"Worked with databases to improve performance",
-										"Helped develop software solutions",
-									].map((bullet, i) => (
-										<li
-											key={i}
-											className="flex items-start gap-2 text-sm text-text-tertiary"
-										>
-											<span className="w-1 h-1 rounded-full bg-text-tertiary/50 mt-2 flex-shrink-0" />
-											<span className="line-through decoration-text-tertiary/30">
-												{bullet}
-											</span>
-										</li>
-									))}
-								</ul>
-							</div>
-
-							{/* After section */}
-							<div className="px-5 py-4">
-								<div className="flex items-center gap-2 mb-3">
-									<span className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
-										After
-									</span>
-									<span className="text-[10px] px-1.5 py-0.5 rounded bg-success-muted text-success font-medium inline-flex items-center gap-1">
-										<Sparkles size={9} />
-										Tailored
-									</span>
-								</div>
-								<ul className="space-y-2">
-									{[
-										"Led migration of 3 legacy services to AWS, reducing deployment time by 40%",
-										"Optimized PostgreSQL queries processing 2M+ records/day, cutting latency 60%",
-										"Built CI/CD pipeline with GitHub Actions adopted by 4 teams",
-									].map((bullet, i) => (
-										<li
-											key={i}
-											className="flex items-start gap-2 text-sm text-text-primary"
-										>
-											<ArrowRight
-												size={12}
-												className="text-accent mt-1 flex-shrink-0"
-											/>
-											{bullet}
-										</li>
-									))}
-								</ul>
 							</div>
 						</div>
-					</div>
+					))}
+				</div>
+
+				<p className="text-center text-text-secondary text-base max-w-[792px]">
+					Stop getting filtered out by ATS. Our AI analyzes job
+					descriptions and transforms your resume with the right
+					keywords, format, and structure to pass any Applicant
+					Tracking System.
+				</p>
+
+				<div className="flex items-center gap-2.5">
+					<Link
+						href="/get-started"
+						className="px-4 py-3 bg-accent text-white text-base font-normal rounded-[5px] hover:bg-accent-hover transition-colors cursor-pointer"
+					>
+						Get Started Free
+					</Link>
+					<button
+						onClick={() =>
+							document
+								.getElementById("how-it-works")
+								?.scrollIntoView({ behavior: "smooth" })
+						}
+						className="px-4 py-3 bg-white text-[var(--primary-brown)] text-base font-normal rounded-[5px] border border-[var(--primary-brown)] hover:bg-gray-50 transition-colors cursor-pointer"
+					>
+						See How It Works
+					</button>
 				</div>
 			</div>
 		</section>
