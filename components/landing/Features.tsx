@@ -1,85 +1,78 @@
-import { Target, Shield, Copy, Zap, BarChart3, KanbanSquare } from "lucide-react";
-
-/**
- * Features — Server Component
- *
- * 6 concise cards in 3×2 grid. Heading + one short line max.
- * New cards for upcoming capabilities carry "Coming soon" badges.
- */
-
 const features = [
 	{
-		icon: Target,
 		title: "Job-specific tailoring",
-		line: "Aligned to the JD, grounded in your experience",
+		description: "Aligned to the JD, grounded in your experience",
+		number: "1",
+		comingSoon: false,
 	},
 	{
-		icon: Shield,
 		title: "ATS-friendly formatting",
-		line: "Clean structure that passes screening",
+		description: "Clean structure that passes screening",
+		number: "2",
+		comingSoon: false,
 	},
 	{
-		icon: Copy,
 		title: "Multiple versions",
-		line: "One resume per application",
+		description: "One resume per application",
+		number: "3",
+		comingSoon: false,
 	},
 	{
-		icon: Zap,
 		title: "Fast iterations",
-		line: "Compare results, iterate quickly",
+		description: "Compare results, iterate quickly",
+		number: "4",
+		comingSoon: false,
 	},
 	{
-		icon: BarChart3,
 		title: "See ATS fit",
-		line: "Quick signals on resume-to-job fit",
-		badge: "Coming soon",
+		description: "Quick signals on resume-to-job fit",
+		number: "5",
+		comingSoon: true,
 	},
 	{
-		icon: KanbanSquare,
 		title: "Track applications",
-		line: "One board for your job search",
-		badge: "Coming soon",
+		description: "One board for your job search",
+		number: "6",
+		comingSoon: true,
 	},
 ];
 
 export const Features = () => {
 	return (
-		<section id="features" className="py-20 md:py-28">
-			<div className="container mx-auto px-4">
-				<h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-14">
+		<section className="py-[60px] px-4 md:px-[116px]">
+			<div className="max-w-[1208px] mx-auto flex flex-col items-center gap-10">
+				<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary text-center">
 					Why ATSResumie
 				</h2>
 
-				<div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
-					{features.map((feature) => {
-						const Icon = feature.icon;
-						return (
-							<div
-								key={feature.title}
-								className="p-6 rounded-xl bg-surface-raised border border-border-visible"
-							>
-								<div className="flex items-center gap-3 mb-4">
-									<div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center flex-shrink-0">
-										<Icon
-											size={20}
-											className="text-accent"
-										/>
-									</div>
-									{(feature as { badge?: string }).badge && (
-										<span className="inline-flex items-center px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider rounded-full bg-accent-muted text-accent border border-accent/15">
-											{(feature as { badge?: string }).badge}
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-20 w-full">
+					{features.map((feature) => (
+						<div
+							key={feature.number}
+							className="border-t border-border-visible pt-5 flex flex-col gap-3"
+						>
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-3">
+									<span className="font-semibold text-lg text-text-primary">
+										{feature.title}
+									</span>
+									{feature.comingSoon && (
+										<span className="border border-accent text-accent text-xs font-semibold px-2 py-0.5 rounded-full bg-accent-muted">
+											Coming Soon
 										</span>
 									)}
 								</div>
-								<h3 className="font-display text-base font-medium text-text-primary mb-1">
-									{feature.title}
-								</h3>
-								<p className="text-sm text-text-secondary">
-									{feature.line}
-								</p>
+								<div className="bg-[var(--primary-brown-light)] px-1.5 py-1 flex items-center justify-center">
+									<span className="text-sm font-semibold text-[var(--primary-brown-dark)]">
+										{feature.number}
+									</span>
+								</div>
 							</div>
-						);
-					})}
+							<p className="text-sm text-text-secondary">
+								{feature.description}
+							</p>
+						</div>
+					))}
 				</div>
 			</div>
 		</section>
