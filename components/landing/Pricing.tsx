@@ -1,7 +1,65 @@
-import { CheckCircle2 } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import { useAuthModal } from "@/contexts/AuthModalContext";
+import { toast } from "sonner";
+
+const PACK_ID = "pro_75";
 
 export const Pricing = () => {
+	const { isAuthenticated, isLoading: authLoading } = useAuth();
+	const { openAuthModal } = useAuthModal();
+	const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+
+	const handleSubscribe = async () => {
+		if (isCheckoutLoading) return;
+
+		if (!isAuthenticated) {
+			if (typeof window !== "undefined") {
+				const now = Date.now();
+				localStorage.setItem(
+					"auth_intent",
+					JSON.stringify({
+						id: crypto.randomUUID(),
+						type: "buy_credits",
+						payload: { packId: PACK_ID },
+						createdAt: now,
+						expiresAt: now + 15 * 60 * 1000,
+						version: 1,
+					}),
+				);
+			}
+			openAuthModal("signup");
+			return;
+		}
+
+		setIsCheckoutLoading(true);
+		try {
+			const res = await fetch("/api/stripe/checkout", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ packId: PACK_ID }),
+			});
+
+			const data = await res.json();
+
+			if (!res.ok || !data.url) {
+				throw new Error(data.error || "Failed to create checkout session");
+			}
+
+			window.location.href = data.url;
+		} catch (error) {
+			console.error("Checkout error:", error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to start checkout",
+			);
+			setIsCheckoutLoading(false);
+		}
+	};
+
 	return (
 		<section id="pricing" className="bg-surface-inset py-[60px] px-4 md:px-[116px]">
 			<div className="max-w-[1208px] mx-auto flex flex-col items-center gap-10">
@@ -36,7 +94,7 @@ export const Pricing = () => {
 										key={item}
 										className="flex items-center gap-2"
 									>
-										<CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
+										<CheckCircle2 className="w-4 h-4 text-success shrink-0" />
 										<span className="text-sm text-[#464646]">
 											{item}
 										</span>
@@ -55,9 +113,24 @@ export const Pricing = () => {
 					{/* Pro Plan */}
 					<div className="relative rounded-[5px] overflow-hidden w-full md:w-[262px]">
 						<div className="bg-gradient-to-b from-[#d54e21] to-[#9d2e09] p-5 flex flex-col gap-[100px]">
-							{/* Decorative ellipses */}
-							<div className="absolute top-[201px] right-[-40px] w-[180px] h-[167px] bg-[#d54e21] rounded-full opacity-30 blur-xl" />
-							<div className="absolute top-[230px] right-[10px] w-[180px] h-[167px] bg-[#9d2e09] rounded-full opacity-20 blur-xl" />
+						{/* Decorative ellipses — 4 rotated/skewed shapes per Figma */}
+						{[
+							{ left: 142.79, top: 201 },
+							{ left: 102, top: 229.76 },
+							{ left: 143.06, top: 260.57 },
+							{ left: 102.28, top: 289.33 },
+						].map((pos, i) => (
+							<div
+								key={i}
+								className="absolute flex items-center justify-center w-[179px] h-[167px] pointer-events-none"
+								style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
+							>
+								<div
+									className="w-[122px] h-[125px] rounded-full bg-white/10"
+									style={{ transform: "rotate(50.91deg) skewX(-3.9deg)" }}
+								/>
+							</div>
+						))}
 
 							<div className="relative z-10 flex flex-col gap-5">
 								<div className="flex items-center justify-between">
@@ -90,7 +163,7 @@ export const Pricing = () => {
 											key={item}
 											className="flex items-center gap-2"
 										>
-											<CheckCircle2 className="w-4 h-4 text-white flex-shrink-0" />
+											<CheckCircle2 className="w-4 h-4 text-white shrink-0" />
 											<span className="text-sm text-white">
 												{item}
 											</span>
@@ -98,12 +171,20 @@ export const Pricing = () => {
 									))}
 								</div>
 							</div>
-							<Link
-								href="/get-started"
-								className="relative z-10 w-full h-10 bg-white text-accent text-base rounded-[5px] flex items-center justify-center hover:bg-white/90 transition-colors cursor-pointer"
+							<button
+								onClick={handleSubscribe}
+								disabled={isCheckoutLoading || authLoading}
+								className="relative z-10 w-full h-10 bg-white text-accent text-base rounded-[5px] flex items-center justify-center hover:bg-white/90 transition-colors cursor-pointer disabled:opacity-70"
 							>
-								Subscribe
-							</Link>
+								{isCheckoutLoading ? (
+									<>
+										<Loader2 className="w-4 h-4 mr-2 animate-spin" />
+										Processing...
+									</>
+								) : (
+									"Subscribe"
+								)}
+							</button>
 						</div>
 					</div>
 				</div>
