@@ -1,101 +1,218 @@
-import { X, Check, Sparkles } from "lucide-react";
+import {
+	CircleAlert,
+	CheckCircle2,
+	Sparkles,
+	CircleX,
+	Check,
+} from "lucide-react";
 
-/**
- * BeforeAfter — Server Component
- *
- * Full-width comparison: Generic AI vs ATSResumie.
- * Wide cards, VS badge, checkmarks vs crosses. Light theme.
- */
-
-const genericBullets = [
-	"May fabricate roles and skills",
-	"Inconsistent, ATS-breaking formatting",
-	"No job description keyword analysis",
-	"No application tracking",
-	"No job listings to browse",
-	"No PDF export optimized for ATS",
-	"Generic bullets that get ignored",
+const beforeItems = [
+	"Managed projects and contributed to team goals",
+	"Worked with databases to improve performance",
+	"Helped develop software solutions",
 ];
 
-const atsrBullets = [
-	"100% grounded in your real experience",
-	"ATS-guaranteed clean formatting",
-	"Deep JD keyword extraction & injection",
-	"Full kanban application tracker",
-	"Live job board with 2,400+ listings",
-	"One-click tailored PDF export",
-	"Role-specific bullets that convert",
+const afterItems = [
+	"Led migration of 3 legacy services to AWS, reducing deployment time by 40%",
+	"Optimized PostgreSQL queries processing 2M+ records/day, cutting latency 60%",
+	"Built CI/CD pipeline with GitHub Actions adopted by 4 teams",
+];
+
+const matchedSkills = ["React", "TypeScript", "CI/CD"];
+const missingSkills = ["AWS", "GraphQL"];
+
+const checklistItems = [
+	{ label: "Contact Info", status: "pass" as const },
+	{ label: "Work experience", status: "pass" as const },
+	{ label: "Skill match", status: "pass" as const },
+	{ label: "Keyword coverage", status: "improve" as const },
 ];
 
 export const BeforeAfter = () => {
 	return (
-		<section className="py-20 md:py-28 bg-surface-inset/30">
-			<div className="container mx-auto px-4">
-				<h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-14 text-text-primary">
-					We Built, What LLM&apos;s Can&apos;t
-				</h2>
+		<section className="bg-surface-inset py-10 px-4 md:px-[116px]">
+			<div className="flex flex-col lg:flex-row items-center justify-between gap-12 max-w-[1208px] mx-auto">
+				{/* Left text */}
+				<div className="flex flex-col gap-5 max-w-[476px]">
+					<h2 className="font-display text-[28px] md:text-[36px] font-bold leading-tight text-text-primary">
+						More than a resume generator
+					</h2>
+					<p className="text-text-secondary text-base">
+						Paste a job description. Get a tailored, ATS-ready
+						resume.
+					</p>
+				</div>
 
-				{/* Cards wrapper with VS in between */}
-				<div className="relative max-w-5xl mx-auto flex flex-col md:flex-row items-stretch gap-5 md:gap-0">
-					{/* Generic AI card */}
-					<div className="flex-1 rounded-xl bg-surface-raised border border-border-visible p-8 md:p-10 md:mr-6">
-						<p className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-tertiary mb-7">
-							Generic AI (ChatGPT / Gemini)
-						</p>
-						<ul className="space-y-4">
-							{genericBullets.map((bullet, i) => (
-								<li
-									key={i}
-									className="flex items-start gap-3 text-[15px] text-text-tertiary"
-								>
-									<X
-										size={16}
-										className="text-error mt-0.5 flex-shrink-0"
-									/>
-									{bullet}
-								</li>
-							))}
-						</ul>
-					</div>
-
-					{/* VS badge — centered between cards */}
-					<div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-						<div className="w-12 h-12 rounded-full bg-surface-base border-2 border-border-visible flex items-center justify-center shadow-md">
-							<span className="text-sm font-bold text-text-secondary tracking-wide">
-								VS
+				{/* Right cards */}
+				<div className="relative flex items-center w-full lg:w-auto">
+					{/* Comparison card */}
+					<div className="bg-white rounded-xl shadow-[var(--shadow-card)] w-[340px] md:w-[377px] flex-shrink-0 z-10 pb-5">
+						<div className="bg-accent rounded-t-[5px] py-2.5 text-center">
+							<span className="text-white font-semibold text-lg">
+								Comparison
 							</span>
+						</div>
+						<div className="px-5 pt-5 flex flex-col gap-5">
+							{/* Before */}
+							<div className="flex flex-col gap-3">
+								<div className="flex items-center gap-2.5">
+									<span className="text-text-tertiary text-sm">
+										Before
+									</span>
+									<span className="bg-error-muted text-error text-xs px-1 py-0.5 rounded-[5px]">
+										Generic
+									</span>
+								</div>
+								{beforeItems.map((item, i) => (
+									<div
+										key={i}
+										className="flex items-start gap-1"
+									>
+										<CircleAlert className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
+										<span className="text-sm text-[#464646] line-through">
+											{item}
+										</span>
+									</div>
+								))}
+							</div>
+
+							<div className="h-px bg-[#d9d9d9]" />
+
+							{/* After */}
+							<div className="flex flex-col gap-3">
+								<div className="flex items-center gap-2.5">
+									<span className="text-text-tertiary text-sm">
+										After
+									</span>
+									<span className="bg-success-muted text-success text-xs px-1 py-0.5 rounded-[5px] inline-flex items-center gap-1">
+										<Sparkles className="w-3 h-3" />
+										Tailored
+									</span>
+								</div>
+								{afterItems.map((item, i) => (
+									<div
+										key={i}
+										className="flex items-start gap-1"
+									>
+										<CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+										<span className="text-sm text-[#464646]">
+											{item}
+										</span>
+									</div>
+								))}
+							</div>
 						</div>
 					</div>
 
-					{/* Mobile VS */}
-					<div className="flex md:hidden items-center justify-center -my-1">
-						<div className="w-10 h-10 rounded-full bg-surface-base border-2 border-border-visible flex items-center justify-center shadow-md">
-							<span className="text-xs font-bold text-text-secondary">
-								VS
+					{/* ATS Fit card (overlapping) */}
+					<div className="hidden md:flex flex-col bg-white rounded-xl shadow-[var(--shadow-card)] w-[442px] -ml-[130px] mt-16 z-20 pb-5">
+						<div className="bg-accent rounded-t-[5px] flex items-center justify-between px-5 py-2.5">
+							<span className="text-white font-semibold text-lg">
+								See your ATS fit
+							</span>
+							<span className="border border-white text-white text-base font-semibold px-2 py-0.5 rounded-full">
+								In Development
 							</span>
 						</div>
-					</div>
+						<div className="px-5 pt-5 flex flex-col gap-5">
+							{/* Score + Skills */}
+							<div className="flex items-center gap-5">
+								{/* ATS Ring */}
+								<div className="relative w-[100px] h-[100px] flex-shrink-0">
+									<svg
+										viewBox="0 0 100 100"
+										className="w-full h-full -rotate-90"
+									>
+										<circle
+											cx="50"
+											cy="50"
+											r="42"
+											fill="none"
+											stroke="#fdf6ef"
+											strokeWidth="8"
+										/>
+										<circle
+											cx="50"
+											cy="50"
+											r="42"
+											fill="none"
+											stroke="#e4662b"
+											strokeWidth="8"
+											strokeDasharray={`${2 * Math.PI * 42 * 0.82} ${2 * Math.PI * 42 * 0.18}`}
+											strokeLinecap="round"
+										/>
+									</svg>
+									<div className="absolute inset-0 flex flex-col items-center justify-center">
+										<span className="font-semibold text-lg text-black">
+											82%
+										</span>
+										<span className="text-text-tertiary text-xs">
+											ATS FIT
+										</span>
+									</div>
+								</div>
 
-					{/* ATSResumie card */}
-					<div className="flex-1 rounded-xl bg-surface-raised border border-accent/20 p-8 md:p-10 md:ml-6">
-						<p className="text-[11px] font-bold uppercase tracking-[0.15em] text-accent mb-7 flex items-center gap-1.5">
-							<Sparkles size={12} className="text-accent" />
-							ATSResumie
+								{/* Skills pills */}
+								<div className="flex flex-col gap-2.5">
+									<div className="flex flex-wrap gap-2.5">
+										{matchedSkills.map((skill) => (
+											<span
+												key={skill}
+												className="bg-[var(--primary-brown-light)] text-[var(--primary-brown)] text-sm px-2 py-0.5 rounded-[5px] inline-flex items-center gap-1"
+											>
+												<Check className="w-4 h-4" />
+												{skill}
+											</span>
+										))}
+									</div>
+									<div className="flex flex-wrap gap-2.5">
+										{missingSkills.map((skill) => (
+											<span
+												key={skill}
+												className="bg-error-muted text-error text-sm px-2 py-0.5 rounded-[5px] inline-flex items-center gap-1"
+											>
+												<CircleAlert className="w-4 h-4" />
+												{skill}
+											</span>
+										))}
+									</div>
+								</div>
+							</div>
+
+							<div className="h-px bg-[#d9d9d9]" />
+
+							{/* Checklist */}
+							<div className="flex flex-col gap-2.5">
+								{checklistItems.map((item) => (
+									<div
+										key={item.label}
+										className="flex items-center justify-between px-2 py-0.5 rounded-[5px]"
+									>
+										<div className="flex items-center gap-1">
+											{item.status === "pass" ? (
+												<CheckCircle2 className="w-4 h-4 text-success" />
+											) : (
+												<CircleAlert className="w-4 h-4 text-error" />
+											)}
+											<span className="text-sm text-[#464646]">
+												{item.label}
+											</span>
+										</div>
+										<span
+											className={`text-sm ${item.status === "pass" ? "text-success" : "text-error"}`}
+										>
+											{item.status === "pass"
+												? "Pass"
+												: "Improve"}
+										</span>
+									</div>
+								))}
+							</div>
+						</div>
+						<p className="text-text-tertiary text-xs text-center px-5 mt-3">
+							Spot gaps before you apply — quick signals, not
+							guaranteed scores.
 						</p>
-						<ul className="space-y-4">
-							{atsrBullets.map((bullet, i) => (
-								<li
-									key={i}
-									className="flex items-start gap-3 text-[15px] text-text-primary"
-								>
-									<Check
-										size={16}
-										className="text-success mt-0.5 flex-shrink-0"
-									/>
-									{bullet}
-								</li>
-							))}
-						</ul>
 					</div>
 				</div>
 			</div>
