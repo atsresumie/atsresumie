@@ -12,6 +12,9 @@
 2. Upload their resume (PDF/DOCX)
 3. Get AI-powered analysis and suggestions
 4. Download an optimized PDF or DOCX (after signup)
+5. Track job applications with a Kanban board
+6. Browse and discover job postings
+7. Check ATS compatibility scores
 
 ---
 
@@ -76,22 +79,27 @@ atsresumie/
 │   │
 │   ├── auth/              # Authentication routes
 │   │   ├── callback/      # OAuth callback handler
+│   │   ├── login/         # Dedicated sign-in page
+│   │   ├── signup/        # Dedicated sign-up page
 │   │   └── verify-email/  # Email verification confirmation
 │   │
 │   ├── dashboard/         # User dashboard (protected)
 │   │   ├── account/       # Account information page
 │   │   ├── admin/         # Admin panel (role-gated)
+│   │   ├── applications/  # Job application tracker (Kanban board)
+│   │   ├── ats-checker/   # ATS score checker (under development)
 │   │   ├── credits/       # Credits & billing page
 │   │   ├── downloads/     # Download center
 │   │   ├── editor/        # PDF Editor
 │   │   │   └── [jobId]/   # Per-job editor page
 │   │   ├── generate/      # Generate new resume
 │   │   ├── generations/   # Past generations list
+│   │   ├── job-search/    # Job search & discovery (under development)
 │   │   ├── profile/       # User profile page
 │   │   ├── resumes/       # Resume versions management
 │   │   ├── saved-jds/     # Saved job descriptions
 │   │   ├── settings/      # User settings
-│   │   ├── layout.tsx     # Dashboard layout (header + sidebar)
+│   │   ├── layout.tsx     # Dashboard layout (sidebar-only, no header)
 │   │   └── page.tsx       # Dashboard home
 │   │
 │   ├── get-started/       # Onboarding wizard (public)
@@ -131,6 +139,7 @@ atsresumie/
 │   │   └── KeywordBars.tsx      # Keyword match bars
 │   │
 │   ├── auth/              # Authentication components
+│   │   └── AuthModal.tsx        # Auth modal (login/signup)
 │   │
 │   ├── content/           # SEO content page components
 │   │   ├── ContentPageLayout.tsx  # Reusable content layout with TOC
@@ -138,6 +147,11 @@ atsresumie/
 │   │   └── contentPages.tsx       # Content definitions for all SEO pages
 │   │
 │   ├── dashboard/         # Dashboard components
+│   │   ├── applications/  # Job application tracker components
+│   │   │   ├── ApplicationBoard.tsx         # Kanban board view
+│   │   │   ├── ApplicationDetailModal.tsx   # Application detail view
+│   │   │   ├── ApplicationModal.tsx         # Add/edit application modal
+│   │   │   └── DeleteApplicationDialog.tsx  # Delete confirmation dialog
 │   │   ├── generate/      # Generate page components
 │   │   │   ├── JdQualityIndicator.tsx
 │   │   │   ├── ModeSelector.tsx
@@ -149,6 +163,7 @@ atsresumie/
 │   │   │   ├── GenerationDetailsDrawer.tsx
 │   │   │   ├── GenerationJobRow.tsx
 │   │   │   └── GenerationsFilters.tsx
+│   │   ├── home/          # Dashboard home components
 │   │   ├── resumes/       # Resume management components
 │   │   ├── saved-jds/     # Saved JDs components
 │   │   ├── CreditsCard.tsx
@@ -183,6 +198,7 @@ atsresumie/
 │   │   └── TopNav.tsx
 │   │
 │   ├── landing/           # Landing page components
+│   │   ├── ATSScore.tsx           # ATS score showcase section
 │   │   ├── BeforeAfter.tsx
 │   │   ├── CTA.tsx
 │   │   ├── FAQ.tsx
@@ -191,9 +207,13 @@ atsresumie/
 │   │   ├── HeaderAuthControls.tsx
 │   │   ├── Hero.tsx
 │   │   ├── HowItWorks.tsx
+│   │   ├── JobDiscovery.tsx       # Job discovery showcase section
+│   │   ├── JobTracker.tsx         # Job tracker showcase section
 │   │   ├── Navbar.tsx
+│   │   ├── PlatformPreview.tsx    # Platform preview section
 │   │   ├── Pricing.tsx
 │   │   ├── Problem.tsx           # Problem statement section
+│   │   ├── TemplateSelector.tsx   # Template selector showcase section
 │   │   └── TrustBar.tsx          # Trust/social-proof bar
 │   │
 │   ├── legal/             # Legal page components
@@ -225,6 +245,7 @@ atsresumie/
 │   ├── useDraftJd.ts      # Autosave for Generate page
 │   ├── useExportModal.ts  # Export modal state (PDF/DOCX)
 │   ├── useGenerations.ts  # Dashboard generations + realtime
+│   ├── useJobApplications.ts # Job application CRUD + realtime
 │   ├── useJobPolling.ts   # Legacy polling (deprecated)
 │   ├── useJobRealtime.ts  # Supabase Realtime subscription
 │   ├── useProfile.ts      # User profile data
@@ -263,6 +284,8 @@ atsresumie/
 │   ├── latex/             # LaTeX utilities
 │   │   └── applyStyleToLatex.ts # Style injection + parsing
 │   ├── utils/             # General helpers
+│   │   ├── hash.ts        # Hashing utility
+│   │   └── sanitize.ts    # Input sanitization
 │   └── utils.ts           # cn() utility
 │
 ├── types/                 # TypeScript type definitions
@@ -291,7 +314,8 @@ atsresumie/
 │   └── migrations/        # SQL migrations
 │       ├── 20260304054626_remote_schema.sql  # Remote schema snapshot
 │       ├── 20260304060000_welcome_email_flag.sql # welcome_email_sent column
-│       └── 20260305000000_admin_tables.sql   # Admin action logs + RLS
+│       ├── 20260305000000_admin_tables.sql   # Admin action logs + RLS
+│       └── 20260315000000_job_applications.sql # Job applications table + RLS
 │
 └── docs/                  # Documentation
     ├── AUTH.md
@@ -360,7 +384,7 @@ Supabase Realtime replaces polling for instant updates:
 3. Backend pushes updates (processing → succeeded/failed, pdf_status changes)
 4. Frontend reacts immediately
 
-**CreditsProvider** (`providers/CreditsProvider.tsx`): Wraps the entire dashboard layout so that all `useCredits()` consumers (header, sidebar, credits page, profile dropdown) share a **single Realtime channel** and always display the same value. Components outside the dashboard (e.g. landing page) fall back to their own independent subscription.
+**CreditsProvider** (`providers/CreditsProvider.tsx`): Wraps the entire dashboard layout so that all `useCredits()` consumers (sidebar, credits page) share a **single Realtime channel** and always display the same value. Components outside the dashboard (e.g. landing page) fall back to their own independent subscription.
 
 ### 5. PDF Compilation
 
@@ -392,7 +416,7 @@ Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
 - **Font Families**: Computer Modern, Latin Modern, Times New Roman, Palatino, Charter, Bookman, Helvetica
 - **Initial Settings**: Parsed from existing LaTeX via `parseStyleFromLatex()`
 - **Save on Download**: Styled LaTeX is saved to DB when user downloads
-- **Layout**: Fixed viewport inside dashboard shell (`calc(100vh - header)`) — only PDF scrolls
+- **Layout**: Fixed viewport inside dashboard shell — only PDF scrolls
 - **LaTeX Injection**: Idempotent marker-based style block injection (`applyStyleToLatex()`)
 - **Export Modal** (`ExportModal.tsx` + `useExportModal.ts`): Unified PDF/DOCX download modal
 - **Components**: `EditorControls`, `ResumeEditorShell`, `ResumeContent`, `ResumePreview`
@@ -498,6 +522,78 @@ Automated welcome email on first signup:
 - **Deduplication**: `welcome_email_sent` boolean column on `user_profiles`
 - **Provider**: Resend (transactional email service)
 
+### 13. Job Application Tracker
+
+Kanban-style job application tracking at `/dashboard/applications`:
+
+- **Stages**: Saved → Applied → Screening → Interview → Offer
+- **Hook**: `useJobApplications.ts` — CRUD operations + Supabase Realtime subscription
+- **Database**: `job_applications` table (migration `20260315000000_job_applications.sql`) with RLS policies
+- **Realtime**: Table has `REPLICA IDENTITY FULL` enabled for real-time updates
+
+**Components** (`components/dashboard/applications/`):
+
+- `ApplicationBoard` — Kanban board view with drag-and-drop columns
+- `ApplicationDetailModal` — Detailed view of a single application
+- `ApplicationModal` — Add/edit application form
+- `DeleteApplicationDialog` — Delete confirmation
+
+**Table Columns** (`job_applications`):
+
+| Column           | Type          | Purpose                           |
+| ---------------- | ------------- | --------------------------------- |
+| `id`             | UUID          | Primary key                       |
+| `user_id`        | UUID          | Foreign key → auth.users          |
+| `company`        | TEXT          | Company name                      |
+| `role`           | TEXT          | Job role/title                    |
+| `location`       | TEXT          | Job location                      |
+| `salary`         | TEXT          | Salary information                |
+| `source_url`     | TEXT          | Job posting URL                   |
+| `stage`          | TEXT          | Kanban stage (check constraint)   |
+| `position`       | INTEGER       | Sort order within stage           |
+| `applied_at`     | TIMESTAMPTZ   | Date applied                      |
+| `interview_date` | TIMESTAMPTZ   | Scheduled interview date          |
+| `notes`          | TEXT          | User notes                        |
+| `created_at`     | TIMESTAMPTZ   | Record creation timestamp         |
+| `updated_at`     | TIMESTAMPTZ   | Auto-updated via trigger          |
+
+### 14. Authentication Pages
+
+Dedicated authentication pages replacing the original modal-only flow:
+
+- **Sign In**: `/auth/login` — dedicated login page
+- **Sign Up**: `/auth/signup` — dedicated signup page
+- **Auth Modal**: `components/auth/AuthModal.tsx` — modal fallback for in-app auth prompts
+- **OAuth Callback**: `/auth/callback` — handles Google OAuth redirects
+- **Email Verification**: `/auth/verify-email` — email confirmation page
+
+### 15. Dashboard Layout
+
+Sidebar-only layout with no top header bar:
+
+- **Layout**: `app/dashboard/layout.tsx` — wraps all dashboard pages with `CreditsProvider` and sidebar
+- **Sidebar**: `components/dashboard/DashboardSidebar.tsx` — brown-themed sidebar with white text
+- **Mobile**: Collapsible sidebar with overlay on mobile, fixed on desktop
+- **Width**: 256px (w-64) fixed sidebar, main content offset via `md:pl-64`
+
+**Sidebar Navigation Links:**
+
+| Label           | Route                       | Icon          |
+| --------------- | --------------------------- | ------------- |
+| Dashboard       | `/dashboard`                | Home          |
+| Browse Jobs     | `/dashboard/job-search`     | Search        |
+| My Applications | `/dashboard/applications`   | KanbanSquare  |
+| My Resumes      | `/dashboard/resumes`        | FileText      |
+| Tailor Resume   | `/dashboard/generate`       | Scissors      |
+| Saved Jobs      | `/dashboard/generations`    | Bookmark      |
+| ATS Checker     | `/dashboard/ats-checker`    | ScanSearch    |
+| Settings        | `/dashboard/settings`       | Settings      |
+
+**Sidebar Footer:**
+- Conditional "Upgrade to Pro" button (hidden when user has credits + purchase history)
+- Admin Panel link (visible only to admin users)
+- User info section with avatar initial, name, and sign-out button
+
 ---
 
 ## Current Design System
@@ -537,6 +633,11 @@ Warm light theme with beige background and brown accents. **All colors are centr
 | `Features`            | Feature highlights                         |
 | `HowItWorks`          | Step-by-step process                       |
 | `BeforeAfter`         | Before/after resume comparison             |
+| `ATSScore`            | ATS score showcase section                 |
+| `JobTracker`          | Job tracker showcase section               |
+| `JobDiscovery`        | Job discovery showcase section             |
+| `PlatformPreview`     | Platform preview section                   |
+| `TemplateSelector`    | Template selector showcase section         |
 | `Pricing`             | Pricing plans                              |
 | `FAQ`                 | Frequently asked questions                 |
 | `CTA`                 | Bottom call-to-action                      |
@@ -560,6 +661,7 @@ Warm light theme with beige background and brown accents. **All colors are centr
 | `onboarding_drafts`      | Draft data before signup                                      |
 | `credit_purchases`       | Stripe purchase records                                       |
 | `admin_action_logs`      | Admin action audit trail                                      |
+| `job_applications`       | Job application tracker (Kanban board)                        |
 
 ### Subscription Columns (user_profiles)
 
@@ -622,6 +724,7 @@ Added by migration `009_pipeline_split.sql`:
 | `20260304054626_remote_schema.sql`          | Full remote schema snapshot           |
 | `20260304060000_welcome_email_flag.sql`     | `welcome_email_sent` column           |
 | `20260305000000_admin_tables.sql`           | Admin action logs table + RLS         |
+| `20260315000000_job_applications.sql`       | Job applications table + RLS + Realtime |
 
 ---
 
@@ -638,6 +741,7 @@ Added by migration `009_pipeline_split.sql`:
 - Credit system with atomic decrements + idempotent deduction
 - **CreditsProvider** for synced Realtime credits across all dashboard components
 - Google/Email auth with gate for export
+- **Dedicated auth pages** (`/auth/login`, `/auth/signup`) replacing modal-only flow
 - Complete dashboard:
     - Home with quick actions
     - Generate with mode/resume selection
@@ -648,6 +752,8 @@ Added by migration `009_pipeline_split.sql`:
     - Credits & Billing (conditional buy button based on purchase history)
     - Profile/Settings/Account
     - PDF Editor with live preview + export modal
+    - **Job Application Tracker** (Kanban board with 5 stages)
+- **Sidebar-only dashboard layout** (no top header bar)
 - **Admin Panel** (role-gated, user management, credits, email, stats)
 - Stripe monthly subscription
 - **Billing Management** (subscription status, portal access, cancellation display)
@@ -662,17 +768,22 @@ Added by migration `009_pipeline_split.sql`:
 - **PWA manifest** (web app manifest with icons)
 - **ATS visualization** components (score ring + keyword bars)
 - **Light theme** with centralized CSS variable design tokens
+- **Landing page showcase sections** (ATSScore, JobTracker, JobDiscovery, PlatformPreview, TemplateSelector)
 
-### 🚧 Planned (alpha/v2.0)
+### 🚧 Under Development
 
-Upcoming features on the `alpha/v2.0` branch (branched from `feat/light-mode`):
+| Feature                              | Route                      | Description                                                                                |
+| ------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------ |
+| **ATS Checker**                      | `/dashboard/ats-checker`   | Score resumes against job descriptions with detailed keyword match analysis                 |
+| **Job Search & Discovery**           | `/dashboard/job-search`    | Browse and discover job postings from external sources                                     |
+
+### 🗺️ Planned (alpha/v2.0)
+
+Upcoming features on the `alpha/v2.0` branch:
 
 | Feature                              | Description                                                                                        |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **Minimal UI Refresh**               | Simplify the landing page, make it cleaner and fully light-mode consistent                         |
 | **AI Interaction Field**             | Additional text field to instruct the AI where specific changes need to be made in the resume       |
-| **Job Tracking & Application Flow**  | Track job applications with statuses (Applied, Interview, Offer, Rejected), deadlines, and notes   |
-| **ATS Score Determination**          | Score resumes against job descriptions with detailed keyword match analysis                         |
 | **Job Post Crawling**                | Crawl and aggregate job postings from external sources                                              |
 | **Recommendation Algorithm**         | Filter and rank crawled jobs by matching against the user's generated resume and ATS score          |
 | **Real-time JD Parsing**             | Parse job descriptions on-the-fly and compute match rankings                                       |
@@ -714,4 +825,4 @@ See `.env.example` for the full list. Key variables:
 
 ---
 
-_Last updated: 2026-03-13_
+_Last updated: 2026-03-18_
