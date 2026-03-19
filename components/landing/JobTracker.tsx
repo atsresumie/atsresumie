@@ -1,193 +1,134 @@
-import {
-	Bookmark,
-	Send,
-	ScanSearch,
-	MessageSquare,
-	Trophy,
-	ArrowRight,
-	Calendar,
-	DollarSign,
-	CheckCircle2,
-} from "lucide-react";
+"use client";
 
-/**
- * JobTracker — Server Component
- *
- * Rich kanban-style product preview. 5 columns: Saved → Applied → Screening → Interview → Offer.
- * Tagged "Coming soon". Mini-dashboard feel adapted to espresso-light theme.
- */
+import { ArrowRight } from "lucide-react";
 
-type JobCard = {
-	initials: string;
-	initialsBg: string;
+interface ApplicationCard {
 	company: string;
 	role: string;
-	meta: string;
+	location: string;
 	date: string;
 	action: string;
-	actionColor: string;
 	salary?: string;
 	badge?: string;
-	badgeIcon?: string;
-};
+	tall?: boolean;
+}
 
-type Column = {
+interface KanbanColumn {
 	title: string;
 	count: number;
-	icon: typeof Bookmark;
-	accentClass: string;
-	headerBg: string;
-	cards: JobCard[];
-};
+	cards: ApplicationCard[];
+}
 
-const columns: Column[] = [
+const columns: KanbanColumn[] = [
 	{
 		title: "Saved",
-		count: 4,
-		icon: Bookmark,
-		accentClass: "text-text-secondary",
-		headerBg: "bg-surface-inset/60",
+		count: 5,
 		cards: [
 			{
-				initials: "Nt",
-				initialsBg: "bg-accent-muted",
 				company: "Notion",
 				role: "UX Researcher",
-				meta: "Remote",
-				date: "Saved Mar 8",
-				action: "Apply →",
-				actionColor: "text-accent",
-			},
-			{
-				initials: "Cl",
-				initialsBg: "bg-info-muted",
-				company: "Cloudflare",
-				role: "ML Engineer",
-				meta: "Remote",
-				date: "Saved Mar 10",
-				action: "Apply →",
-				actionColor: "text-accent",
-			},
-			{
-				initials: "Pl",
-				initialsBg: "bg-success-muted",
-				company: "PlanetScale",
-				role: "Dev Rel Engineer",
-				meta: "Remote",
-				date: "Saved Mar 11",
-				action: "Apply →",
-				actionColor: "text-accent",
-			},
-		],
-	},
-	{
-		title: "Applied",
-		count: 3,
-		icon: Send,
-		accentClass: "text-info",
-		headerBg: "bg-info-muted/30",
-		cards: [
-			{
-				initials: "Vr",
-				initialsBg: "bg-accent-muted",
-				company: "Vercel",
-				role: "Product Designer",
-				meta: "Hybrid",
-				date: "Mar 7",
+				location: "Remote",
+				date: "Saved on Mar 12",
 				action: "View",
-				actionColor: "text-text-secondary",
 			},
 			{
-				initials: "Sh",
-				initialsBg: "bg-success-muted",
-				company: "Shopify",
-				role: "Growth Manager",
-				meta: "Toronto",
-				date: "Mar 5",
+				company: "Notion",
+				role: "UX Researcher",
+				location: "Remote",
+				date: "Saved on Mar 12",
 				action: "View",
-				actionColor: "text-text-secondary",
-			},
-		],
-	},
-	{
-		title: "Screening",
-		count: 3,
-		icon: ScanSearch,
-		accentClass: "text-text-secondary",
-		headerBg: "bg-surface-inset/40",
-		cards: [
-			{
-				initials: "Lr",
-				initialsBg: "bg-info-muted",
-				company: "Linear",
-				role: "Backend Engineer",
-				meta: "Remote",
-				date: "Mar 9",
-				action: "View",
-				actionColor: "text-text-secondary",
 			},
 			{
-				initials: "Fg",
-				initialsBg: "bg-accent-muted",
 				company: "Figma",
 				role: "UX Researcher",
-				meta: "Remote",
-				date: "Mar 8",
+				location: "Remote",
+				date: "Mar 14",
 				action: "View",
-				actionColor: "text-text-secondary",
 			},
 		],
 	},
 	{
 		title: "Interview",
 		count: 5,
-		icon: MessageSquare,
-		accentClass: "text-warning",
-		headerBg: "bg-warning-muted/30",
 		cards: [
 			{
-				initials: "St",
-				initialsBg: "bg-warning-muted",
-				company: "Stripe",
-				role: "Sr. Frontend Eng.",
-				meta: "Hybrid",
+				company: "Notion",
+				role: "UX Researcher",
+				location: "Remote",
 				date: "Mar 12",
-				badge: "Tomorrow 10am",
-				badgeIcon: "calendar",
-				action: "Prep →",
-				actionColor: "text-warning",
+				action: "Prep",
+				badge: "Tomorrow",
+				tall: true,
 			},
 			{
-				initials: "Fg",
-				initialsBg: "bg-accent-muted",
 				company: "Figma",
 				role: "UX Researcher",
-				meta: "Remote",
-				date: "Mar 14 · Rd. 2",
-				action: "Prep →",
-				actionColor: "text-warning",
+				location: "Remote",
+				date: "Mar 14",
+				action: "View",
+			},
+			{
+				company: "Figma",
+				role: "UX Researcher",
+				location: "Remote",
+				date: "Mar 14",
+				action: "View",
 			},
 		],
 	},
 	{
-		title: "Offer 🎉",
-		count: 2,
-		icon: Trophy,
-		accentClass: "text-success",
-		headerBg: "bg-success-muted/30",
+		title: "Applied",
+		count: 5,
 		cards: [
 			{
-				initials: "Sh",
-				initialsBg: "bg-success-muted",
+				company: "Notion",
+				role: "Backend Engineer",
+				location: "Remote",
+				date: "Mar 12",
+				action: "View",
+			},
+			{
+				company: "Figma",
+				role: "UX Researcher",
+				location: "Remote",
+				date: "Mar 14",
+				action: "View",
+			},
+			{
+				company: "Figma",
+				role: "UX Researcher",
+				location: "Remote",
+				date: "Mar 14",
+				action: "View",
+			},
+		],
+	},
+	{
+		title: "Offer",
+		count: 5,
+		cards: [
+			{
 				company: "Shopify",
 				role: "Full Stack Developer",
-				meta: "Remote",
-				date: "Mar 3",
-				salary: "$180K / yr",
-				badge: "Offer received ✓",
-				badgeIcon: "check",
+				location: "Remote",
+				date: "Offer received",
 				action: "Decide",
-				actionColor: "text-success",
+				salary: "$180k / yr",
+				tall: true,
+			},
+			{
+				company: "Figma",
+				role: "UX Researcher",
+				location: "Remote",
+				date: "Mar 14",
+				action: "View",
+			},
+			{
+				company: "Figma",
+				role: "UX Researcher",
+				location: "Remote",
+				date: "Mar 14",
+				action: "View",
 			},
 		],
 	},
@@ -195,136 +136,106 @@ const columns: Column[] = [
 
 export const JobTracker = () => {
 	return (
-		<section className="py-20 md:py-28 bg-surface-inset/30">
-			<div className="container mx-auto px-4">
-				{/* Section header */}
-				<div className="text-center mb-4">
-					<div className="flex items-center justify-center gap-3 mb-3">
-						<h2 className="font-display text-3xl md:text-4xl font-bold">
+		<section className="py-[60px] px-4 md:px-[120px]">
+			<div className="max-w-[1200px] mx-auto flex flex-col gap-10">
+				{/* Header */}
+				<div className="flex flex-col items-center gap-5">
+					<div className="flex items-center gap-3 flex-wrap justify-center">
+						<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary">
 							Track every application
 						</h2>
-						<span className="inline-flex items-center px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-accent-muted text-accent border border-accent/15">
-							Coming soon
+						<span className="border border-accent text-accent text-xs font-semibold px-2 py-0.5 rounded-full bg-accent-muted">
+							Coming Soon
 						</span>
 					</div>
-					<p className="text-sm text-text-secondary max-w-sm mx-auto">
+					<p className="text-text-secondary text-base text-center">
 						Manage your entire job search in one place.
 					</p>
+					<div className="flex items-center gap-0 text-base text-text-secondary">
+						<span className="px-4">24 total</span>
+						<span className="w-px h-5 bg-border-visible" />
+						<span className="px-4">5 active interviews</span>
+						<span className="w-px h-5 bg-border-visible" />
+						<span className="px-4">2 offers pending</span>
+					</div>
 				</div>
 
-				{/* Stats bar */}
-				<div className="flex items-center justify-center gap-4 text-[11px] text-text-tertiary mb-10">
-					<span>24 total</span>
-					<span className="w-px h-3 bg-border-visible" />
-					<span>5 active interviews</span>
-					<span className="w-px h-3 bg-border-visible" />
-					<span>2 offers pending</span>
-				</div>
+				{/* Kanban Board */}
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+					{columns.map((col) => (
+						<div
+							key={col.title}
+							className="border border-border-visible rounded-lg bg-surface-inset overflow-hidden flex flex-col"
+						>
+							<div className="p-3 flex flex-col gap-3">
+								{/* Column header */}
+								<div className="flex items-center justify-between">
+									<span className="text-text-primary font-normal text-base">
+										{col.title}
+									</span>
+									<span className="w-[17px] h-[17px] rounded-full bg-border-visible text-xs flex items-center justify-center text-text-secondary">
+										{col.count}
+									</span>
+								</div>
+								<div className="h-px bg-[#d9d9d9]" />
 
-				{/* Kanban board preview */}
-				<div className="max-w-6xl mx-auto overflow-x-auto pb-4 -mx-4 px-4">
-					<div className="flex gap-3 min-w-[900px]">
-						{columns.map((col) => {
-							const Icon = col.icon;
-							return (
-								<div
-									key={col.title}
-									className="flex-1 min-w-[170px] rounded-xl bg-surface-raised border border-border-visible"
-								>
-									{/* Column header */}
-									<div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-t-xl ${col.headerBg}`}>
-										<Icon
-											size={13}
-											className={col.accentClass}
-										/>
-										<span className="text-xs font-semibold text-text-primary uppercase tracking-wide">
-											{col.title}
-										</span>
-										<span className="ml-auto text-[10px] text-text-tertiary font-semibold bg-surface-base/60 px-1.5 py-0.5 rounded">
-											{col.count}
-										</span>
-									</div>
-
-									{/* Cards */}
-									<div className="p-2 space-y-2">
-										{col.cards.map((card) => (
-											<div
-												key={`${card.company}-${card.role}`}
-												className="rounded-lg bg-surface-base border border-border-subtle/60 p-3 hover:border-accent/20 transition-colors"
-											>
-												{/* Initials + company */}
-												<div className="flex items-center gap-2 mb-1.5">
-													<span
-														className={`w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-text-secondary ${card.initialsBg}`}
-													>
-														{card.initials}
-													</span>
-													<div className="min-w-0 flex-1">
-														<p className="text-xs font-semibold text-text-primary truncate">
-															{card.role}
-														</p>
-														<p className="text-[10px] text-text-tertiary truncate">
-															{card.company} · {card.meta}
-														</p>
-													</div>
+								{/* Cards */}
+								<div className="flex flex-col gap-3">
+									{col.cards.map((card, j) => (
+										<div
+											key={j}
+											className="bg-white rounded-lg border border-border-subtle p-3 flex flex-col gap-2"
+										>
+											<div className="flex items-start gap-2.5">
+												<div className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-xs font-medium text-text-tertiary flex-shrink-0">
+													{card.company
+														.substring(0, 2)
+														.toUpperCase()}
 												</div>
-
-												{/* Salary */}
-												{card.salary && (
-													<div className="flex items-center gap-1 mb-1.5">
-														<DollarSign
-															size={10}
-															className="text-success"
-														/>
-														<span className="text-xs font-bold text-success">
-															{card.salary}
-														</span>
-													</div>
-												)}
-
-												{/* Badge */}
-												{card.badge && (
-													<div className="flex items-center gap-1 mb-1.5">
-														{card.badgeIcon === "calendar" ? (
-															<Calendar
-																size={9}
-																className="text-warning"
-															/>
-														) : (
-															<CheckCircle2
-																size={9}
-																className="text-success"
-															/>
-														)}
-														<span className="text-[10px] font-medium text-text-secondary">
-															{card.badge}
-														</span>
-													</div>
-												)}
-
-												{/* Date + action */}
-												<div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border-subtle/40">
-													<span className="text-[10px] text-text-tertiary">
-														{card.date}
+												<div className="flex flex-col min-w-0">
+													<span className="font-semibold text-sm text-text-primary truncate">
+														{card.role}
 													</span>
-													<span
-														className={`text-[10px] font-semibold ${card.actionColor} inline-flex items-center gap-0.5`}
-													>
-														{card.action}
+													<span className="text-xs text-text-tertiary">
+														{card.company} ·{" "}
+														{card.location}
 													</span>
 												</div>
 											</div>
-										))}
-
-										{/* Add job placeholder */}
-										<button className="w-full py-2 text-[10px] text-text-tertiary hover:text-accent transition-colors rounded-lg border border-dashed border-border-subtle/50 hover:border-accent/30">
-											+ Add job
-										</button>
-									</div>
+											{card.badge && (
+												<div className="flex items-center gap-1.5 text-xs text-text-tertiary">
+													<span className="bg-surface-inset px-1.5 py-0.5 rounded text-xs">
+														{card.badge}
+													</span>
+												</div>
+											)}
+											{card.salary && (
+												<span className="font-semibold text-sm text-text-primary">
+													{card.salary}
+												</span>
+											)}
+											<div className="flex items-center justify-between">
+												<span className="text-xs text-text-tertiary">
+													{card.date}
+												</span>
+												<span className="text-xs text-accent font-normal inline-flex items-center gap-0.5 cursor-pointer hover:underline">
+													{card.action}
+													<ArrowRight className="w-3 h-3" />
+												</span>
+											</div>
+										</div>
+									))}
 								</div>
-							);
-						})}
-					</div>
+							</div>
+
+							{/* Add button */}
+							<div className="p-3 mt-auto">
+								<button className="w-full h-10 border border-border-visible rounded-[5px] text-sm text-text-secondary flex items-center justify-center gap-1.5 hover:bg-white transition-colors cursor-pointer">
+									Add <span className="text-lg">+</span>
+								</button>
+							</div>
+						</div>
+					))}
 				</div>
 			</div>
 		</section>

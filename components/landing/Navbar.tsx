@@ -9,20 +9,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { ProfileDropdown } from "@/components/shared/ProfileDropdown";
 
 const navLinks = [
-	{ label: "How it works", href: "#how-it-works" },
+	{ label: "How It Works", href: "#how-it-works" },
+	{ label: "Benefits", href: "#start" },
 	{ label: "Pricing", href: "#pricing" },
 	{ label: "FAQ", href: "#faq" },
 ];
 
 export const Navbar = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { user, isAuthenticated, isLoading, signOut } = useAuth();
+	const { isAuthenticated, isLoading, signOut } = useAuth();
 
 	const { scrollY } = useScroll();
 	const backgroundColor = useTransform(
 		scrollY,
 		[0, 80],
-		["hsla(30, 50%, 97%, 0)", "hsla(30, 50%, 97%, 0.95)"],
+		["rgba(255,255,255,0)", "rgba(255,255,255,0.95)"],
 	);
 	const backdropBlur = useTransform(
 		scrollY,
@@ -56,104 +57,105 @@ export const Navbar = () => {
 		<>
 			<motion.nav
 				style={{ backgroundColor, backdropFilter: backdropBlur }}
-				className="fixed top-0 left-0 right-0 z-50 border-b border-border/30"
+				className="fixed top-0 left-0 right-0 z-50 border-b border-[#bdbdbd]/30"
 			>
-				<div className="container mx-auto px-4">
-					<div className="flex items-center justify-between h-16 md:h-18">
-						{/* Logo */}
-						<Link
-							href="/"
-							className="flex items-center gap-2 font-display text-xl font-semibold text-foreground"
-						>
-							<Image
-								src="/logo3.png"
-								alt="atsresumie logo"
-								width={36}
-								height={36}
-								className="w-9 h-9"
-							/>
-							atsresumie
-						</Link>
+				<div className="flex items-center justify-between h-[72px] px-6 md:px-[120px]">
+					{/* Logo */}
+					<Link
+						href="/"
+						className="flex items-center gap-2.5 cursor-pointer"
+					>
+						<Image
+							src="/landing/ats-logo.png"
+							alt="ATSResumie logo"
+							width={42}
+							height={36}
+							className="w-[42px] h-9 object-contain"
+						/>
+						<span className="font-semibold text-sm text-accent">
+							ATSResumie
+						</span>
+					</Link>
 
-						{/* Desktop Navigation */}
-						<div className="hidden md:flex items-center gap-8">
-							{navLinks.map((link) => (
-								<button
-									key={link.label}
-									onClick={() => scrollToSection(link.href)}
-									className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-								>
-									{link.label}
-								</button>
-							))}
-
-							{/* Auth Controls */}
-							{!isLoading && (
-								<>
-									{isAuthenticated ? (
-										<div className="flex items-center gap-3">
-											<Link
-												href="/dashboard"
-												className="px-4 py-2 text-sm font-medium rounded-lg transition-all inline-flex items-center gap-2 bg-surface-inset text-foreground hover:bg-surface-raised"
-											>
-												<LayoutDashboard size={15} />
-												Dashboard
-											</Link>
-											<ProfileDropdown />
-										</div>
-									) : (
-										<div className="flex items-center gap-4">
-											<Link
-												href="/auth/login"
-												className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-											>
-												Sign in
-											</Link>
-											<Link
-												href="/get-started"
-												className="px-5 py-2 rounded-lg text-sm font-medium bg-cta text-cta-foreground hover:bg-cta-hover transition-colors"
-											>
-												Start free
-											</Link>
-										</div>
-									)}
-								</>
-							)}
-						</div>
-
-						{/* Mobile Menu Button */}
-						<button
-							onClick={() => setIsOpen(!isOpen)}
-							className="md:hidden p-2 text-foreground"
-						>
-							{isOpen ? <X size={24} /> : <Menu size={24} />}
-						</button>
+					{/* Center — Nav Links (desktop) */}
+					<div className="hidden md:flex items-center gap-[19px]">
+						{navLinks.map((link) => (
+							<button
+								key={link.label}
+								onClick={() => scrollToSection(link.href)}
+								className="text-base text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+							>
+								{link.label}
+							</button>
+						))}
 					</div>
+
+					{/* Right — Auth Controls (desktop) */}
+					<div className="hidden md:flex items-center gap-5">
+						{!isLoading && (
+							<>
+								{isAuthenticated ? (
+									<div className="flex items-center gap-3">
+										<Link
+											href="/dashboard"
+											className="px-4 py-3 text-base font-medium rounded-[5px] inline-flex items-center gap-2 bg-surface-inset text-text-primary hover:bg-surface-raised transition-colors cursor-pointer"
+										>
+											<LayoutDashboard size={16} />
+											Dashboard
+										</Link>
+										<ProfileDropdown />
+									</div>
+								) : (
+									<div className="flex items-center gap-5">
+										<Link
+											href="/auth/login"
+											className="px-4 py-3 text-base font-semibold text-text-primary hover:text-accent transition-colors cursor-pointer"
+										>
+											Login
+										</Link>
+										<Link
+											href="/get-started"
+											className="px-4 py-3 h-10 flex items-center justify-center rounded-[5px] text-base bg-[var(--primary-brown)] text-white hover:opacity-90 transition-opacity cursor-pointer"
+										>
+											Get Started Free
+										</Link>
+									</div>
+								)}
+							</>
+						)}
+					</div>
+
+					{/* Mobile Menu Button */}
+					<button
+						onClick={() => setIsOpen(!isOpen)}
+						className="md:hidden p-2 text-text-primary cursor-pointer"
+					>
+						{isOpen ? <X size={24} /> : <Menu size={24} />}
+					</button>
 				</div>
 			</motion.nav>
 
 			{/* Mobile Menu */}
 			{isOpen && (
-				<div className="fixed inset-0 z-40 md:hidden bg-background/98 backdrop-blur-xl">
+				<div className="fixed inset-0 z-40 md:hidden bg-white/98 backdrop-blur-xl">
 					<div className="flex flex-col items-center justify-center h-full gap-8">
 						{navLinks.map((link) => (
 							<button
 								key={link.label}
 								onClick={() => scrollToSection(link.href)}
-								className="text-2xl font-display font-medium text-foreground"
+								className="text-2xl font-display font-medium text-text-primary cursor-pointer"
 							>
 								{link.label}
 							</button>
 						))}
 
-						{/* Mobile Auth */}
 						{!isLoading && (
 							<>
 								{isAuthenticated ? (
 									<Link
 										href="/dashboard"
 										onClick={() => setIsOpen(false)}
-										className="px-6 py-3 bg-surface-inset text-foreground font-medium text-lg rounded-xl inline-flex items-center gap-2"
+										className="px-6 py-3 bg-surface-inset text-text-primary font-medium text-lg rounded-[5px] inline-flex items-center gap-2 cursor-pointer"
 									>
 										<LayoutDashboard size={20} />
 										Dashboard
@@ -163,16 +165,16 @@ export const Navbar = () => {
 										<Link
 											href="/auth/login"
 											onClick={() => setIsOpen(false)}
-											className="text-lg text-muted-foreground"
+											className="text-lg font-semibold text-text-primary cursor-pointer"
 										>
-											Sign in
+											Login
 										</Link>
 										<Link
 											href="/get-started"
 											onClick={() => setIsOpen(false)}
-											className="px-8 py-3 bg-cta text-cta-foreground font-medium text-lg rounded-xl"
+											className="px-8 py-3 bg-[var(--primary-brown)] text-white font-medium text-lg rounded-[5px] cursor-pointer"
 										>
-											Start free
+											Get Started Free
 										</Link>
 									</div>
 								)}

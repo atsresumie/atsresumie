@@ -146,16 +146,16 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
 			>
 				{/* Logo / Branding at top */}
 				<div className="px-4 py-4 flex items-center gap-3">
-					<Link href="/" className="flex items-center gap-3" onClick={handleLinkClick}>
+					<Link href="/" className="flex items-center gap-2.5" onClick={handleLinkClick}>
 						<Image
-							src="/logo3.png"
-							alt="atsresumie logo"
-							width={40}
-							height={40}
-							className="w-10 h-10"
+							src="/landing/ats-logo.png"
+							alt="ATSResumie logo"
+							width={42}
+							height={36}
+							className="h-9 w-[42px] object-contain"
 						/>
-						<span className="text-base font-bold text-white tracking-tight">
-							atsresumie
+						<span className="text-sm font-semibold text-white">
+							ATSResumie
 						</span>
 					</Link>
 				</div>

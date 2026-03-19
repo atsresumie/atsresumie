@@ -1,196 +1,192 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Zap, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { useAuthModal } from "@/contexts/AuthModalContext";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useAuthIntent } from "@/hooks/useAuthIntent";
+import { useAuthModal } from "@/contexts/AuthModalContext";
+import { toast } from "sonner";
 
-/**
- * Pricing — Client Component (checkout logic)
- *
- * Clean cards, minimal copy. Stripe checkout logic preserved.
- */
-
-const plans = [
-	{
-		id: "free",
-		name: "Free",
-		price: "$0",
-		period: "",
-		features: [
-			"3 credits on signup",
-			"PDF download included",
-			"Export is always free",
-		],
-		cta: "Start free",
-		popular: false,
-	},
-	{
-		id: "pro_75",
-		name: "Pro",
-		price: "$10",
-		period: "/mo",
-		features: [
-			"50 credits per month",
-			"Unlimited PDF exports",
-			"Cancel anytime",
-		],
-		cta: "Subscribe",
-		popular: true,
-	},
-];
+const PACK_ID = "pro_75";
 
 export const Pricing = () => {
+	const { isAuthenticated, isLoading: authLoading } = useAuth();
 	const { openAuthModal } = useAuthModal();
-	const { isAuthenticated } = useAuth();
-	const { saveIntent } = useAuthIntent();
-	const [isLoading, setIsLoading] = useState(false);
+	const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-	const scrollToStart = () => {
-		const element = document.querySelector("#start");
-		element?.scrollIntoView({ behavior: "smooth" });
-	};
-
-	const handleBuyPro = async () => {
-		if (isLoading) return;
+	const handleSubscribe = async () => {
+		if (isCheckoutLoading) return;
 
 		if (!isAuthenticated) {
-			saveIntent({ type: "buy_credits", payload: { packId: "pro_75" } });
-			toast.info("Please sign in to purchase credits");
-			openAuthModal("signin");
+			if (typeof window !== "undefined") {
+				const now = Date.now();
+				localStorage.setItem(
+					"auth_intent",
+					JSON.stringify({
+						id: crypto.randomUUID(),
+						type: "buy_credits",
+						payload: { packId: PACK_ID },
+						createdAt: now,
+						expiresAt: now + 15 * 60 * 1000,
+						version: 1,
+					}),
+				);
+			}
+			openAuthModal("signup");
 			return;
 		}
 
-		setIsLoading(true);
+		setIsCheckoutLoading(true);
 		try {
 			const res = await fetch("/api/stripe/checkout", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ packId: "pro_75" }),
+				body: JSON.stringify({ packId: PACK_ID }),
 			});
 
 			const data = await res.json();
 
-			if (!res.ok) {
-				if (res.status === 401) {
-					saveIntent({
-						type: "buy_credits",
-						payload: { packId: "pro_75" },
-					});
-					toast.info("Session expired. Please sign in again.");
-					openAuthModal("signin");
-					setIsLoading(false);
-					return;
-				}
-				throw new Error(data.error || "Failed to start checkout");
-			}
-
-			if (!data.url) {
-				throw new Error("No checkout URL returned");
+			if (!res.ok || !data.url) {
+				throw new Error(data.error || "Failed to create checkout session");
 			}
 
 			window.location.href = data.url;
 		} catch (error) {
 			console.error("Checkout error:", error);
 			toast.error(
-				error instanceof Error
-					? error.message
-					: "Failed to start checkout",
+				error instanceof Error ? error.message : "Failed to start checkout",
 			);
-			setIsLoading(false);
-		}
-	};
-
-	const handleCTA = (planId: string) => {
-		if (planId === "pro_75") {
-			handleBuyPro();
-		} else {
-			scrollToStart();
+			setIsCheckoutLoading(false);
 		}
 	};
 
 	return (
-		<section id="pricing" className="py-20 md:py-28">
-			<div className="container mx-auto px-4">
-				<h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-14">
+		<section id="pricing" className="bg-surface-inset py-[60px] px-4 md:px-[116px]">
+			<div className="max-w-[1208px] mx-auto flex flex-col items-center gap-10">
+				<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary text-center">
 					Simple pricing
 				</h2>
 
-				<div className="grid md:grid-cols-2 gap-5 max-w-2xl mx-auto">
-					{plans.map((plan) => (
-						<div
-							key={plan.name}
-							className={`relative rounded-xl border p-7 ${
-								plan.popular
-									? "border-accent bg-surface-raised"
-									: "border-border-visible bg-surface-raised"
-							}`}
-						>
-							{/* Badge */}
-							{plan.popular && (
-								<div className="absolute -top-3 left-1/2 -translate-x-1/2">
-									<span className="inline-flex items-center gap-1 px-3 py-1 bg-accent text-white text-xs font-semibold rounded-full">
-										<Zap size={10} />
-										Best value
-									</span>
-								</div>
-							)}
-
-							<h3 className="font-display text-xl font-semibold mb-1">
-								{plan.name}
-							</h3>
-
-							<div className="mb-6">
-								<span className="font-display text-4xl font-bold">
-									{plan.price}
+				<div className="flex flex-col md:flex-row gap-10 items-start justify-center">
+					{/* Free Plan */}
+					<div className="bg-white border border-border-visible rounded-[5px] p-5 w-full md:w-[268px] flex flex-col gap-[100px]">
+						<div className="flex flex-col gap-5">
+							<span className="text-base text-black">Free</span>
+							<div className="flex items-end gap-1">
+								<span className="text-[32px] font-normal text-black">
+									$0
 								</span>
-								<span className="text-text-secondary text-sm">
-									{plan.period}
+								<span className="text-base text-text-secondary">
+									/ month
 								</span>
 							</div>
-
-							<ul className="space-y-3 mb-7">
-								{plan.features.map((feature) => (
-									<li
-										key={feature}
-										className="flex items-center gap-2.5 text-sm"
+							<div className="h-px bg-[#d9d9d9]" />
+							<div className="flex flex-col gap-2">
+								<span className="text-base text-black">
+									What&apos;s included?
+								</span>
+								{[
+									"3 credits on signup",
+									"PDF download included",
+									"Export is always free",
+								].map((item) => (
+									<div
+										key={item}
+										className="flex items-center gap-2"
 									>
-										<Check
-											size={14}
-											className="text-accent flex-shrink-0"
-										/>
-										{feature}
-									</li>
+										<CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+										<span className="text-sm text-[#464646]">
+											{item}
+										</span>
+									</div>
 								))}
-							</ul>
+							</div>
+						</div>
+						<Link
+							href="/get-started"
+							className="w-full h-10 bg-[var(--primary-brown)] text-white text-base rounded-[5px] flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer"
+						>
+							Start Free
+						</Link>
+					</div>
 
-							<button
-								onClick={() => handleCTA(plan.id)}
-								disabled={
-									plan.id === "pro_75" && isLoading
-								}
-								className={`w-full py-3 px-4 font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
-									plan.popular
-										? "bg-cta text-cta-foreground hover:bg-cta-hover"
-										: "bg-surface-inset text-text-primary hover:bg-accent-muted"
-								} ${isLoading && plan.id === "pro_75" ? "opacity-70 cursor-not-allowed" : ""}`}
+					{/* Pro Plan */}
+					<div className="relative rounded-[5px] overflow-hidden w-full md:w-[262px]">
+						<div className="bg-gradient-to-b from-[#d54e21] to-[#9d2e09] p-5 flex flex-col gap-[100px]">
+						{/* Decorative ellipses — 4 rotated/skewed shapes per Figma */}
+						{[
+							{ left: 142.79, top: 201 },
+							{ left: 102, top: 229.76 },
+							{ left: 143.06, top: 260.57 },
+							{ left: 102.28, top: 289.33 },
+						].map((pos, i) => (
+							<div
+								key={i}
+								className="absolute flex items-center justify-center w-[179px] h-[167px] pointer-events-none"
+								style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
 							>
-								{plan.id === "pro_75" && isLoading ? (
+								<div
+									className="w-[122px] h-[125px] rounded-full bg-white/10"
+									style={{ transform: "rotate(50.91deg) skewX(-3.9deg)" }}
+								/>
+							</div>
+						))}
+
+							<div className="relative z-10 flex flex-col gap-5">
+								<div className="flex items-center justify-between">
+									<span className="text-base text-white">
+										Pro
+									</span>
+									<span className="bg-white/10 border border-white/50 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+										Best Value
+									</span>
+								</div>
+								<div className="flex items-end gap-1">
+									<span className="text-[32px] font-normal text-white">
+										$10
+									</span>
+									<span className="text-base text-white">
+										/ month
+									</span>
+								</div>
+								<div className="h-px bg-[#d9d9d9] opacity-30" />
+								<div className="flex flex-col gap-2">
+									<span className="text-base text-white">
+										What&apos;s included?
+									</span>
+									{[
+										"50 credits per month",
+										"Unlimited PDF exports",
+										"Cancel anytime",
+									].map((item) => (
+										<div
+											key={item}
+											className="flex items-center gap-2"
+										>
+											<CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+											<span className="text-sm text-white">
+												{item}
+											</span>
+										</div>
+									))}
+								</div>
+							</div>
+							<button
+								onClick={handleSubscribe}
+								disabled={isCheckoutLoading || authLoading}
+								className="relative z-10 w-full h-10 bg-white text-accent text-base rounded-[5px] flex items-center justify-center hover:bg-white/90 transition-colors cursor-pointer disabled:opacity-70"
+							>
+								{isCheckoutLoading ? (
 									<>
-										<Loader2
-											size={16}
-											className="animate-spin"
-										/>
+										<Loader2 className="w-4 h-4 mr-2 animate-spin" />
 										Processing...
 									</>
 								) : (
-									plan.cta
+									"Subscribe"
 								)}
 							</button>
 						</div>
-					))}
+					</div>
 				</div>
 			</div>
 		</section>

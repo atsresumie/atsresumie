@@ -92,18 +92,18 @@ export default function TopNav({ onReset }: TopNavProps) {
 
 	return (
 		<div className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
-			<div className="flex items-center gap-2">
+			<Link href="/" className="flex items-center gap-2.5">
 				<Image
-					src="/logo3.png"
-					alt="atsresumie logo"
-					width={40}
-					height={40}
-					className="h-10 w-10"
+					src="/landing/ats-logo.png"
+					alt="ATSResumie logo"
+					width={42}
+					height={36}
+					className="h-9 w-[42px] object-contain"
 				/>
-				<Link href="/" className="font-semibold tracking-tight">
-					atsresumie
-				</Link>
-			</div>
+				<span className="font-semibold text-sm text-accent">
+					ATSResumie
+				</span>
+			</Link>
 
 			<div className="flex items-center gap-3">
 				<button
@@ -238,7 +238,7 @@ export default function TopNav({ onReset }: TopNavProps) {
 							{/* Upgrade */}
 							<DropdownMenuItem
 								onClick={() => {
-									window.location.href = "/#pricing";
+									window.location.href = "/dashboard/credits";
 								}}
 								className="cursor-pointer"
 							>
