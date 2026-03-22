@@ -7,7 +7,8 @@ import {
 } from "@/lib/latex/applyStyleToLatex";
 import type { StyleConfig } from "@/types/editor";
 
-const LATEX_ONLINE_URL = "https://latexonline.cc/compile";
+const LATEX_ONLINE_URL =
+	process.env.LATEX_ENGINE_URL ?? "https://latexonline.cc/compile";
 const PDF_BUCKET = "generated-pdfs";
 const SIGNED_URL_EXPIRY_SECONDS = 600; // 10 minutes
 const MAX_LATEX_LENGTH = 30000; // 30k chars - latex-online uses query string

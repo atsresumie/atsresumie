@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
-const LATEX_ONLINE_URL = "https://latexonline.cc/compile";
+const LATEX_ONLINE_URL =
+	process.env.LATEX_ENGINE_URL ?? "https://latexonline.cc/compile";
 const PDF_BUCKET = "generated-pdfs";
 const SIGNED_URL_EXPIRY_SECONDS = 600; // 10 minutes
 const MAX_LATEX_LENGTH = 30000; // 30k chars - latex-online uses query string
@@ -15,12 +16,22 @@ const MAX_LATEX_LENGTH = 30000; // 30k chars - latex-online uses query string
 function sanitizeLatex(latex: string): string {
 	// Map: if any of the commands are found, ensure the package is present
 	const packageRules: { pkg: string; commands: RegExp }[] = [
-		{ pkg: "titlesec", commands: /\\titlerule|\\titleformat|\\titlespacing/ },
+		{
+			pkg: "titlesec",
+			commands: /\\titlerule|\\titleformat|\\titlespacing/,
+		},
 		{ pkg: "hyperref", commands: /\\href\{|\\url\{/ },
 		{ pkg: "xcolor", commands: /\\textcolor\{|\\color\{|\\definecolor\{/ },
 		{ pkg: "geometry", commands: /\\geometry\{|\\newgeometry\{/ },
-		{ pkg: "enumitem", commands: /\\begin\{itemize\}\[|\\begin\{enumerate\}\[/ },
-		{ pkg: "fontawesome5", commands: /\\faIcon\{|\\faEnvelope|\\faPhone|\\faLinkedin|\\faGithub/ },
+		{
+			pkg: "enumitem",
+			commands: /\\begin\{itemize\}\[|\\begin\{enumerate\}\[/,
+		},
+		{
+			pkg: "fontawesome5",
+			commands:
+				/\\faIcon\{|\\faEnvelope|\\faPhone|\\faLinkedin|\\faGithub/,
+		},
 		{ pkg: "tabularx", commands: /\\begin\{tabularx\}/ },
 		{ pkg: "multicol", commands: /\\begin\{multicols\}/ },
 	];
@@ -48,6 +59,9 @@ function sanitizeLatex(latex: string): string {
 			}
 		}
 	}
+
+	// Strip packages not available on the server (safety net)
+	result = result.replace(/\\usepackage\{lmodern\}\s*/g, "");
 
 	return result;
 }
@@ -175,15 +189,15 @@ export async function POST(request: NextRequest) {
 		const cleanedLatex = sanitizeLatex(job.latex_text);
 
 		const compileUrl = new URL(LATEX_ONLINE_URL);
-		compileUrl.searchParams.set("text", cleanedLatex);
 		compileUrl.searchParams.set("force", "true");
 		compileUrl.searchParams.set("command", "pdflatex");
 
 		const compileResponse = await fetch(compileUrl.toString(), {
-			method: "GET",
+			method: "POST",
 			headers: {
-				Accept: "application/pdf",
+				"Content-Type": "text/plain",
 			},
+			body: cleanedLatex,
 		});
 
 		if (!compileResponse.ok) {

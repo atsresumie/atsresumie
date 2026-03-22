@@ -181,12 +181,6 @@ export function GenerationJobRow({
 							className="flex-shrink-0 text-emerald-400"
 						/>
 					)}
-					{isPdfPreparing && (
-						<Loader2
-							size={14}
-							className="flex-shrink-0 animate-spin text-blue-400"
-						/>
-					)}
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
 					<StatusBadge status={job.status} />
@@ -230,7 +224,9 @@ export function GenerationJobRow({
 					>
 						<Button variant="ghost" size="sm" className="h-8 px-2">
 							<Pencil size={16} />
-							<span className="ml-1 hidden sm:inline">Open Editor</span>
+							<span className="ml-1 hidden sm:inline">
+								Open Editor
+							</span>
 						</Button>
 					</Link>
 				)}
@@ -246,7 +242,7 @@ export function GenerationJobRow({
 						handleDownload();
 					}}
 				>
-					{isDownloading || isPdfPreparing ? (
+					{isDownloading ? (
 						<Loader2 size={16} className="animate-spin" />
 					) : (
 						<Download size={16} />
