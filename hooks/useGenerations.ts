@@ -230,6 +230,27 @@ export function useGenerations(): UseGenerationsReturn {
 							job.id === updatedJob.id ? updatedJob : job,
 						),
 					);
+
+					// Auto-trigger PDF compilation when job succeeds
+					if (
+						updatedJob.status === "succeeded" &&
+						!updatedJob.pdf_object_path
+					) {
+						console.log(
+							"[useGenerations] Auto-triggering PDF compilation for",
+							updatedJob.id,
+						);
+						fetch("/api/export-pdf", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ jobId: updatedJob.id }),
+						}).catch((err) =>
+							console.warn(
+								"[useGenerations] Auto PDF compile failed:",
+								err,
+							),
+						);
+					}
 				},
 			)
 			.on(

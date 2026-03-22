@@ -736,6 +736,30 @@ Deno.serve(async (req) => {
 				);
 			}
 
+			// 9. Kick PDF worker (fire-and-forget, non-blocking)
+			try {
+				const pdfKickResponse = await fetch(
+					`${supabaseUrl}/functions/v1/worker-generate-pdf`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${supabaseServiceKey}`,
+							apikey: supabaseServiceKey,
+						},
+						body: JSON.stringify({ jobId: job.id }),
+					},
+				);
+				console.log(
+					`[LaTeX Worker] PDF worker kick response: ${pdfKickResponse.status}`,
+				);
+			} catch (pdfKickErr) {
+				console.warn(
+					`[LaTeX Worker] PDF worker kick failed (cron will pick up):`,
+					pdfKickErr,
+				);
+			}
+
 			results.push({ jobId: job.id, status: "succeeded" });
 		}
 
