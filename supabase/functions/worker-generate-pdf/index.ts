@@ -52,14 +52,12 @@ async function compileAndUploadPDF(
 	try {
 		console.log(`[PDF Worker] Compiling PDF for job ${jobId}...`);
 
-		const compileUrl = new URL(LATEX_ONLINE_URL);
-		compileUrl.searchParams.set("text", latexText);
-		compileUrl.searchParams.set("force", "true");
-		compileUrl.searchParams.set("command", "pdflatex");
-
-		const response = await fetch(compileUrl.toString(), {
-			method: "GET",
-			headers: { Accept: "application/pdf" },
+		const response = await fetch(LATEX_ONLINE_URL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "text/plain",
+			},
+			body: latexText,
 		});
 
 		if (!response.ok) {
