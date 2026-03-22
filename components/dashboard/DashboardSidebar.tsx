@@ -40,7 +40,7 @@ const sidebarLinks = [
 	},
 	{ label: "My Resumes", href: "/dashboard/resumes", icon: FileText },
 	{ label: "Tailor Resume", href: "/dashboard/generate", icon: Scissors },
-	{ label: "Saved Jobs", href: "/dashboard/generations", icon: Bookmark },
+	{ label: "Past Generations", href: "/dashboard/generations", icon: Bookmark },
 	{
 		label: "ATS Checker",
 		href: "/dashboard/ats-checker",
