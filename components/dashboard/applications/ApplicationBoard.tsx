@@ -33,9 +33,9 @@ const STAGE_ACTION: Record<
 > = {
 	saved: { actionLabel: "View →" },
 	applied: { actionLabel: "View →" },
-	screening: { actionLabel: "View →" },
 	interview: { actionLabel: "Prep →" },
 	offer: { actionLabel: "Decide →" },
+	rejected: { actionLabel: "View →" },
 };
 
 function getInitials(company: string): string {

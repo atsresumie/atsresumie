@@ -11,24 +11,24 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 export type ApplicationStage =
 	| "saved"
 	| "applied"
-	| "screening"
 	| "interview"
-	| "offer";
+	| "offer"
+	| "rejected";
 
 export const APPLICATION_STAGES: ApplicationStage[] = [
 	"saved",
 	"applied",
-	"screening",
 	"interview",
 	"offer",
+	"rejected",
 ];
 
 export const STAGE_LABELS: Record<ApplicationStage, string> = {
 	saved: "Saved",
 	applied: "Applied",
-	screening: "Screening",
 	interview: "Interview",
 	offer: "Offer",
+	rejected: "Rejected",
 };
 
 /**
