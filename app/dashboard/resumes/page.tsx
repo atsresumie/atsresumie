@@ -11,6 +11,7 @@ import {
 	type ResumeVersion,
 } from "@/hooks/useResumeVersions";
 import { useCredits } from "@/hooks/useCredits";
+import { useAtsScores } from "@/hooks/useAtsScores";
 import { UploadResumeModal } from "@/components/dashboard/resumes/UploadResumeModal";
 import { DeleteResumeDialog } from "@/components/dashboard/resumes/DeleteResumeDialog";
 import { ViewResumeTextModal } from "@/components/dashboard/resumes/ViewResumeTextModal";
@@ -45,6 +46,7 @@ function ResumeVersionsContent() {
 		isMutating,
 	} = useResumeVersions();
 	const { credits } = useCredits();
+	const { getScore } = useAtsScores(resumes);
 
 	// Modal/dialog states
 	const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -109,16 +111,21 @@ function ResumeVersionsContent() {
 				{/* Cards grid */}
 				{resumes.length > 0 ? (
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						{resumes.map((resume) => (
-							<ResumeCard
-								key={resume.id}
-								resume={resume}
-								onPreview={handleViewText}
-								onDelete={handleDeleteClick}
-								onSetDefault={handleSetDefault}
-								isMutating={isMutating}
-							/>
-						))}
+						{resumes.map((resume) => {
+							const atsScore = getScore(resume.id);
+							return (
+								<ResumeCard
+									key={resume.id}
+									resume={resume}
+									onPreview={handleViewText}
+									onDelete={handleDeleteClick}
+									onSetDefault={handleSetDefault}
+									isMutating={isMutating}
+									atsScore={atsScore.score}
+									atsLoading={atsScore.loading}
+								/>
+							);
+						})}
 					</div>
 				) : (
 					<div className="text-center py-12 text-text-tertiary text-sm">
@@ -243,23 +250,59 @@ function ResumeVersionsContent() {
 
 // ─── Resume Card ────────────────────────────────────────────────────────────
 
+/**
+ * Returns color classes for an ATS score value.
+ */
+function getScoreColor(score: number): {
+	text: string;
+	border: string;
+	bg: string;
+} {
+	if (score >= 70) return { text: "text-success", border: "border-success/30", bg: "bg-success-muted" };
+	if (score >= 40) return { text: "text-amber-400", border: "border-amber-400/30", bg: "bg-amber-400/10" };
+	return { text: "text-red-400", border: "border-red-400/30", bg: "bg-red-400/10" };
+}
+
 function ResumeCard({
 	resume,
 	onPreview,
 	onDelete,
 	onSetDefault,
 	isMutating,
+	atsScore,
+	atsLoading,
 }: {
 	resume: ResumeVersion;
 	onPreview: (r: ResumeVersion) => void;
 	onDelete: (r: ResumeVersion) => void;
 	onSetDefault: (r: ResumeVersion) => void;
 	isMutating: boolean;
+	atsScore: number | null;
+	atsLoading: boolean;
 }) {
 	const openPreview = () => onPreview(resume);
+	const scoreColor = atsScore !== null ? getScoreColor(atsScore) : null;
 
 	return (
-		<div className="rounded-xl border border-border-visible bg-surface-raised flex flex-col overflow-hidden">
+		<div className="relative rounded-xl border border-border-visible bg-surface-raised flex flex-col overflow-hidden">
+			{/* ATS Score stamp — top-right corner */}
+			<div className="absolute top-3 right-3 z-10">
+				{atsLoading ? (
+					<div className="w-10 h-10 rounded-full bg-surface-inset border border-border-subtle animate-pulse flex items-center justify-center">
+						<span className="text-[10px] text-text-tertiary">…</span>
+					</div>
+				) : atsScore !== null ? (
+					<div
+						className={`w-10 h-10 rounded-full border-2 ${scoreColor!.border} ${scoreColor!.bg} flex items-center justify-center transition-all`}
+						title={`ATS Score: ${atsScore}%`}
+					>
+						<span className={`text-xs font-bold ${scoreColor!.text}`}>
+							{atsScore}
+						</span>
+					</div>
+				) : null}
+			</div>
+
 			{/* Clickable body — opens read-only preview */}
 			<button
 				type="button"
@@ -271,7 +314,7 @@ function ResumeCard({
 					<div className="w-10 h-10 rounded-lg bg-surface-inset border border-border-subtle flex items-center justify-center shrink-0">
 						<FileText size={18} className="text-text-tertiary" />
 					</div>
-					<div className="min-w-0 flex-1">
+					<div className="min-w-0 flex-1 pr-12">
 						<p className="text-sm font-semibold text-text-primary truncate">
 							{resume.label}
 						</p>
@@ -287,9 +330,6 @@ function ResumeCard({
 							Default
 						</span>
 					)}
-					<span className="text-[10px] font-medium px-2 py-0.5 rounded border border-success/30 text-success bg-success-muted">
-						ATS 96%
-					</span>
 				</div>
 
 				<p className="text-xs text-text-tertiary">

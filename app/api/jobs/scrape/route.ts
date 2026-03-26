@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const APIFY_ACTOR_ID = "apify~website-content-crawler";
+const APIFY_RUN_URL = `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/run-sync-get-dataset-items`;
+const APIFY_ASYNC_URL = `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/runs`;
+const APIFY_POLL_INTERVAL = 3000;
+const APIFY_MAX_WAIT = 60000;
+
 /**
  * POST /api/jobs/scrape
  *
  * Fetches a job posting URL and extracts readable content.
- * Returns: { title, description, company, location, salary, raw }
+ * Falls back to Apify website-content-crawler when direct fetch is blocked.
+ * Returns: { title, description, company, location, salary, source, fetchFailed }
  */
 export async function POST(req: NextRequest) {
 	try {
@@ -80,10 +87,41 @@ export async function POST(req: NextRequest) {
 			mainContent = extractMainContent(html);
 		}
 
-		// Build result — always return something useful
 		const source = parsedUrl.hostname.replace("www.", "");
+
+		// Check if we got a usable description from the direct fetch
+		const directDescription =
+			jsonLd?.description ||
+			meta.ogDescription ||
+			meta.description ||
+			mainContent ||
+			null;
+
+		// ── Apify fallback: if direct fetch failed or returned no useful content ──
+		let apifyText: string | null = null;
+		let apifyTitle: string | null = null;
+
+		if (!directDescription && (fetchFailed || !html)) {
+			const token = process.env.LINKEDIN_TOKEN;
+			if (token) {
+				console.log(`[jobs/scrape] Direct fetch failed for ${source}, trying Apify crawler...`);
+				const crawled = await crawlViaApify(parsedUrl.toString(), token);
+				if (crawled) {
+					apifyText = crawled.text;
+					apifyTitle = crawled.title;
+					fetchFailed = false; // Apify succeeded
+					console.log(`[jobs/scrape] Apify crawler returned ${apifyText?.length || 0} chars for ${source}`);
+				} else {
+					console.warn(`[jobs/scrape] Apify crawler also failed for ${source}`);
+				}
+			} else {
+				console.warn("[jobs/scrape] No LINKEDIN_TOKEN for Apify fallback");
+			}
+		}
+
+		// Build result — prefer direct parse, fall back to Apify text
 		const result = {
-			title: jsonLd?.title || meta.ogTitle || meta.title || null,
+			title: jsonLd?.title || meta.ogTitle || meta.title || apifyTitle || null,
 			company:
 				jsonLd?.hiringOrganization ||
 				meta.ogSiteName ||
@@ -92,10 +130,8 @@ export async function POST(req: NextRequest) {
 			salary: jsonLd?.baseSalary || null,
 			employmentType: jsonLd?.employmentType || null,
 			description:
-				jsonLd?.description ||
-				meta.ogDescription ||
-				meta.description ||
-				mainContent ||
+				directDescription ||
+				apifyText ||
 				(fetchFailed
 					? `This job posting is hosted on ${source}. The site blocked direct access, so we can't display the full description here.\n\nClick "View Posting" below to see the full job details on ${source}.`
 					: null),
@@ -120,6 +156,191 @@ export async function POST(req: NextRequest) {
 			error: error instanceof Error ? error.message : "Unknown error",
 		});
 	}
+}
+
+// ─── Apify Website Content Crawler ───────────────────────────────────────────
+
+interface ApifyCrawlResult {
+	text: string | null;
+	title: string | null;
+}
+
+// Error page patterns that indicate the crawler was blocked
+const BLOCKED_PATTERNS = [
+	"error code: 403",
+	"can't open this page",
+	"access denied",
+	"please verify you are a human",
+	"enable javascript",
+	"captcha",
+	"blocked",
+	"forbidden",
+];
+
+/**
+ * Check if Apify-crawled text is an error/block page, not real content.
+ */
+function isBlockedContent(text: string | null | undefined): boolean {
+	if (!text || text.length < 100) return true;
+	const lower = text.toLowerCase();
+	return BLOCKED_PATTERNS.some((p) => lower.includes(p));
+}
+
+/**
+ * Crawl a single URL via Apify website-content-crawler.
+ * Uses Chrome with residential proxies to bypass bot detection.
+ * Tries sync endpoint first, falls back to async polling.
+ */
+async function crawlViaApify(
+	targetUrl: string,
+	token: string,
+): Promise<ApifyCrawlResult | null> {
+	const input = {
+		startUrls: [{ url: targetUrl }],
+		maxCrawlPages: 1,
+		maxCrawlDepth: 0,
+		crawlerType: "playwright:chrome",
+		proxyConfiguration: {
+			useApifyProxy: true,
+			apifyProxyGroups: ["RESIDENTIAL"],
+		},
+	};
+
+	// Try sync endpoint first (fastest path)
+	const syncResult = await tryApifySync(input, token);
+	if (syncResult && !isBlockedContent(syncResult.text)) return syncResult;
+
+	// If sync returned a blocked page, retry won't help — bail
+	if (syncResult) {
+		console.warn("[jobs/scrape/apify] Crawler returned a blocked/error page");
+		return null;
+	}
+
+	// Fallback: start run, then poll until done
+	const asyncResult = await tryApifyAsync(input, token);
+	if (asyncResult && isBlockedContent(asyncResult.text)) {
+		console.warn("[jobs/scrape/apify] Async crawler returned a blocked/error page");
+		return null;
+	}
+	return asyncResult;
+}
+
+async function tryApifySync(
+	input: object,
+	token: string,
+): Promise<ApifyCrawlResult | null> {
+	try {
+		const response = await fetch(
+			`${APIFY_RUN_URL}?token=${encodeURIComponent(token)}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(input),
+				signal: AbortSignal.timeout(APIFY_MAX_WAIT),
+			},
+		);
+
+		if (!response.ok) {
+			console.warn(`[jobs/scrape/apify] Sync run returned ${response.status}`);
+			return null;
+		}
+
+		const items = await response.json() as Array<{ text?: string; title?: string }>;
+		if (!items?.[0]) return null;
+
+		return {
+			text: items[0].text?.trim() || null,
+			title: items[0].title?.trim() || null,
+		};
+	} catch (err) {
+		console.warn("[jobs/scrape/apify] Sync run error:", err);
+		return null;
+	}
+}
+
+async function tryApifyAsync(
+	input: object,
+	token: string,
+): Promise<ApifyCrawlResult | null> {
+	try {
+		// 1. Start the run
+		const startRes = await fetch(
+			`${APIFY_ASYNC_URL}?token=${encodeURIComponent(token)}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(input),
+				signal: AbortSignal.timeout(15000),
+			},
+		);
+
+		if (!startRes.ok) {
+			console.warn(`[jobs/scrape/apify] Start run returned ${startRes.status}`);
+			return null;
+		}
+
+		const runData = (await startRes.json()) as {
+			data?: { id?: string; defaultDatasetId?: string };
+		};
+		const runId = runData.data?.id;
+		const datasetId = runData.data?.defaultDatasetId;
+
+		if (!runId || !datasetId) {
+			console.warn("[jobs/scrape/apify] No runId/datasetId in response");
+			return null;
+		}
+
+		// 2. Poll until SUCCEEDED or timeout
+		const deadline = Date.now() + APIFY_MAX_WAIT;
+		while (Date.now() < deadline) {
+			await sleep(APIFY_POLL_INTERVAL);
+
+			const statusRes = await fetch(
+				`https://api.apify.com/v2/actor-runs/${runId}?token=${encodeURIComponent(token)}`,
+				{ signal: AbortSignal.timeout(10000) },
+			);
+
+			if (!statusRes.ok) continue;
+
+			const statusData = (await statusRes.json()) as {
+				data?: { status?: string };
+			};
+			const status = statusData.data?.status;
+
+			if (status === "SUCCEEDED") {
+				// 3. Fetch dataset items
+				const itemsRes = await fetch(
+					`https://api.apify.com/v2/datasets/${datasetId}/items?token=${encodeURIComponent(token)}`,
+					{ signal: AbortSignal.timeout(10000) },
+				);
+
+				if (!itemsRes.ok) return null;
+
+				const items = await itemsRes.json() as Array<{ text?: string; title?: string }>;
+				if (!items?.[0]) return null;
+
+				return {
+					text: items[0].text?.trim() || null,
+					title: items[0].title?.trim() || null,
+				};
+			}
+
+			if (status === "FAILED" || status === "ABORTED" || status === "TIMED-OUT") {
+				console.warn(`[jobs/scrape/apify] Run ${status}`);
+				return null;
+			}
+		}
+
+		console.warn("[jobs/scrape/apify] Poll timeout");
+		return null;
+	} catch (err) {
+		console.warn("[jobs/scrape/apify] Async run error:", err);
+		return null;
+	}
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ─── Extractors ──────────────────────────────────────────────────────────────
