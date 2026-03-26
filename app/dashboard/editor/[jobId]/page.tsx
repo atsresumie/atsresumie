@@ -157,11 +157,7 @@ export default function EditorPage() {
 				setStyleConfig(parsed);
 			}
 
-			if (!job.pdf_object_path) {
-				throw new Error("PDF not available for this generation");
-			}
-
-			// Get signed URL via API (uses supabaseAdmin - no RLS issues)
+			// Get signed URL via API (compiles on-demand if PDF not yet generated)
 			const res = await fetch("/api/export-pdf", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
