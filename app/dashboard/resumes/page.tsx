@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { Upload, FileText, Eye, Download, ChevronDown } from "lucide-react";
+import { Upload, FileText, Download, Star } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -27,7 +27,7 @@ function PageSkeleton() {
 				<Skeleton className="h-32 w-full rounded-xl" />
 			</div>
 			<div className="space-y-4">
-				<Skeleton className="h-80 w-full rounded-xl" />
+				<Skeleton className="h-64 w-full rounded-xl" />
 				<Skeleton className="h-20 w-full rounded-xl" />
 			</div>
 		</div>
@@ -38,7 +38,6 @@ function ResumeVersionsContent() {
 	const {
 		resumes,
 		defaultResume,
-		isLoading,
 		error,
 		uploadResume,
 		setDefault,
@@ -93,9 +92,6 @@ function ResumeVersionsContent() {
 		return await uploadResume(file, label);
 	};
 
-	// Find most recent update time
-	const lastUpdated = resumes.length > 0 ? getRelativeTime(resumes[0].updated_at) : null;
-
 	return (
 		<div
 			className="grid grid-cols-1 lg:grid-cols-[1fr_320px] items-start mx-auto"
@@ -120,6 +116,7 @@ function ResumeVersionsContent() {
 								onPreview={handleViewText}
 								onDelete={handleDeleteClick}
 								onSetDefault={handleSetDefault}
+								isMutating={isMutating}
 							/>
 						))}
 					</div>
@@ -251,60 +248,79 @@ function ResumeCard({
 	onPreview,
 	onDelete,
 	onSetDefault,
+	isMutating,
 }: {
 	resume: ResumeVersion;
 	onPreview: (r: ResumeVersion) => void;
 	onDelete: (r: ResumeVersion) => void;
 	onSetDefault: (r: ResumeVersion) => void;
+	isMutating: boolean;
 }) {
+	const openPreview = () => onPreview(resume);
+
 	return (
-		<div className="rounded-xl border border-border-visible bg-surface-raised p-4 flex flex-col">
-			{/* Top row: icon + name */}
-			<div className="flex items-start gap-3 mb-3">
-				<div className="w-10 h-10 rounded-lg bg-surface-inset border border-border-subtle flex items-center justify-center flex-shrink-0">
-					<FileText size={18} className="text-text-tertiary" />
+		<div className="rounded-xl border border-border-visible bg-surface-raised flex flex-col overflow-hidden">
+			{/* Clickable body — opens read-only preview */}
+			<button
+				type="button"
+				onClick={openPreview}
+				className="text-left p-4 flex flex-col flex-1 rounded-t-xl hover:bg-surface-inset/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+				aria-label={`Preview resume: ${resume.label}`}
+			>
+				<div className="flex items-start gap-3 mb-3">
+					<div className="w-10 h-10 rounded-lg bg-surface-inset border border-border-subtle flex items-center justify-center shrink-0">
+						<FileText size={18} className="text-text-tertiary" />
+					</div>
+					<div className="min-w-0 flex-1">
+						<p className="text-sm font-semibold text-text-primary truncate">
+							{resume.label}
+						</p>
+						<p className="text-xs text-text-secondary truncate mt-0.5">
+							Tailored for {resume.file_name}
+						</p>
+					</div>
 				</div>
-				<div className="min-w-0 flex-1">
-					<p className="text-sm font-semibold text-text-primary truncate">
-						{resume.label}
-					</p>
-					<p className="text-xs text-text-secondary truncate mt-0.5">
-						Tailored for {resume.file_name}
-					</p>
-				</div>
-			</div>
 
-			{/* Badges */}
-			<div className="flex items-center gap-2 mb-3">
-				{resume.is_default && (
-					<span className="text-[10px] font-medium px-2 py-0.5 rounded border border-accent/30 text-accent bg-accent-muted">
-						Active
+				<div className="flex items-center gap-2 mb-3">
+					{resume.is_default && (
+						<span className="text-[10px] font-medium px-2 py-0.5 rounded border border-accent/30 text-accent bg-accent-muted">
+							Default
+						</span>
+					)}
+					<span className="text-[10px] font-medium px-2 py-0.5 rounded border border-success/30 text-success bg-success-muted">
+						ATS 96%
 					</span>
+				</div>
+
+				<p className="text-xs text-text-tertiary">
+					Updated {getRelativeTime(resume.updated_at)}
+				</p>
+			</button>
+
+			{/* Actions — do not open preview */}
+			<div
+				className="flex flex-wrap items-center gap-2 px-4 pb-4 pt-1 border-t border-border-visible/60"
+				onClick={(e) => e.stopPropagation()}
+			>
+				{!resume.is_default && (
+					<button
+						type="button"
+						onClick={() => onSetDefault(resume)}
+						disabled={isMutating}
+						className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border-visible text-xs font-medium text-text-primary hover:bg-surface-inset transition-colors disabled:opacity-50"
+					>
+						<Star size={14} className="text-accent" />
+						Set as default
+					</button>
 				)}
-				<span className="text-[10px] font-medium px-2 py-0.5 rounded border border-success/30 text-success bg-success-muted">
-					ATS 96%
-				</span>
-			</div>
-
-			{/* Date */}
-			<p className="text-xs text-text-tertiary mb-3">
-				Updated {getRelativeTime(resume.updated_at)}
-			</p>
-
-			{/* Actions */}
-			<div className="flex items-center gap-2 mt-auto">
 				<button
-					onClick={() => onPreview(resume)}
-					className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border-visible text-xs font-medium text-text-primary hover:bg-surface-inset transition-colors"
-				>
-					Preview
-				</button>
-				<button
+					type="button"
 					className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-accent hover:bg-accent-hover transition-colors"
 				>
 					Download PDF
 				</button>
 				<button
+					type="button"
 					onClick={() => onDelete(resume)}
 					className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-border-visible text-text-tertiary hover:text-red-400 hover:border-red-400/30 transition-colors ml-auto"
 					title="Delete resume"
