@@ -5,10 +5,12 @@ import {
 	applyStyleToLatex,
 	validateStyledLatex,
 } from "@/lib/latex/applyStyleToLatex";
+import { sanitizeLatex } from "@/lib/latex/sanitizeLatex";
 import type { StyleConfig } from "@/types/editor";
 
 const LATEX_ONLINE_URL =
-	process.env.LATEX_ENGINE_URL ?? "https://latexonline.cc/compile";
+	process.env.LATEX_ENGINE_URL ??
+	"https://latex-pdf-conversion-service.atsresumie.com/compile/pdf";
 const PDF_BUCKET = "generated-pdfs";
 const SIGNED_URL_EXPIRY_SECONDS = 600; // 10 minutes
 const MAX_LATEX_LENGTH = 30000; // 30k chars - latex-online uses query string
@@ -136,8 +138,12 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 7. Compile LaTeX to PDF (with auto-retry on failure)
-		const compileResult = await compileLatexWithRetry(styledLatex, jobId);
+		// 7. Sanitize LaTeX: auto-inject missing packages
+		const keepLmodern = (styleConfig as StyleConfig).fontFamily === "lmodern";
+		const cleanedLatex = sanitizeLatex(styledLatex, { keepLmodern });
+
+		// 8. Compile LaTeX to PDF (with auto-retry on failure)
+		const compileResult = await compileLatexWithRetry(cleanedLatex, jobId);
 
 		if (!compileResult.ok) {
 			return NextResponse.json(
@@ -394,13 +400,16 @@ async function compileSingleAttempt(
 	latex: string,
 ): Promise<{ ok: boolean; pdfBytes?: Uint8Array }> {
 	const compileUrl = new URL(LATEX_ONLINE_URL);
-	compileUrl.searchParams.set("text", latex);
 	compileUrl.searchParams.set("force", "true");
 	compileUrl.searchParams.set("command", "pdflatex");
 
 	const response = await fetch(compileUrl.toString(), {
-		method: "GET",
-		headers: { Accept: "application/pdf" },
+		method: "POST",
+		headers: {
+			"Content-Type": "text/plain",
+			Accept: "application/pdf",
+		},
+		body: latex,
 	});
 
 	if (!response.ok) {
