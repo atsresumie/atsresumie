@@ -3,7 +3,8 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Loader2, Check, AlertCircle, Upload } from "lucide-react";
+import { Sparkles, Loader2, Check, AlertCircle, Upload, Linkedin } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +30,7 @@ function GeneratePageContent() {
 		resumes,
 		defaultResume,
 		isLoading: resumesLoading,
+		refetch: refetchResumes,
 	} = useResumeVersions();
 	const { jobs } = useGenerations();
 	const { credits } = useCredits();
@@ -45,6 +47,12 @@ function GeneratePageContent() {
 	const [error, setError] = useState<string | null>(null);
 	const [isNoCredits, setIsNoCredits] = useState(false);
 	const [additionalReqs, setAdditionalReqs] = useState("");
+	const [linkedinUrl, setLinkedinUrl] = useState("");
+	const [isImportingLinkedin, setIsImportingLinkedin] = useState(false);
+	const [linkedinError, setLinkedinError] = useState<string | null>(null);
+	const [linkedinSuccess, setLinkedinSuccess] = useState<string | null>(null);
+	const [showLinkedinPaste, setShowLinkedinPaste] = useState(false);
+	const [linkedinPastedText, setLinkedinPastedText] = useState("");
 	const hasLoadedFromJobRef = useRef(false);
 
 	// Auto-select default resume when loaded
@@ -67,6 +75,62 @@ function GeneratePageContent() {
 			setSelectedObjectPath(resume?.object_path || null);
 		} else {
 			setSelectedObjectPath(objectPath);
+		}
+	};
+
+	const handleLinkedInImport = async (viaPaste = false) => {
+		const trimmedUrl = linkedinUrl.trim();
+		const trimmedPaste = linkedinPastedText.trim();
+
+		if (viaPaste && trimmedPaste.length < 50) {
+			setLinkedinError("Please paste more profile content (at least a few lines).");
+			return;
+		}
+		if (!viaPaste && !trimmedUrl) return;
+
+		setIsImportingLinkedin(true);
+		setLinkedinError(null);
+		setLinkedinSuccess(null);
+
+		try {
+			const payload: Record<string, string> = {};
+			if (trimmedUrl) payload.url = trimmedUrl;
+			if (viaPaste && trimmedPaste) payload.pastedText = trimmedPaste;
+
+			const res = await fetch("/api/linkedin/profile", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+			});
+
+			const data = await res.json();
+
+			if (!res.ok) {
+				if (data.error === "SCRAPE_BLOCKED") {
+					setShowLinkedinPaste(true);
+					setLinkedinError(data.message);
+				} else {
+					setLinkedinError(data.error || data.message || "Failed to import LinkedIn profile");
+				}
+				return;
+			}
+
+			if (data.resume) {
+				await refetchResumes();
+				setSelectedResumeId(data.resume.id);
+				setSelectedObjectPath(data.resume.object_path);
+				setLinkedinSuccess(
+					`Imported profile${data.profileName ? ` for ${data.profileName}` : ""} as base resume`,
+				);
+				setLinkedinUrl("");
+				setLinkedinPastedText("");
+				setShowLinkedinPaste(false);
+			}
+		} catch (err) {
+			console.error("LinkedIn import error:", err);
+			setLinkedinError("Failed to import profile. Please try again.");
+		} finally {
+			setIsImportingLinkedin(false);
 		}
 	};
 
@@ -204,15 +268,121 @@ function GeneratePageContent() {
 						onResumeChange={handleResumeChange}
 					/>
 
-					{/* Drag & drop upload area */}
-					<div className="mt-3 rounded-lg border-2 border-dashed border-border-visible py-4 px-4 text-center">
-						<Upload className="mx-auto h-5 w-5 text-text-tertiary mb-1.5" />
-						<p className="text-sm text-text-secondary font-medium">
-							Drag & drop or click to upload
-						</p>
-						<p className="text-xs text-text-tertiary mt-0.5">
-							PDF or DOCX, max 5MB
-						</p>
+					{/* LinkedIn Profile Import */}
+					<div className="mt-4">
+						<div className="flex items-center gap-2 mb-2">
+							<Linkedin size={16} className="text-[#0A66C2]" />
+							<p className="text-sm font-medium text-text-secondary">
+								Or import from LinkedIn
+							</p>
+						</div>
+						<div className="flex gap-2">
+							<Input
+								type="text"
+								placeholder="Username or https://linkedin.com/in/username"
+								value={linkedinUrl}
+								onChange={(e) => {
+									setLinkedinUrl(e.target.value);
+									setLinkedinError(null);
+									setLinkedinSuccess(null);
+								}}
+								disabled={isImportingLinkedin}
+								className="flex-1 text-sm"
+							/>
+							<Button
+								variant="outline"
+								size="default"
+								onClick={() => handleLinkedInImport(false)}
+								disabled={
+									!linkedinUrl.trim() || isImportingLinkedin
+								}
+								className="shrink-0 gap-2 border-[#0A66C2]/30 hover:bg-[#0A66C2]/5 hover:border-[#0A66C2]/50"
+							>
+								{isImportingLinkedin && !showLinkedinPaste ? (
+									<>
+										<Loader2
+											size={14}
+											className="animate-spin"
+										/>
+										Importing…
+									</>
+								) : (
+									"Import"
+								)}
+							</Button>
+						</div>
+
+						{/* Paste fallback — shown when scraping is blocked */}
+						{showLinkedinPaste && (
+							<div className="mt-3 rounded-lg border border-border-visible bg-surface-raised p-3 space-y-2">
+								<p className="text-xs text-text-secondary">
+									LinkedIn blocked automatic import. Paste your profile content below instead:
+								</p>
+								<ol className="text-xs text-text-tertiary list-decimal pl-4 space-y-0.5">
+									<li>Open your LinkedIn profile in a browser</li>
+									<li>Select all text on the page (Ctrl+A / Cmd+A)</li>
+									<li>Copy (Ctrl+C / Cmd+C) and paste below</li>
+								</ol>
+								<Textarea
+									placeholder="Paste your LinkedIn profile content here…"
+									value={linkedinPastedText}
+									onChange={(e) => {
+										setLinkedinPastedText(e.target.value);
+										setLinkedinError(null);
+									}}
+									rows={5}
+									className="resize-none text-sm border-border-visible bg-surface-raised"
+								/>
+								<div className="flex gap-2">
+									<Button
+										variant="default"
+										size="sm"
+										onClick={() => handleLinkedInImport(true)}
+										disabled={
+											linkedinPastedText.trim().length < 50 ||
+											isImportingLinkedin
+										}
+										className="gap-2"
+									>
+										{isImportingLinkedin ? (
+											<>
+												<Loader2
+													size={14}
+													className="animate-spin"
+												/>
+												Saving…
+											</>
+										) : (
+											"Use as Base Resume"
+										)}
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => {
+											setShowLinkedinPaste(false);
+											setLinkedinPastedText("");
+											setLinkedinError(null);
+										}}
+									>
+										Cancel
+									</Button>
+								</div>
+							</div>
+						)}
+
+						{linkedinError && !showLinkedinPaste && (
+							<p className="mt-1.5 text-xs text-error flex items-center gap-1">
+								<AlertCircle size={12} />
+								{linkedinError}
+							</p>
+						)}
+						{linkedinSuccess && (
+							<p className="mt-1.5 text-xs text-success flex items-center gap-1">
+								<Check size={12} />
+								{linkedinSuccess}
+							</p>
+						)}
 					</div>
 				</div>
 
