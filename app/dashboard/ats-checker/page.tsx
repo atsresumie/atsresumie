@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useCallback } from "react";
+import { useState, Suspense, useCallback, useMemo } from "react";
 import {
 	Search,
 	FileText,
@@ -23,6 +23,8 @@ import {
 	useResumeVersions,
 	type ResumeVersion,
 } from "@/hooks/useResumeVersions";
+import { useGenerations, deriveJobLabel } from "@/hooks/useGenerations";
+import { useAuth } from "@/hooks/useAuth";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
@@ -379,10 +381,23 @@ function CollapsibleSection({
 
 type ResumeSource = "saved" | "paste" | "upload";
 
+/** Unified resume option for the dropdown (uploaded or generated) */
+interface ResumeOption {
+	id: string;
+	label: string;
+	source: "uploaded" | "generated";
+	objectPath: string;
+	resumeText: string | null;
+	/** Only set for generated resumes */
+	generationJobId?: string;
+	/** Only set for uploaded resumes */
+	resumeVersionId?: string;
+}
+
 function ResumeInput({
 	source,
 	setSource,
-	resumes,
+	resumeOptions,
 	selectedResumeId,
 	setSelectedResumeId,
 	pastedText,
@@ -392,7 +407,7 @@ function ResumeInput({
 }: {
 	source: ResumeSource;
 	setSource: (s: ResumeSource) => void;
-	resumes: ResumeVersion[];
+	resumeOptions: ResumeOption[];
 	selectedResumeId: string | null;
 	setSelectedResumeId: (id: string | null) => void;
 	pastedText: string;
@@ -405,6 +420,9 @@ function ResumeInput({
 		{ value: "paste", label: "Paste Text", icon: <FileText size={14} /> },
 		{ value: "upload", label: "Upload PDF", icon: <Upload size={14} /> },
 	];
+
+	const uploadedResumes = resumeOptions.filter((r) => r.source === "uploaded");
+	const generatedResumes = resumeOptions.filter((r) => r.source === "generated");
 
 	return (
 		<div className="space-y-3">
@@ -436,12 +454,25 @@ function ResumeInput({
 					onChange={(e) => setSelectedResumeId(e.target.value || null)}
 					className="w-full h-11 px-3 rounded-lg border border-border-visible bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
 				>
-					<option value="">Select a saved resume…</option>
-					{resumes.map((r) => (
-						<option key={r.id} value={r.id}>
-							{r.label}
-						</option>
-					))}
+					<option value="">Select a resume…</option>
+					{uploadedResumes.length > 0 && (
+						<optgroup label="Uploaded Resumes">
+							{uploadedResumes.map((r) => (
+								<option key={r.id} value={r.id}>
+									{r.label}
+								</option>
+							))}
+						</optgroup>
+					)}
+					{generatedResumes.length > 0 && (
+						<optgroup label="AI Generated">
+							{generatedResumes.map((r) => (
+								<option key={r.id} value={r.id}>
+									{r.label}
+								</option>
+							))}
+						</optgroup>
+					)}
 				</select>
 			)}
 
@@ -506,6 +537,33 @@ function ResumeInput({
 
 function ATSCheckerContent() {
 	const { resumes } = useResumeVersions();
+	const { jobs } = useGenerations();
+	const { user } = useAuth();
+
+	// Build unified resume options: uploaded + generated
+	const resumeOptions = useMemo<ResumeOption[]>(() => {
+		const uploaded: ResumeOption[] = resumes.map((r) => ({
+			id: `uploaded:${r.id}`,
+			label: r.label,
+			source: "uploaded" as const,
+			objectPath: r.object_path,
+			resumeText: r.resume_text,
+			resumeVersionId: r.id,
+		}));
+
+		const generated: ResumeOption[] = jobs
+			.filter((j) => j.status === "succeeded" && j.pdf_object_path)
+			.map((j) => ({
+				id: `generated:${j.id}`,
+				label: `Generated: ${deriveJobLabel(j.jd_text)}`,
+				source: "generated" as const,
+				objectPath: j.pdf_object_path!,
+				resumeText: null,
+				generationJobId: j.id,
+			}));
+
+		return [...uploaded, ...generated];
+	}, [resumes, jobs]);
 
 	// Input state
 	const [jobDescription, setJobDescription] = useState("");
@@ -522,7 +580,7 @@ function ATSCheckerContent() {
 	// Auto-select default resume
 	const defaultResume = resumes.find((r) => r.is_default);
 	if (!selectedResumeId && defaultResume && resumeSource === "saved") {
-		setSelectedResumeId(defaultResume.id);
+		setSelectedResumeId(`uploaded:${defaultResume.id}`);
 	}
 
 	const canAnalyze = useCallback(() => {
@@ -533,6 +591,42 @@ function ATSCheckerContent() {
 		return true;
 	}, [jobDescription, resumeSource, selectedResumeId, pastedText, uploadedFile]);
 
+	/** Save scan result to history (fire-and-forget) */
+	const saveScanResult = useCallback(
+		(data: AtsResult, selectedOption: ResumeOption | null) => {
+			if (!user) return;
+
+			const scanPayload = {
+				resumeLabel:
+					resumeSource === "paste"
+						? "Pasted text"
+						: resumeSource === "upload"
+							? uploadedFile?.name || "Uploaded file"
+							: selectedOption?.label || "Unknown",
+				resumeSource:
+					resumeSource === "saved"
+						? selectedOption?.source === "generated"
+							? "generated"
+							: "saved"
+						: resumeSource,
+				resumeVersionId: selectedOption?.resumeVersionId || undefined,
+				generationJobId: selectedOption?.generationJobId || undefined,
+				jdSnippet: jobDescription.trim().slice(0, 200),
+				score: data.score,
+				resultJson: data,
+			};
+
+			fetch("/api/ats-scans", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(scanPayload),
+			}).catch((err) =>
+				console.warn("[ATSChecker] Failed to save scan:", err),
+			);
+		},
+		[user, resumeSource, uploadedFile, jobDescription],
+	);
+
 	const handleAnalyze = async () => {
 		if (!canAnalyze() || isAnalyzing) return;
 
@@ -540,18 +634,21 @@ function ATSCheckerContent() {
 		setError(null);
 		setResult(null);
 
+		const selectedOption = resumeOptions.find((r) => r.id === selectedResumeId) || null;
+
 		try {
 			let body: Record<string, string> = { jobDescription: jobDescription.trim() };
 
-			if (resumeSource === "saved") {
-				const resume = resumes.find((r) => r.id === selectedResumeId);
-				if (!resume) throw new Error("Resume not found");
-
+			if (resumeSource === "saved" && selectedOption) {
 				// If we have resume_text stored, send it directly; otherwise use objectPath
-				if (resume.resume_text) {
-					body.resumeText = resume.resume_text;
+				if (selectedOption.resumeText) {
+					body.resumeText = selectedOption.resumeText;
 				} else {
-					body.objectPath = resume.object_path;
+					body.objectPath = selectedOption.objectPath;
+					// For generated resumes, tell the API to look in generated-pdfs bucket
+					if (selectedOption.source === "generated") {
+						body.bucket = "generated-pdfs";
+					}
 				}
 			} else if (resumeSource === "paste") {
 				body.resumeText = pastedText.trim();
@@ -583,6 +680,9 @@ function ATSCheckerContent() {
 
 			const data: AtsResult = await res.json();
 			setResult(data);
+
+			// Save scan to history (fire-and-forget)
+			saveScanResult(data, selectedOption);
 		} catch (err) {
 			console.error("[ATSChecker] Analysis failed:", err);
 			setError(err instanceof Error ? err.message : "Analysis failed");
@@ -622,7 +722,7 @@ function ATSCheckerContent() {
 					<ResumeInput
 						source={resumeSource}
 						setSource={setResumeSource}
-						resumes={resumes}
+						resumeOptions={resumeOptions}
 						selectedResumeId={selectedResumeId}
 						setSelectedResumeId={setSelectedResumeId}
 						pastedText={pastedText}

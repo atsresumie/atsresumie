@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
 			jobDescription = body.jobDescription || "";
 			resumeText = body.resumeText || "";
 			const objectPath = body.objectPath as string | undefined;
+			const bucket = (body.bucket as string) || "resumes";
 
 			if (!jobDescription.trim()) {
 				return NextResponse.json(
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 			}
 
 			if (!resumeText.trim() && objectPath) {
-				resumeText = await extractResumeTextFromStorage(objectPath);
+				resumeText = await extractResumeTextFromStorage(objectPath, bucket);
 			}
 
 			if (!resumeText.trim()) {
@@ -104,15 +105,17 @@ export async function POST(req: NextRequest) {
 
 /**
  * Downloads a resume from Supabase storage and extracts text.
+ * @param objectPath - Storage object path
+ * @param bucket - Storage bucket name (default: "resumes")
  */
-async function extractResumeTextFromStorage(objectPath: string): Promise<string> {
+async function extractResumeTextFromStorage(objectPath: string, bucket: string = "resumes"): Promise<string> {
 	const supabase = supabaseAdmin();
 	const { data, error } = await supabase.storage
-		.from("resumes")
+		.from(bucket)
 		.download(objectPath);
 
 	if (error || !data) {
-		throw new Error(`Failed to download resume: ${error?.message}`);
+		throw new Error(`Failed to download resume from '${bucket}': ${error?.message}`);
 	}
 
 	const fileName = objectPath.split("/").pop() || "resume.pdf";
