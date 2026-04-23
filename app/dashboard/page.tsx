@@ -2,10 +2,11 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { FileText, Users, Briefcase, TrendingUp, SlidersHorizontal, ArrowRight } from "lucide-react";
+import { FileText, Users, Briefcase, TrendingUp, SlidersHorizontal, ArrowRight, ScanSearch } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useJobApplications, type JobApplication, STAGE_LABELS } from "@/hooks/useJobApplications";
 import { useCredits } from "@/hooks/useCredits";
+import { useAtsScans, getRelativeTime as getScanRelativeTime } from "@/hooks/useAtsScans";
 
 function getInitials(company: string): string {
 	return company
@@ -22,9 +23,16 @@ function formatDate(dateStr: string | null): string {
 	return d.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
+function getScoreColor(score: number) {
+	if (score >= 70) return { text: "text-green-600", label: "Strong" };
+	if (score >= 40) return { text: "text-amber-600", label: "Needs Work" };
+	return { text: "text-red-600", label: "Low" };
+}
+
 function DashboardContent() {
 	const { applications, isLoading } = useJobApplications();
 	const { credits } = useCredits();
+	const { scans: atsScans, isLoading: atsLoading } = useAtsScans();
 
 	if (isLoading) return <DashboardSkeleton />;
 
@@ -131,7 +139,7 @@ function DashboardContent() {
 			</div>
 
 			{/* Bottom row */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Recommended For You */}
 				<div className="rounded-xl border border-border-visible bg-surface-raised p-5">
 					<div className="flex items-center justify-between mb-4">
@@ -159,6 +167,53 @@ function DashboardContent() {
 							</div>
 						))}
 					</div>
+				</div>
+
+				{/* Recent ATS Scans */}
+				<div className="rounded-xl border border-border-visible bg-surface-raised p-5">
+					<div className="flex items-center justify-between mb-4">
+						<h2 className="text-base font-semibold text-text-primary">Recent ATS Scans</h2>
+						<Link href="/dashboard/ats-scans" className="text-xs text-text-secondary hover:text-accent transition-colors inline-flex items-center gap-1">
+							View all <ArrowRight size={12} />
+						</Link>
+					</div>
+					{atsLoading ? (
+						<div className="space-y-3">
+							{[1, 2, 3].map((i) => (
+								<div key={i} className="h-14 rounded-lg bg-surface-inset animate-pulse" />
+							))}
+						</div>
+					) : atsScans.length > 0 ? (
+						<div className="space-y-3">
+							{atsScans.slice(0, 4).map((scan) => {
+								const color = getScoreColor(scan.score);
+								return (
+									<Link key={scan.id} href="/dashboard/ats-scans" className="flex items-center gap-3 p-3 rounded-lg border border-border-subtle hover:bg-surface-inset/30 transition-colors">
+										<span className={`w-9 h-9 rounded-lg ${scan.score >= 70 ? "bg-green-500/10" : scan.score >= 40 ? "bg-amber-500/10" : "bg-red-500/10"} flex items-center justify-center text-xs font-bold ${color.text} flex-shrink-0`}>
+											{scan.score}
+										</span>
+										<div className="flex-1 min-w-0">
+											<p className="text-sm font-semibold text-text-primary truncate">{scan.resume_label}</p>
+											<p className="text-xs text-text-tertiary truncate">{scan.jd_snippet || "No JD preview"}</p>
+										</div>
+										<span className="text-xs text-text-tertiary flex-shrink-0 whitespace-nowrap">
+											{getScanRelativeTime(scan.created_at)}
+										</span>
+									</Link>
+								);
+							})}
+						</div>
+					) : (
+						<div className="flex flex-col items-center justify-center py-8 text-center">
+							<div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-3">
+								<ScanSearch size={18} className="text-accent" />
+							</div>
+							<p className="text-sm text-text-tertiary mb-2">No ATS scans yet</p>
+							<Link href="/dashboard/ats-checker" className="text-xs text-accent hover:underline">
+								Run your first scan →
+							</Link>
+						</div>
+					)}
 				</div>
 
 				{/* Recent Activity */}
