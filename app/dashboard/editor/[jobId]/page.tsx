@@ -19,6 +19,7 @@ import {
 	ArrowLeft,
 	Download,
 	Loader2,
+	Lock,
 	RefreshCw,
 	ZoomIn,
 	ZoomOut,
@@ -30,6 +31,7 @@ import {
 	DEFAULT_STYLE_CONFIG,
 	STYLE_CONFIG_STORAGE_KEY_PREFIX,
 } from "@/types/editor";
+import type { ChatMessage } from "@/types/chat";
 import { parseStyleFromLatex } from "@/lib/latex/applyStyleToLatex";
 import { useExportModal } from "@/hooks/useExportModal";
 import { ExportModal } from "@/components/dashboard/ExportModal";
@@ -72,6 +74,10 @@ export default function EditorPage() {
 	// Filename state
 	const [filename, setFilename] = useState("ATSResumie_Resume");
 	const [isDownloading, setIsDownloading] = useState(false);
+
+	// Final PDF snapshot state
+	const [isFinalLocked, setIsFinalLocked] = useState(false);
+	const [dbChatMessages, setDbChatMessages] = useState<ChatMessage[] | undefined>(undefined);
 
 	// Zoom state
 	const [zoom, setZoom] = useState(ZOOM_DEFAULT);
@@ -149,16 +155,7 @@ export default function EditorPage() {
 			setHasLatexText(!!job.latex_text);
 			setLatexTextContent(job.latex_text ?? null);
 
-			// Parse initial style from LaTeX if no saved config in localStorage
-			const storedConfig = localStorage.getItem(
-				`${STYLE_CONFIG_STORAGE_KEY_PREFIX}${jobId}`,
-			);
-			if (!storedConfig && job.latex_text) {
-				const parsed = parseStyleFromLatex(job.latex_text);
-				setStyleConfig(parsed);
-			}
-
-			// Get signed URL via API (compiles on-demand if PDF not yet generated)
+			// Get signed URL via API (serves final PDF if snapshot exists, else compiles on-demand)
 			const res = await fetch("/api/export-pdf", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -170,8 +167,32 @@ export default function EditorPage() {
 				throw new Error(data.error || "Failed to load PDF preview");
 			}
 
-			const { pdfUrl: signedUrl } = await res.json();
-			setPdfUrl(signedUrl);
+			const resData = await res.json();
+			setPdfUrl(resData.pdfUrl);
+
+			// If server returned a final snapshot, hydrate style + chat from DB
+			if (resData.isFinal) {
+				setIsFinalLocked(true);
+
+				// Hydrate style config from DB snapshot (overrides localStorage)
+				if (resData.styleConfig) {
+					setStyleConfig({ ...DEFAULT_STYLE_CONFIG, ...resData.styleConfig });
+				}
+
+				// Hydrate chat messages from DB snapshot
+				if (Array.isArray(resData.chatHistory) && resData.chatHistory.length > 0) {
+					setDbChatMessages(resData.chatHistory);
+				}
+			} else {
+				// No final snapshot — fall back to localStorage for style config
+				const storedConfig = localStorage.getItem(
+					`${STYLE_CONFIG_STORAGE_KEY_PREFIX}${jobId}`,
+				);
+				if (!storedConfig && job.latex_text) {
+					const parsed = parseStyleFromLatex(job.latex_text);
+					setStyleConfig(parsed);
+				}
+			}
 		} catch (err) {
 			console.error("Failed to load PDF:", err);
 			setError(err instanceof Error ? err.message : "Failed to load PDF");
@@ -283,15 +304,16 @@ export default function EditorPage() {
 		jobId,
 		enabled: hasLatexText,
 		onApplied: handleChatApplied,
+		initialMessages: dbChatMessages,
 	});
 
-	// Handle PDF download — recompile with saveLatex flag then download
+	// Handle PDF download — recompile with saveLatex + finalize flag then download
 	const handlePdfDownload = async () => {
 		if (!pdfUrl) return;
 
 		setIsDownloading(true);
 		try {
-			// Save styled LaTeX to DB via recompile with saveLatex flag
+			// Save styled LaTeX + snapshot final state to DB
 			if (hasLatexText) {
 				const saveRes = await fetch("/api/export-pdf-with-style", {
 					method: "POST",
@@ -300,12 +322,17 @@ export default function EditorPage() {
 						jobId,
 						styleConfig,
 						saveLatex: true,
+						finalize: true,
+						chatHistory: chat.messages.filter(
+							(m) => m.status !== "applying",
+						),
 					}),
 				});
 
 				if (saveRes.ok) {
 					const { pdfUrl: freshUrl } = await saveRes.json();
 					setPdfUrl(freshUrl);
+					setIsFinalLocked(true);
 					// Download the freshly compiled PDF
 					const response = await fetch(freshUrl);
 					const blob = await response.blob();
@@ -398,6 +425,16 @@ export default function EditorPage() {
 							placeholder="resume.pdf"
 						/>
 					</div>
+
+					{isFinalLocked && (
+						<span
+							className="hidden items-center gap-1 rounded-full bg-green-800/30 px-2.5 py-0.5 text-xs font-medium text-green-700 sm:flex"
+							title="This PDF was locked when you downloaded it. Edit and re-download to update."
+						>
+							<Lock size={10} />
+							Final locked
+						</span>
+					)}
 				</div>
 
 				{/* Right section: Actions */}

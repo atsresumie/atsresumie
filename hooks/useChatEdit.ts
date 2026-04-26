@@ -11,6 +11,8 @@ interface UseChatEditArgs {
 	jobId: string;
 	enabled: boolean;
 	onApplied: (args: { pdfUrl: string; latex: string }) => void;
+	/** Pre-populated from DB snapshot. Falls back to localStorage if not provided. */
+	initialMessages?: ChatMessage[];
 }
 
 interface UseChatEditReturn {
@@ -29,6 +31,7 @@ export function useChatEdit({
 	jobId,
 	enabled,
 	onApplied,
+	initialMessages,
 }: UseChatEditArgs): UseChatEditReturn {
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const [isSending, setIsSending] = useState(false);
@@ -36,11 +39,33 @@ export function useChatEdit({
 
 	const storageKey = `${CHAT_HISTORY_STORAGE_KEY_PREFIX}${jobId}`;
 
-	// Hydrate from localStorage once
+	// Hydrate from DB snapshot (primary) or localStorage (fallback), once
 	useEffect(() => {
 		if (!enabled || !jobId || hydratedRef.current) return;
 		hydratedRef.current = true;
 
+		// Primary: use DB-provided messages if available
+		if (initialMessages && initialMessages.length > 0) {
+			const restored: ChatMessage[] = initialMessages
+				.filter(
+					(m: unknown): m is ChatMessage =>
+						!!m &&
+						typeof m === "object" &&
+						typeof (m as ChatMessage).id === "string" &&
+						typeof (m as ChatMessage).content === "string" &&
+						((m as ChatMessage).role === "user" ||
+							(m as ChatMessage).role === "assistant"),
+				)
+				.map((m) =>
+					m.status === "applying"
+						? { ...m, status: "error" as const, content: m.content }
+						: m,
+				);
+			setMessages(restored);
+			return;
+		}
+
+		// Fallback: localStorage
 		try {
 			const raw = localStorage.getItem(storageKey);
 			if (!raw) return;
@@ -66,7 +91,7 @@ export function useChatEdit({
 		} catch {
 			// Ignore corrupt storage
 		}
-	}, [enabled, jobId, storageKey]);
+	}, [enabled, jobId, storageKey, initialMessages]);
 
 	// Persist to localStorage on change (post-hydration)
 	useEffect(() => {
