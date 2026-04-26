@@ -103,6 +103,10 @@ export function PdfJsPreview({
 
 		const renderAllPages = async () => {
 			const containerWidth = containerRef.current?.clientWidth || 600;
+			// Match the scrollable container's horizontal padding (p-2 sm:p-4).
+			const isSmall =
+				typeof window !== "undefined" && window.innerWidth < 640;
+			const horizontalPadding = isSmall ? 16 : 48;
 
 			for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
 				try {
@@ -115,7 +119,8 @@ export function PdfJsPreview({
 
 					const viewport = page.getViewport({ scale: 1 });
 					// Base scale fits the container width, then multiply by zoom
-					const baseScale = (containerWidth - 48) / viewport.width;
+					const baseScale =
+						(containerWidth - horizontalPadding) / viewport.width;
 					const scale = baseScale * zoom;
 
 					// Use devicePixelRatio for crisp rendering on HiDPI/Retina screens
@@ -219,8 +224,11 @@ export function PdfJsPreview({
 			className={`relative flex h-full flex-col bg-neutral-100 dark:bg-neutral-900 ${className}`}
 		>
 			{/* Scrollable pages container — absolute inset to get real height */}
-			<div ref={scrollRef} className="absolute inset-0 overflow-auto p-4">
-				<div className="flex flex-col items-center gap-6 pb-16">
+			<div
+				ref={scrollRef}
+				className="absolute inset-0 overflow-auto p-2 sm:p-4"
+			>
+				<div className="flex flex-col items-center gap-4 pb-16 sm:gap-6">
 					{Array.from({ length: totalPages }, (_, i) => i + 1).map(
 						(pageNum) => (
 							<div key={pageNum} className="relative">
