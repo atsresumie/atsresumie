@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 		// 2. Fetch job and verify ownership
 		const { data: job, error: jobError } = await supabase
 			.from("generation_jobs")
-			.select("id, user_id, latex_text, pdf_object_path, pdf_url")
+			.select("id, user_id, latex_text, pdf_object_path, pdf_url, final_pdf_object_path, chat_history, style_config")
 			.eq("id", jobId)
 			.single();
 
@@ -93,7 +93,45 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 5. If PDF already exists, return signed URL (idempotent)
+		// 5a. If a final PDF snapshot exists (from a previous download), prefer it
+		if (job.final_pdf_object_path) {
+			console.log(
+				`[export-pdf] Final PDF exists, generating signed URL for ${job.final_pdf_object_path}`,
+			);
+			const admin = supabaseAdmin();
+			const { data: signedUrlData, error: signedUrlError } =
+				await admin.storage
+					.from(PDF_BUCKET)
+					.createSignedUrl(
+						job.final_pdf_object_path,
+						SIGNED_URL_EXPIRY_SECONDS,
+					);
+
+			if (signedUrlError || !signedUrlData) {
+				// Final PDF was deleted from Storage — clear path and fall through to regular flow
+				console.warn(
+					`[export-pdf] Stale final_pdf_object_path for job ${jobId}, clearing and falling through`,
+					signedUrlError,
+				);
+				await admin
+					.from("generation_jobs")
+					.update({
+						final_pdf_object_path: null,
+						updated_at: new Date().toISOString(),
+					})
+					.eq("id", jobId);
+				// Fall through to regular PDF check below
+			} else {
+				return NextResponse.json({
+					pdfUrl: signedUrlData.signedUrl,
+					isFinal: true,
+					chatHistory: job.chat_history ?? [],
+					styleConfig: job.style_config ?? null,
+				});
+			}
+		}
+
+		// 5b. If PDF already exists, return signed URL (idempotent)
 		if (job.pdf_object_path) {
 			console.log(
 				`[export-pdf] PDF exists, generating signed URL for ${job.pdf_object_path}`,

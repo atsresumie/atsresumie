@@ -200,6 +200,42 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// 10b. Finalize snapshot — lock the final state on download
+		let finalPdfObjectPath: string | undefined;
+		if (body.finalize === true) {
+			finalPdfObjectPath = `${user.id}/${jobId}/final.pdf`;
+
+			// Upload the final PDF (separate from styled.pdf so previews don't overwrite it)
+			const { error: finalUploadError } = await admin.storage
+				.from(PDF_BUCKET)
+				.upload(finalPdfObjectPath, pdfBytes, {
+					contentType: "application/pdf",
+					upsert: true,
+				});
+
+			if (finalUploadError) {
+				console.error("[export-pdf-with-style] Final PDF upload failed:", finalUploadError);
+				// Non-fatal: continue with regular download flow
+				finalPdfObjectPath = undefined;
+			} else {
+				console.log(
+					`[export-pdf-with-style] Final PDF uploaded to ${PDF_BUCKET}/${finalPdfObjectPath}`,
+				);
+
+				// Persist the full snapshot to DB
+				updatePayload.final_pdf_object_path = finalPdfObjectPath;
+				updatePayload.final_latex_text = styledLatex;
+
+				// Persist chat history (sent from client)
+				if (Array.isArray(body.chatHistory)) {
+					updatePayload.chat_history = body.chatHistory;
+				}
+
+				// Persist style config
+				updatePayload.style_config = styleConfig;
+			}
+		}
+
 		// Try to update styled_pdf_object_path (column may not exist yet)
 		try {
 			const { error: updateError } = await admin
@@ -246,6 +282,7 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json({
 			pdfUrl: signedUrlData.signedUrl,
 			styledPdfObjectPath: styledObjectPath,
+			...(finalPdfObjectPath ? { finalPdfObjectPath } : {}),
 		});
 	} catch (error) {
 		console.error("Error in /api/export-pdf-with-style:", error);
