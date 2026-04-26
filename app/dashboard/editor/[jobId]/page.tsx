@@ -20,11 +20,13 @@ import {
 	Download,
 	Loader2,
 	Lock,
+	Menu,
 	PanelLeft,
 	RefreshCw,
 	ZoomIn,
 	ZoomOut,
 } from "lucide-react";
+import { useDashboardSidebar } from "@/providers/SidebarProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -91,6 +93,9 @@ export default function EditorPage() {
 
 	// Mobile side-panel sheet state
 	const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+	// Dashboard sidebar (global nav drawer)
+	const { toggle: toggleNavSidebar } = useDashboardSidebar();
 
 	// Load saved state from localStorage
 	useEffect(() => {
@@ -410,6 +415,17 @@ export default function EditorPage() {
 			<header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border-subtle bg-surface-raised px-2 sm:px-4">
 				{/* Left section: Back + Panel trigger (mobile) + Filename */}
 				<div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
+					{/* Mobile-only: open dashboard nav sidebar */}
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={toggleNavSidebar}
+						className="h-8 w-8 p-0 md:hidden"
+						aria-label="Open navigation"
+					>
+						<Menu size={18} />
+					</Button>
+
 					<Link href="/dashboard/generations">
 						<Button
 							variant="ghost"
