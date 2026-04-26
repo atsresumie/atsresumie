@@ -14,7 +14,7 @@ import {
 	ZOOM_STEP,
 	ZOOM_DEFAULT,
 } from "@/components/editor/PdfJsPreview";
-import { StyleControls } from "@/components/editor/StyleControls";
+import { EditorLeftRail } from "@/components/editor/EditorLeftRail";
 import {
 	ArrowLeft,
 	Download,
@@ -33,6 +33,7 @@ import {
 import { parseStyleFromLatex } from "@/lib/latex/applyStyleToLatex";
 import { useExportModal } from "@/hooks/useExportModal";
 import { ExportModal } from "@/components/dashboard/ExportModal";
+import { useChatEdit } from "@/hooks/useChatEdit";
 
 const FILENAME_STORAGE_KEY_PREFIX = "atsresumie_editor_filename_";
 
@@ -268,6 +269,22 @@ export default function EditorPage() {
 		setStyleConfig(DEFAULT_STYLE_CONFIG);
 	};
 
+	// Chat-edit: applies AI-generated LaTeX changes and refreshes the preview.
+	const handleChatApplied = useCallback(
+		({ pdfUrl: newPdfUrl, latex }: { pdfUrl: string; latex: string }) => {
+			setPdfUrl(newPdfUrl);
+			setLatexTextContent(latex);
+			setHasLatexText(true);
+		},
+		[],
+	);
+
+	const chat = useChatEdit({
+		jobId,
+		enabled: hasLatexText,
+		onApplied: handleChatApplied,
+	});
+
 	// Handle PDF download — recompile with saveLatex flag then download
 	const handlePdfDownload = async () => {
 		if (!pdfUrl) return;
@@ -463,12 +480,16 @@ export default function EditorPage() {
 
 			{/* Main content: Left panel + Preview */}
 			<div className="flex flex-1 overflow-hidden">
-				{/* Left panel: Style controls */}
+				{/* Left panel: Style + Chat tabs */}
 				<aside className="w-72 shrink-0 border-r border-border-subtle bg-surface-raised">
-					<StyleControls
-						config={styleConfig}
-						onChange={handleStyleChange}
-						onReset={handleReset}
+					<EditorLeftRail
+						styleConfig={styleConfig}
+						onStyleChange={handleStyleChange}
+						onStyleReset={handleReset}
+						chatMessages={chat.messages}
+						chatIsSending={chat.isSending}
+						onChatSend={chat.send}
+						onChatClear={chat.clear}
 					/>
 				</aside>
 
