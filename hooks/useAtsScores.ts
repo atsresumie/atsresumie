@@ -10,21 +10,28 @@ interface AtsScoreCache {
 	};
 }
 
+interface ResumeForScoring {
+	id: string;
+	object_path: string;
+	file_type: string | null;
+	ats_score?: number | null;
+}
+
 /**
  * Hook to fetch and cache ATS scores for resume cards.
  *
- * Scores are fetched lazily per resume via the /api/ats-score proxy route.
- * Results are cached in-memory so repeated renders don't re-fetch.
+ * If a resume already has a persisted `ats_score` (cached on the
+ * resume_versions row by the API route on first scoring), it's used
+ * directly with no network call. Otherwise the score is fetched lazily
+ * via the /api/ats-score proxy, which writes the result back to the DB
+ * so future visits hit the cache.
  */
-export function useAtsScores(
-	resumes: { id: string; object_path: string; file_type: string | null }[],
-) {
+export function useAtsScores(resumes: ResumeForScoring[]) {
 	const [scores, setScores] = useState<AtsScoreCache>({});
 	const fetchedRef = useRef<Set<string>>(new Set());
 
 	const fetchScore = useCallback(
 		async (resumeId: string, objectPath: string) => {
-			// Already fetched or in progress
 			if (fetchedRef.current.has(resumeId)) return;
 			fetchedRef.current.add(resumeId);
 
@@ -37,7 +44,10 @@ export function useAtsScores(
 				const res = await fetch("/api/ats-score", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ objectPath }),
+					body: JSON.stringify({
+						objectPath,
+						resumeVersionId: resumeId,
+					}),
 				});
 
 				if (!res.ok) {
@@ -69,11 +79,34 @@ export function useAtsScores(
 		[],
 	);
 
-	// Fetch scores for all PDF resumes that haven't been fetched yet
 	useEffect(() => {
 		for (const resume of resumes) {
-			// Only score PDF files (the general endpoint requires PDF)
-			if (resume.file_type === "pdf" && !fetchedRef.current.has(resume.id)) {
+			// Only PDFs are scored by the /analyze/general endpoint.
+			if (resume.file_type !== "pdf") continue;
+
+			// Use the persisted score from the DB and skip the network call.
+			if (typeof resume.ats_score === "number") {
+				if (!fetchedRef.current.has(resume.id)) {
+					fetchedRef.current.add(resume.id);
+					setScores((prev) => {
+						const existing = prev[resume.id];
+						if (existing && existing.score === resume.ats_score) {
+							return prev;
+						}
+						return {
+							...prev,
+							[resume.id]: {
+								score: resume.ats_score ?? null,
+								loading: false,
+								error: null,
+							},
+						};
+					});
+				}
+				continue;
+			}
+
+			if (!fetchedRef.current.has(resume.id)) {
 				fetchScore(resume.id, resume.object_path);
 			}
 		}

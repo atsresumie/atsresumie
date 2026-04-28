@@ -14,7 +14,10 @@ const ATS_SCORE_URL = process.env.ATS_SCORE_URL || "http://localhost:8081";
 export async function POST(req: NextRequest) {
 	try {
 		const body = await req.json();
-		const { objectPath } = body as { objectPath?: string };
+		const { objectPath, resumeVersionId } = body as {
+			objectPath?: string;
+			resumeVersionId?: string;
+		};
 
 		if (!objectPath || typeof objectPath !== "string") {
 			return NextResponse.json(
@@ -65,6 +68,31 @@ export async function POST(req: NextRequest) {
 		}
 
 		const scoreData = await scoreRes.json();
+
+		// 4. Persist the score on resume_versions so subsequent page visits
+		// can skip the microservice round-trip.
+		if (
+			resumeVersionId &&
+			typeof scoreData?.score === "number" &&
+			scoreData.score >= 0 &&
+			scoreData.score <= 100
+		) {
+			const { error: updateError } = await supabase
+				.from("resume_versions")
+				.update({
+					ats_score: Math.round(scoreData.score),
+					ats_score_cached_at: new Date().toISOString(),
+				})
+				.eq("id", resumeVersionId);
+
+			if (updateError) {
+				console.warn(
+					"[ats-score] Failed to cache score on resume_versions:",
+					updateError.message,
+				);
+			}
+		}
+
 		return NextResponse.json(scoreData);
 	} catch (error) {
 		console.error("[ats-score] Unexpected error:", error);
