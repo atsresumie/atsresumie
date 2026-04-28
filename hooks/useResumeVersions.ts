@@ -19,6 +19,8 @@ export interface ResumeVersion {
 	is_default: boolean;
 	created_at: string;
 	updated_at: string;
+	ats_score: number | null;
+	ats_score_cached_at: string | null;
 }
 
 interface UseResumeVersionsReturn {
