@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Phone, Linkedin, ArrowRight } from "lucide-react";
+import { MapPin, Mail, Linkedin, ArrowRight } from "lucide-react";
 import { useState } from "react";
 
 const companyLinks = [
@@ -70,9 +70,9 @@ export const Footer = () => {
 								<span>Toronto, Ontario</span>
 							</div>
 						<div className="flex items-center gap-4 text-sm text-white">
-							<Phone className="w-[18px] h-[18px] flex-shrink-0" />
-							<a href="tel:+14372321280" className="hover:opacity-80 transition-opacity">
-								(437) 232-1280
+							<Mail className="w-[18px] h-[18px] flex-shrink-0" />
+							<a href="mailto:sujan@atsresumie.com" className="hover:opacity-80 transition-opacity">
+								sujan@atsresumie.com
 							</a>
 						</div>
 						<a
