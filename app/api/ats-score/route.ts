@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const ATS_SCORE_URL = process.env.ATS_SCORE_URL || "http://localhost:8081";
@@ -6,31 +7,62 @@ const ATS_SCORE_URL = process.env.ATS_SCORE_URL || "http://localhost:8081";
 /**
  * POST /api/ats-score
  *
- * Accepts { objectPath } (Supabase storage path) and proxies to the
- * ATS_Score microservice /analyze/general endpoint.
- *
- * Returns the full scoring response from the microservice.
+ * Accepts { resumeVersionId } and proxies the owned resume to the
+ * ATS_Score microservice /analyze/general endpoint, caching the result
+ * on resume_versions.
  */
 export async function POST(req: NextRequest) {
 	try {
 		const body = await req.json();
-		const { objectPath, resumeVersionId } = body as {
-			objectPath?: string;
+		const { resumeVersionId } = body as {
 			resumeVersionId?: string;
 		};
 
-		if (!objectPath || typeof objectPath !== "string") {
+		if (!resumeVersionId || typeof resumeVersionId !== "string") {
 			return NextResponse.json(
-				{ error: "objectPath is required" },
+				{ error: "resumeVersionId is required" },
 				{ status: 400 },
 			);
 		}
 
-		// 1. Download the resume PDF from Supabase Storage
-		const supabase = supabaseAdmin();
-		const { data: fileData, error: downloadError } = await supabase.storage
+		// 1. Require authenticated user
+		const supabase = await createSupabaseServerClient();
+		const {
+			data: { user },
+			error: userError,
+		} = await supabase.auth.getUser();
+
+		if (userError || !user) {
+			return NextResponse.json(
+				{ error: "Unauthorized. Please sign in." },
+				{ status: 401 },
+			);
+		}
+
+		// 2. Fetch resume version with user-scoped client and verify ownership
+		const { data: version, error: versionError } = await supabase
+			.from("resume_versions")
+			.select("id, user_id, object_path")
+			.eq("id", resumeVersionId)
+			.single();
+
+		if (versionError || !version) {
+			return NextResponse.json(
+				{ error: "Resume version not found" },
+				{ status: 404 },
+			);
+		}
+
+		if (version.user_id !== user.id) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+		}
+
+		// 3. Download the resume PDF from Supabase Storage using the
+		// server-trusted object_path (never the request body).
+		const admin = supabaseAdmin();
+		const { data: fileData, error: downloadError } = await admin.storage
 			.from("resumes")
-			.download(objectPath);
+			.download(version.object_path);
 
 		if (downloadError || !fileData) {
 			console.error("[ats-score] Failed to download resume:", downloadError);
@@ -40,16 +72,16 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// 2. Build multipart form data to send to ATS_Score service
+		// 4. Build multipart form data to send to ATS_Score service
 		const formData = new FormData();
-		const fileName = objectPath.split("/").pop() || "resume.pdf";
+		const fileName = version.object_path.split("/").pop() || "resume.pdf";
 		formData.append(
 			"resume",
 			new Blob([fileData], { type: "application/pdf" }),
 			fileName,
 		);
 
-		// 3. Call the ATS_Score /analyze/general endpoint
+		// 5. Call the ATS_Score /analyze/general endpoint
 		const scoreRes = await fetch(`${ATS_SCORE_URL}/analyze/general`, {
 			method: "POST",
 			body: formData,
@@ -69,10 +101,9 @@ export async function POST(req: NextRequest) {
 
 		const scoreData = await scoreRes.json();
 
-		// 4. Persist the score on resume_versions so subsequent page visits
-		// can skip the microservice round-trip.
+		// 6. Persist the score on resume_versions so subsequent page visits
+		// can skip the microservice round-trip. RLS enforces ownership.
 		if (
-			resumeVersionId &&
 			typeof scoreData?.score === "number" &&
 			scoreData.score >= 0 &&
 			scoreData.score <= 100

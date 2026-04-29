@@ -31,7 +31,7 @@ export function useAtsScores(resumes: ResumeForScoring[]) {
 	const fetchedRef = useRef<Set<string>>(new Set());
 
 	const fetchScore = useCallback(
-		async (resumeId: string, objectPath: string) => {
+		async (resumeId: string) => {
 			if (fetchedRef.current.has(resumeId)) return;
 			fetchedRef.current.add(resumeId);
 
@@ -45,7 +45,6 @@ export function useAtsScores(resumes: ResumeForScoring[]) {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
-						objectPath,
 						resumeVersionId: resumeId,
 					}),
 				});
@@ -107,7 +106,7 @@ export function useAtsScores(resumes: ResumeForScoring[]) {
 			}
 
 			if (!fetchedRef.current.has(resume.id)) {
-				fetchScore(resume.id, resume.object_path);
+				fetchScore(resume.id);
 			}
 		}
 	}, [resumes, fetchScore]);
