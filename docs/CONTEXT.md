@@ -9,12 +9,13 @@
 **ATSResumie** is a Next.js 16 application that helps users optimize their resumes for Applicant Tracking Systems (ATS). Users can:
 
 1. Paste a job description
-2. Upload their resume (PDF/DOCX)
+2. Upload their resume (PDF/DOCX) or import from LinkedIn
 3. Get AI-powered analysis and suggestions
 4. Download an optimized PDF or DOCX (after signup)
 5. Track job applications with a Kanban board
 6. Browse and discover job postings
-7. Check ATS compatibility scores
+7. Check ATS compatibility scores with detailed keyword analysis
+8. Use AI chat-edit to make targeted changes to their resume in the canvas editor
 
 ---
 
@@ -31,12 +32,14 @@
 | Auth            | **Supabase Auth** (Email/Password + Google OAuth)  |
 | AI Model        | **Claude 3.5 Sonnet** (via Anthropic SDK)          |
 | Realtime        | **Supabase Realtime** (WebSockets)                 |
-| PDF Engine      | **latex-online.cc** (External Compilation Service) |
+| PDF Engine      | **latex-backend** (self-hosted) + `latex-online.cc` (fallback) |
 | DOCX Export     | **CloudConvert** (PDF → DOCX conversion)           |
 | Payments        | **Stripe** (Subscriptions + Checkout)              |
 | Email           | **Resend** (Transactional emails + Edge Function)  |
 | Animation       | **Framer Motion** (for landing/onboarding)         |
 | Analytics       | **Google Analytics** + **Vercel Analytics**        |
+| LinkedIn Import | **Apify** (LinkedIn profile scraping)              |
+| Job Scraping    | **Apify** (Job posting scraping)                   |
 | Package Manager | pnpm                                               |
 
 ---
@@ -55,6 +58,10 @@ atsresumie/
 │   │   │   ├── overview/        # Admin dashboard overview
 │   │   │   └── users/           # Admin user management
 │   │   ├── analyze/       # ATS analysis endpoint
+│   │   ├── ats-check/     # ATS score check (targeted, with JD)
+│   │   ├── ats-scans/     # ATS scan history CRUD
+│   │   ├── ats-score/     # ATS score (general, no JD)
+│   │   ├── chat-edit/     # AI chat-edit streaming endpoint
 │   │   ├── credits/       # Get user credits
 │   │   ├── export/        # Export endpoint
 │   │   ├── export-docx/   # DOCX export (CloudConvert)
@@ -63,6 +70,9 @@ atsresumie/
 │   │   ├── feedback/      # User feedback submission
 │   │   ├── generate/      # Create generation job (Claude)
 │   │   ├── jobs/[id]/     # Job status & details
+│   │   ├── jobs/scrape/   # Job posting scraper (Apify)
+│   │   ├── linkedin/      # LinkedIn profile import
+│   │   │   └── profile/         # Import via Apify
 │   │   ├── onboarding/    # Anonymous session management
 │   │   │   ├── claim/           # Claim session after signup
 │   │   │   ├── commit-resume/   # Soft-commit resume
@@ -87,16 +97,17 @@ atsresumie/
 │   │   ├── account/       # Account information page
 │   │   ├── admin/         # Admin panel (role-gated)
 │   │   ├── applications/  # Job application tracker (Kanban board)
-│   │   ├── ats-checker/   # ATS score checker (under development)
+│   │   ├── ats-checker/   # ATS score checker
+│   │   ├── ats-scans/     # ATS scan history
 │   │   ├── credits/       # Credits & billing page
 │   │   ├── downloads/     # Download center
 │   │   ├── editor/        # PDF Editor
 │   │   │   └── [jobId]/   # Per-job editor page
-│   │   ├── generate/      # Generate new resume
-│   │   ├── generations/   # Past generations list
-│   │   ├── job-search/    # Job search & discovery (under development)
+│   │   ├── generate/      # Tailor Resume
+│   │   ├── generations/   # Saved Jobs (past generations)
+│   │   ├── job-search/    # Job search & discovery
 │   │   ├── profile/       # User profile page
-│   │   ├── resumes/       # Resume versions management
+│   │   ├── resumes/       # My Resumes (resume versions)
 │   │   ├── saved-jds/     # Saved job descriptions
 │   │   ├── settings/      # User settings
 │   │   ├── layout.tsx     # Dashboard layout (sidebar-only, no header)
@@ -105,12 +116,11 @@ atsresumie/
 │   ├── get-started/       # Onboarding wizard (public)
 │   │
 │   ├── # SEO Content Pages (static, public)
-│   ├── chatgpt-resume-prompt-alternative/  # SEO content page
-│   ├── examples/                           # SEO content page
-│   ├── how-it-works/                       # SEO content page
-│   ├── resume-tailor-job-description/      # SEO content page
+│   ├── chatgpt-resume-prompt-alternative/
+│   ├── examples/
+│   ├── how-it-works/
+│   ├── resume-tailor-job-description/
 │   │
-│   ├── # Legal Pages
 │   ├── privacy/           # Privacy Policy
 │   ├── terms/             # Terms of Service
 │   │
@@ -122,208 +132,133 @@ atsresumie/
 │   └── sitemap.ts         # sitemap.xml generation
 │
 ├── providers/              # React context providers
-│   └── CreditsProvider.tsx # Shared Realtime credits context
+│   ├── CreditsProvider.tsx # Shared Realtime credits context
+│   └── SidebarProvider.tsx # Mobile sidebar open/close state
 │
 ├── components/
-│   ├── NavLink.tsx        # Navigation link primitive
+│   ├── NavLink.tsx
 │   │
 │   ├── admin/             # Admin panel components
-│   │   ├── AdminAccessDenied.tsx
-│   │   ├── AdminSidebar.tsx
-│   │   ├── CreditAdjustDialog.tsx
-│   │   ├── EmailSendDialog.tsx
-│   │   └── OverviewMetrics.tsx
 │   │
 │   ├── ats/               # ATS visualization components
 │   │   ├── AtsRing.tsx          # ATS score ring
 │   │   └── KeywordBars.tsx      # Keyword match bars
 │   │
 │   ├── auth/              # Authentication components
-│   │   └── AuthModal.tsx        # Auth modal (login/signup)
+│   │   └── AuthModal.tsx
 │   │
 │   ├── content/           # SEO content page components
-│   │   ├── ContentPageLayout.tsx  # Reusable content layout with TOC
-│   │   ├── Schema.tsx             # JSON-LD schema injection
-│   │   └── contentPages.tsx       # Content definitions for all SEO pages
 │   │
 │   ├── dashboard/         # Dashboard components
-│   │   ├── applications/  # Job application tracker components
-│   │   │   ├── ApplicationBoard.tsx         # Kanban board view
-│   │   │   ├── ApplicationDetailModal.tsx   # Application detail view
-│   │   │   ├── ApplicationModal.tsx         # Add/edit application modal
-│   │   │   └── DeleteApplicationDialog.tsx  # Delete confirmation dialog
+│   │   ├── applications/  # Job application tracker
+│   │   │   ├── ApplicationBoard.tsx
+│   │   │   ├── ApplicationDetailModal.tsx
+│   │   │   ├── ApplicationModal.tsx
+│   │   │   └── DeleteApplicationDialog.tsx
 │   │   ├── generate/      # Generate page components
-│   │   │   ├── JdQualityIndicator.tsx
-│   │   │   ├── ModeSelector.tsx
-│   │   │   ├── PastGenerationPicker.tsx
-│   │   │   ├── QuickUploadModal.tsx
-│   │   │   └── ResumeSelector.tsx
 │   │   ├── generations/   # Generations list components
-│   │   │   ├── DeleteJobDialog.tsx
-│   │   │   ├── GenerationDetailsDrawer.tsx
-│   │   │   ├── GenerationJobRow.tsx
-│   │   │   └── GenerationsFilters.tsx
 │   │   ├── home/          # Dashboard home components
 │   │   ├── resumes/       # Resume management components
+│   │   │   ├── ResumePreviewCard.tsx  # Resume card with zoom + tailor CTA
+│   │   │   └── ViewResumeTextModal.tsx
 │   │   ├── saved-jds/     # Saved JDs components
-│   │   ├── CreditsCard.tsx
-│   │   ├── DashboardHeader.tsx
-│   │   ├── DashboardSidebar.tsx
-│   │   ├── ExportModal.tsx       # PDF/DOCX export modal
+│   │   ├── DashboardSidebar.tsx  # Brown-themed sidebar, mobile drawer
+│   │   ├── ExportModal.tsx
 │   │   ├── FeedbackModal.tsx
-│   │   ├── QuickActionCard.tsx
-│   │   ├── QuickActionsGrid.tsx
-│   │   └── RecentGenerationsCard.tsx
+│   │   └── ...
 │   │
 │   ├── editor/            # PDF Editor components
+│   │   ├── ChatPanel.tsx          # AI chat-edit UI
 │   │   ├── EditorControls.tsx     # Editor toolbar
 │   │   ├── EditorErrorState.tsx
+│   │   ├── EditorLeftRail.tsx     # Left rail containing ChatPanel
 │   │   ├── EditorLoadingState.tsx
 │   │   ├── PdfJsPreview.tsx       # PDF.js renderer (scrollable + zoom)
-│   │   ├── ResumeContent.tsx      # Resume content display
-│   │   ├── ResumeEditorShell.tsx  # Editor layout shell
-│   │   ├── ResumePreview.tsx      # Resume preview wrapper
-│   │   └── StyleControls.tsx      # Formatting sliders panel
+│   │   ├── ResumeContent.tsx
+│   │   ├── ResumeEditorShell.tsx
+│   │   ├── ResumePreview.tsx
+│   │   └── StyleControls.tsx
 │   │
 │   ├── get-started/       # Onboarding wizard components
-│   │   ├── hooks/         # useResumeForm
-│   │   ├── steps/         # Step0, Step1, Step2 components
-│   │   ├── types.ts       # Onboarding type definitions
-│   │   ├── AnimatedBackground.tsx
-│   │   ├── ModeCards.tsx
-│   │   ├── SidePanel.tsx
-│   │   ├── SignupGateModal.tsx
-│   │   ├── Stepper.tsx
-│   │   ├── SuccessModal.tsx
-│   │   └── TopNav.tsx
-│   │
 │   ├── landing/           # Landing page components
-│   │   ├── ATSScore.tsx           # ATS score showcase section
-│   │   ├── BeforeAfter.tsx
-│   │   ├── CTA.tsx
-│   │   ├── FAQ.tsx
-│   │   ├── Features.tsx
-│   │   ├── Footer.tsx
-│   │   ├── HeaderAuthControls.tsx
-│   │   ├── Hero.tsx
-│   │   ├── HowItWorks.tsx
-│   │   ├── JobDiscovery.tsx       # Job discovery showcase section
-│   │   ├── JobTracker.tsx         # Job tracker showcase section
-│   │   ├── Navbar.tsx
-│   │   ├── PlatformPreview.tsx    # Platform preview section
-│   │   ├── Pricing.tsx
-│   │   ├── Problem.tsx           # Problem statement section
-│   │   ├── TemplateSelector.tsx   # Template selector showcase section
-│   │   └── TrustBar.tsx          # Trust/social-proof bar
-│   │
 │   ├── legal/             # Legal page components
-│   │   ├── LegalLayout.tsx      # Shared legal page layout
-│   │   └── legalContent.tsx     # Privacy & terms content
-│   │
-│   ├── shared/            # Shared components
-│   │   ├── CreditsPill.tsx
-│   │   ├── EmptyState.tsx       # Reusable empty-state placeholder
-│   │   ├── ErrorState.tsx       # Reusable error-state display
-│   │   ├── JobStatusBadge.tsx   # Job status badge component
-│   │   └── ProfileDropdown.tsx
-│   │
-│   └── ui/                # shadcn/ui components (49 files)
-│       ├── button.tsx
-│       ├── input.tsx
-│       ├── dialog.tsx
-│       ├── ... (46 more)
-│
-├── contexts/              # React contexts
-│   └── AuthModalContext.tsx
+│   └── shared/            # Shared components
 │
 ├── hooks/                 # Global custom hooks
-│   ├── useAuth.ts         # Auth state hook
-│   ├── useAuthIntent.ts   # Auth intent preservation
-│   ├── useCredits.ts      # Credits state with realtime
-│   ├── useCreditHistory.ts # Credit history from generations
-│   ├── useDownloads.ts    # Download center data
-│   ├── useDraftJd.ts      # Autosave for Generate page
-│   ├── useExportModal.ts  # Export modal state (PDF/DOCX)
-│   ├── useGenerations.ts  # Dashboard generations + realtime
-│   ├── useJobApplications.ts # Job application CRUD + realtime
-│   ├── useJobPolling.ts   # Legacy polling (deprecated)
-│   ├── useJobRealtime.ts  # Supabase Realtime subscription
-│   ├── useProfile.ts      # User profile data
-│   ├── usePurchaseHistory.ts # Stripe purchase history
-│   ├── useBilling.ts      # Subscription billing state
-│   ├── useRecentGenerations.ts # Dashboard home widget
-│   ├── useResumeVersions.ts # Resume versions CRUD + realtime
-│   ├── useSavedJds.ts     # Saved JDs CRUD + realtime
-│   ├── useUserResume.ts   # Fetch user's latest resume
-│   ├── use-mobile.tsx     # Mobile detection
-│   └── use-toast.ts       # Toast notifications
+│   ├── useAuth.ts
+│   ├── useAuthIntent.ts
+│   ├── useAtsScans.ts     # ATS scan history with Realtime
+│   ├── useAtsScores.ts    # ATS scores per resume version (cached)
+│   ├── useChatEdit.ts     # Chat-based LaTeX editing in canvas
+│   ├── useCredits.ts
+│   ├── useCreditHistory.ts
+│   ├── useDownloads.ts
+│   ├── useDraftJd.ts
+│   ├── useExportModal.ts
+│   ├── useGenerations.ts
+│   ├── useJobApplications.ts  # Job application CRUD + realtime
+│   ├── useJobPolling.ts   # Legacy (deprecated)
+│   ├── useJobRealtime.ts
+│   ├── useProfile.ts
+│   ├── usePurchaseHistory.ts
+│   ├── useBilling.ts
+│   ├── useRecentGenerations.ts
+│   ├── useResumeVersions.ts
+│   ├── useSavedJds.ts
+│   ├── useUserResume.ts
+│   ├── use-mobile.tsx
+│   └── use-toast.ts
 │
 ├── lib/                   # Utility libraries
-│   ├── admin/             # Admin panel utilities
-│   │   ├── email-templates.ts # Admin email HTML templates
-│   │   ├── guard.ts           # Admin role authorization guard
-│   │   ├── rate-limit.ts      # Admin API rate limiting
-│   │   └── schemas.ts         # Admin API Zod schemas
+│   ├── admin/             # Admin utilities
 │   ├── ats/               # ATS-related utilities
 │   ├── auth/              # Auth helpers
 │   ├── editor/            # Editor utilities
-│   ├── export/            # Export utilities
-│   │   └── latexToPlainText.ts # LaTeX → plain text conversion
+│   ├── export/
+│   │   └── latexToPlainText.ts
 │   ├── jobs/              # Job-related utilities
 │   ├── llm/               # AI Logic
-│   │   ├── claudeLatex.ts # Claude integration & modes
-│   │   └── prompts.ts     # Prompt templates
-│   ├── onboarding/        # Onboarding helpers
-│   │   └── client.ts      # Client-side API helpers (XHR upload)
-│   ├── storage/           # Storage utilities
-│   ├── stripe/            # Stripe helpers
-│   ├── supabase/          # Supabase clients
-│   │   ├── browser.ts     # Browser client
-│   │   ├── server.ts      # Server client
-│   │   └── middleware.ts  # Middleware client
+│   │   ├── claudeLatex.ts     # Claude integration for LaTeX generation
+│   │   ├── claudeChatEdit.ts  # Claude streaming for chat-edit
+│   │   └── prompts.ts         # Prompt templates
 │   ├── latex/             # LaTeX utilities
-│   │   └── applyStyleToLatex.ts # Style injection + parsing
-│   ├── utils/             # General helpers
-│   │   ├── hash.ts        # Hashing utility
-│   │   └── sanitize.ts    # Input sanitization
-│   └── utils.ts           # cn() utility
+│   │   ├── applyStyleToLatex.ts  # Style injection + parsing
+│   │   └── sanitizeLatex.ts      # Package sanitization before compile
+│   ├── onboarding/
+│   ├── storage/
+│   ├── stripe/
+│   ├── supabase/
+│   └── utils/
 │
-├── types/                 # TypeScript type definitions
-│   └── editor.ts          # Editor-related types
+├── types/
+│   ├── chat.ts            # ChatMessage, ChatRole, ChatStatus + storage keys
+│   └── editor.ts          # StyleConfig, LaTeXFontFamily
 │
-├── styles/                # Additional stylesheets
-│   └── latex-resume.css   # LaTeX resume preview styles
-│
-├── public/                # Static assets
-│   ├── logo3.png
-│   ├── pdf.worker.min.mjs       # PDF.js worker (auto-copied)
-│   ├── site.webmanifest          # PWA manifest
-│   ├── favicon-16x16.png
-│   ├── favicon-32x32.png
-│   ├── apple-touch-icon.png
-│   ├── android-chrome-192x192.png
-│   └── android-chrome-512x512.png
-│
-├── supabase/              # Supabase config & migrations
+├── supabase/
 │   ├── functions/         # Edge Functions (Deno)
-│   │   ├── enqueue-generation-job/   # User-facing fast job insert
-│   │   ├── worker-generate-latex/    # Cron-triggered Claude worker
-│   │   ├── worker-generate-pdf/      # Cron-triggered PDF compiler
-│   │   ├── process-generation-job/   # Legacy monolith (fallback)
-│   │   └── resend/                   # Resend email Edge Function
-│   └── migrations/        # SQL migrations
-│       ├── 20260304054626_remote_schema.sql  # Remote schema snapshot
-│       ├── 20260304060000_welcome_email_flag.sql # welcome_email_sent column
-│       ├── 20260305000000_admin_tables.sql   # Admin action logs + RLS
-│       └── 20260315000000_job_applications.sql # Job applications table + RLS
+│   │   ├── enqueue-generation-job/
+│   │   ├── worker-generate-latex/
+│   │   ├── worker-generate-pdf/
+│   │   ├── process-generation-job/
+│   │   └── resend/
+│   └── migrations/
+│       ├── 20260304054626_remote_schema.sql
+│       ├── 20260304060000_welcome_email_flag.sql
+│       ├── 20260305000000_admin_tables.sql
+│       ├── 20260315000000_job_applications.sql
+│       ├── 20260326000000_replace_screening_with_rejected.sql
+│       ├── 20260422000000_ats_scans.sql
+│       ├── 20260427000000_editor_snapshot.sql
+│       └── 20260428000000_add_ats_score_cache.sql
 │
 └── docs/                  # Documentation
     ├── AUTH.md
-    ├── CANVAS.md           # PDF Editor architecture
+    ├── CANVAS.md           # PDF Editor + chat-edit architecture
     ├── CONTEXT.md          # (this file)
     ├── CORE_ENGINE.md
     ├── DASHBOARD.md
     ├── IMPLEMENTATIONS.md
+    ├── MICROSERVICE.md     # Backend microservices (latex-backend + ATS_Score)
     ├── ONBOARDING.md
     ├── PAYMENT.md
     └── WORKFLOW.md
@@ -337,313 +272,153 @@ atsresumie/
 
 Two-stage upload process to prevent orphan files:
 
-- **Stage 1 (Temp)**: File uploaded to `temp/` folder on selection. Yellow badge.
-- **Stage 2 (Final)**: File moved to `final/` folder on confirm. Green badge.
+- **Stage 1 (Temp)**: File uploaded to `temp/` folder on selection.
+- **Stage 2 (Final)**: File moved to `final/` folder on confirm.
 - **Progress**: XHR for real-time percentage and ETA.
 
 ### 2. Generation Pipeline (Split Architecture)
-
-The generation pipeline is split into 3 decoupled Edge Functions:
 
 ```
 Frontend → enqueue-generation-job → generation_jobs (queued)
                                          ↓
 pg_cron (20s) → worker-generate-latex → Claude API → status=succeeded, pdf_status=queued
                                                           ↓
-pg_cron (45s) → worker-generate-pdf → latexonline.cc → pdf_status=ready
+pg_cron (45s) → worker-generate-pdf → latex-backend / latexonline.cc → pdf_status=ready
 ```
 
-| Function                 | Trigger                             | Responsibility                                                                       |
-| ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------ |
-| `enqueue-generation-job` | User request / `/api/generate` kick | JWT auth, validation, credit check, fast insert                                      |
-| `worker-generate-latex`  | pg_cron (20s, batch 2)              | Claim jobs, call Claude, retry with exponential backoff, idempotent credit deduction |
-| `worker-generate-pdf`    | pg_cron (45s, batch 3)              | Claim succeeded jobs, compile PDF via latexonline.cc, upload to Storage              |
-
-**Key design decisions:**
-
-- **Idempotent credit deduction**: `deduct_credit_once` RPC checks `credit_deducted_at` before deducting
-- **Stale lock recovery**: Jobs stuck in `processing` > 10 min auto-reset (both in claim RPC and via dedicated cron job)
-- **Exponential backoff**: 429/5xx errors backoff at `base × 2^attempt`, permanent fail after 3 attempts
-- **Atomic claims**: `FOR UPDATE SKIP LOCKED` + `RETURNING` prevents concurrent workers from claiming the same job
-- **Time budgets**: LaTeX worker 25s, PDF worker 50s — ensures completion within Deno function limits
+| Function                 | Trigger            | Responsibility                                               |
+| ------------------------ | ------------------ | ------------------------------------------------------------ |
+| `enqueue-generation-job` | User request       | JWT auth, validation, credit check, fast insert              |
+| `worker-generate-latex`  | pg_cron (20s)      | Claim jobs, call Claude, retry with backoff, idempotent deduction |
+| `worker-generate-pdf`    | pg_cron (45s)      | Claim succeeded jobs, compile PDF, upload to Storage         |
 
 ### 3. Claude LaTeX Generation
 
-Uses **Claude 3.5 Sonnet** to generate ATS-safe LaTeX code.
-
 - **Engine**: `lib/llm/claudeLatex.ts`
 - **Prompts**: `lib/llm/prompts.ts`
-- **Modes**: Quick, Deep, From Scratch (all implemented)
+- **Modes**: Quick, Deep, From Scratch
 
-### 4. Realtime System
+### 4. AI Chat-Edit
 
-Supabase Realtime replaces polling for instant updates:
+Allows users to make targeted LaTeX modifications via natural language inside the canvas editor.
 
-1. Job created → `status: queued`
-2. Frontend subscribes via `useJobRealtime` / `useGenerations`
-3. Backend pushes updates (processing → succeeded/failed, pdf_status changes)
-4. Frontend reacts immediately
+- **Frontend**: `ChatPanel` + `EditorLeftRail` + `useChatEdit` hook
+- **Backend**: `/api/chat-edit` streams a Claude response via `claudeChatEdit.ts`
+- **Flow**: User sends instruction → Claude returns modified LaTeX → recompile → PDF updates
+- **Persistence**: Final LaTeX + PDF URL saved to `generation_jobs` (columns added by `20260427000000_editor_snapshot.sql`)
+- **History**: Stored in `localStorage` per jobId, capped at `CHAT_HISTORY_MAX_TURNS`
 
-**CreditsProvider** (`providers/CreditsProvider.tsx`): Wraps the entire dashboard layout so that all `useCredits()` consumers (sidebar, credits page) share a **single Realtime channel** and always display the same value. Components outside the dashboard (e.g. landing page) fall back to their own independent subscription.
+### 5. ATS Checker & Scan History
 
-### 5. PDF Compilation
+- **Checker page**: `/dashboard/ats-checker` — score any resume against a JD
+- **API endpoints**: `/api/ats-check` (targeted), `/api/ats-score` (general), `/api/ats-scans` (history CRUD)
+- **Score caching**: ATS scores persisted to `resume_versions` (migration `20260428000000_add_ats_score_cache.sql`) via `useAtsScores` hook — avoids re-fetching
+- **Scan history**: `/dashboard/ats-scans` — expandable rows with full breakdown, score coloring
+- **Visualizations**: `AtsRing` (score ring) + `KeywordBars` (keyword match bars)
 
-External compilation via `latex-online.cc`:
+### 6. LinkedIn Profile Import
 
-- **Background**: `worker-generate-pdf` Edge Function compiles and uploads automatically
-- **On-demand fallback**: `/api/export-pdf` endpoint for manual download
-- Uploads compiled PDF to Supabase Storage with upsert for idempotency
-- Returns signed URL (10 min validity)
-- Credits deducted during LaTeX generation, not PDF export
+- **API**: `/api/linkedin/profile` scrapes a LinkedIn URL via Apify
+- **Flow**: Maps profile fields (experience, education, skills) to the resume generation form
+- **UX**: Surfaced as an import option on the Tailor Resume page
 
-### 6. DOCX Export
+### 7. Job Application Tracker
 
-Two-step conversion pipeline via **CloudConvert**:
+Kanban-style tracker at `/dashboard/applications`.
 
-- **Step 1**: Compile LaTeX → PDF using `latexonline.cc`
-- **Step 2**: Convert PDF → DOCX using CloudConvert API
+- **Stages**: Saved → Applied → Interview → Offer → Rejected
+- **Hook**: `useJobApplications.ts` — CRUD + Supabase Realtime
+- **Database**: `job_applications` table (migration `20260315000000_job_applications.sql`)
+- **Stage migration**: `screening` → `rejected` (migration `20260326000000_replace_screening_with_rejected.sql`)
+
+### 8. Job Scraping
+
+- **API**: `/api/jobs/scrape` — scrapes job postings via Apify and populates the job discovery page
+
+### 9. PDF Compilation
+
+Primary: **latex-backend** (self-hosted Express + TeX Live microservice)
+Fallback: `latex-online.cc`
+
+- **LaTeX sanitization**: `sanitizeLatex.ts` auto-injects missing packages and strips incompatible ones before every compile
+- **Background**: `worker-generate-pdf` Edge Function compiles automatically
+- **On-demand**: `/api/export-pdf` for manual download
+- PDF uploaded to Supabase Storage with upsert for idempotency
+
+See `docs/MICROSERVICE.md` for full latex-backend documentation.
+
+### 10. DOCX Export
+
+- **Step 1**: Compile LaTeX → PDF via latex-backend
+- **Step 2**: Convert PDF → DOCX via CloudConvert
 - **Endpoint**: `/api/export-docx`
-- **Helper**: `lib/export/latexToPlainText.ts` for plain-text fallback
 
-### 7. PDF Editor
+### 11. PDF Editor
 
-Full-featured PDF styling editor at `/dashboard/editor/[jobId]`:
+Full-featured editor at `/dashboard/editor/[jobId]`. See `docs/CANVAS.md` for full architecture.
 
-- **PDF.js Preview**: Scrollable all-pages view rendered to canvas, with zoom (50-300%)
-- **HiDPI Rendering**: Canvas renders at `scale × devicePixelRatio` for crisp Retina output
-- **Style Controls**: Font family, page size, margins, font size, line height, section spacing
-- **Auto-Recompile**: Changes trigger PDF regeneration after 800ms debounce
-- **Font Families**: Computer Modern, Latin Modern, Times New Roman, Palatino, Charter, Bookman, Helvetica
-- **Initial Settings**: Parsed from existing LaTeX via `parseStyleFromLatex()`
-- **Save on Download**: Styled LaTeX is saved to DB when user downloads
-- **Layout**: Fixed viewport inside dashboard shell — only PDF scrolls
-- **LaTeX Injection**: Idempotent marker-based style block injection (`applyStyleToLatex()`)
-- **Export Modal** (`ExportModal.tsx` + `useExportModal.ts`): Unified PDF/DOCX download modal
-- **Components**: `EditorControls`, `ResumeEditorShell`, `ResumeContent`, `ResumePreview`
-- See `docs/CANVAS.md` for detailed architecture
+- PDF.js preview, style controls, AI chat-edit panel, final PDF snapshot hydration
 
-### 8. Stripe Integration
-
-Full subscription + billing management system:
+### 12. Stripe Integration
 
 - Monthly plan: $10/month for 50 credits
-- Secure webhooks with signature verification
-- Idempotent credit granting
-- Promotion code support
-- Purchase history tracking
-- **Billing Management** via Stripe Customer Portal:
-    - Subscription status display (Active / Canceling / Past Due / Canceled)
-    - Renewal and cancellation date display
-    - "Manage billing" button → Stripe-hosted portal
-    - Portal handles: payment methods, invoices, cancellation
+- Secure webhooks with signature verification, idempotent credit granting
+- Stripe Customer Portal for billing management
 
-**Webhook events handled:**
+### 13. Admin Panel
 
-| Event                           | Action                                          |
-| ------------------------------- | ----------------------------------------------- |
-| `checkout.session.completed`    | Grant credits + store `stripe_customer_id`      |
-| `charge.refunded`               | Mark purchase as refunded                       |
-| `customer.subscription.created` | Set subscription fields                         |
-| `customer.subscription.updated` | Update status, cancellation scheduling          |
-| `customer.subscription.deleted` | Clear subscription fields (with ID match guard) |
-| `invoice.paid`                  | Mark active (with reactivation safety)          |
-| `invoice.payment_failed`        | Mark past_due                                   |
+Role-gated at `/dashboard/admin/`. See CONTEXT.md § Admin Panel above.
 
-> **Gotcha:** Stripe Customer Portal sets `cancel_at` (a date) rather than `cancel_at_period_end: true`. The `useBilling` hook checks both.
+### 14. Dashboard Layout
 
-### 9. Admin Panel
+Sidebar-only layout (no top header bar):
 
-Role-gated admin dashboard at `/dashboard/admin/`:
+- **Layout**: `app/dashboard/layout.tsx` — wraps with `CreditsProvider` + `SidebarProvider`
+- **Sidebar**: `DashboardSidebar.tsx` — brown `#805F4E` background, white text
+- **Mobile**: Collapsible drawer via `SidebarProvider` context
 
-- **Access Guard**: `lib/admin/guard.ts` checks user role before serving admin APIs
-- **Rate Limiting**: `lib/admin/rate-limit.ts` for admin API protection
-- **Validation**: Zod schemas in `lib/admin/schemas.ts`
-- **Email Templates**: `lib/admin/email-templates.ts` for admin-triggered emails
+**Sidebar nav links:**
 
-**API Endpoints** (`/api/admin/`):
+| Label           | Route                       |
+| --------------- | --------------------------- |
+| Dashboard       | `/dashboard`                |
+| Browse Jobs     | `/dashboard/job-search`     |
+| My Applications | `/dashboard/applications`   |
+| My Resumes      | `/dashboard/resumes`        |
+| Tailor Resume   | `/dashboard/generate`       |
+| Saved Jobs      | `/dashboard/generations`    |
+| ATS Checker     | `/dashboard/ats-checker`    |
+| Settings        | `/dashboard/settings`       |
 
-| Endpoint       | Purpose                        |
-| -------------- | ------------------------------ |
-| `check/`       | Verify admin role              |
-| `credits/`     | Adjust user credits            |
-| `email/`       | Send emails to users           |
-| `generations/` | View generation statistics     |
-| `overview/`    | Dashboard overview metrics     |
-| `users/`       | User management (list, search) |
+### 15. Landing Page
 
-**Components** (`components/admin/`):
+Full redesign aligned to Figma white theme:
 
-- `AdminAccessDenied` — unauthorized fallback
-- `AdminSidebar` — admin navigation
-- `OverviewMetrics` — dashboard stats cards
-- `CreditAdjustDialog` — credit adjustment modal
-- `EmailSendDialog` — email composition modal
-
-**Database**: `admin_action_logs` table (migration `20260305000000_admin_tables.sql`) with RLS policies and foreign key to `user_profiles` (ON DELETE CASCADE).
-
-### 10. SEO & Content Pages
-
-Static, SEO-optimized content pages built with a reusable layout system:
-
-- **ContentPageLayout** (`components/content/ContentPageLayout.tsx`): Shared layout with desktop table-of-contents
-- **Schema** (`components/content/Schema.tsx`): JSON-LD injection for search engines and LLMs
-- **Content Definitions** (`components/content/contentPages.tsx`): All page content in one file
-
-**Routes:**
-
-| Route                                  | Topic                                        |
-| -------------------------------------- | -------------------------------------------- |
-| `/chatgpt-resume-prompt-alternative`   | ChatGPT resume prompt alternative            |
-| `/examples`                            | Resume examples                              |
-| `/how-it-works`                        | How the tool works                           |
-| `/resume-tailor-job-description`       | Resume tailoring for job descriptions        |
-
-**SEO Infrastructure:**
-
-- `app/robots.ts` — programmatic robots.txt
-- `app/sitemap.ts` — programmatic sitemap.xml
-- JSON-LD `SoftwareApplication` schema in root layout
-- Open Graph + Twitter Card meta tags
-
-### 11. Legal Pages
-
-Privacy Policy and Terms of Service:
-
-- **Routes**: `/privacy`, `/terms`
-- **Layout**: `components/legal/LegalLayout.tsx` (shared legal page shell)
-- **Content**: `components/legal/legalContent.tsx` (all legal copy)
-
-### 12. Welcome Email
-
-Automated welcome email on first signup:
-
-- **API Route**: `/api/send-welcome-email` (Next.js)
-- **Edge Function**: `supabase/functions/resend/` (Supabase Edge)
-- **Deduplication**: `welcome_email_sent` boolean column on `user_profiles`
-- **Provider**: Resend (transactional email service)
-
-### 13. Job Application Tracker
-
-Kanban-style job application tracking at `/dashboard/applications`:
-
-- **Stages**: Saved → Applied → Screening → Interview → Offer
-- **Hook**: `useJobApplications.ts` — CRUD operations + Supabase Realtime subscription
-- **Database**: `job_applications` table (migration `20260315000000_job_applications.sql`) with RLS policies
-- **Realtime**: Table has `REPLICA IDENTITY FULL` enabled for real-time updates
-
-**Components** (`components/dashboard/applications/`):
-
-- `ApplicationBoard` — Kanban board view with drag-and-drop columns
-- `ApplicationDetailModal` — Detailed view of a single application
-- `ApplicationModal` — Add/edit application form
-- `DeleteApplicationDialog` — Delete confirmation
-
-**Table Columns** (`job_applications`):
-
-| Column           | Type          | Purpose                           |
-| ---------------- | ------------- | --------------------------------- |
-| `id`             | UUID          | Primary key                       |
-| `user_id`        | UUID          | Foreign key → auth.users          |
-| `company`        | TEXT          | Company name                      |
-| `role`           | TEXT          | Job role/title                    |
-| `location`       | TEXT          | Job location                      |
-| `salary`         | TEXT          | Salary information                |
-| `source_url`     | TEXT          | Job posting URL                   |
-| `stage`          | TEXT          | Kanban stage (check constraint)   |
-| `position`       | INTEGER       | Sort order within stage           |
-| `applied_at`     | TIMESTAMPTZ   | Date applied                      |
-| `interview_date` | TIMESTAMPTZ   | Scheduled interview date          |
-| `notes`          | TEXT          | User notes                        |
-| `created_at`     | TIMESTAMPTZ   | Record creation timestamp         |
-| `updated_at`     | TIMESTAMPTZ   | Auto-updated via trigger          |
-
-### 14. Authentication Pages
-
-Dedicated authentication pages replacing the original modal-only flow:
-
-- **Sign In**: `/auth/login` — dedicated login page
-- **Sign Up**: `/auth/signup` — dedicated signup page
-- **Auth Modal**: `components/auth/AuthModal.tsx` — modal fallback for in-app auth prompts
-- **OAuth Callback**: `/auth/callback` — handles Google OAuth redirects
-- **Email Verification**: `/auth/verify-email` — email confirmation page
-
-### 15. Dashboard Layout
-
-Sidebar-only layout with no top header bar:
-
-- **Layout**: `app/dashboard/layout.tsx` — wraps all dashboard pages with `CreditsProvider` and sidebar
-- **Sidebar**: `components/dashboard/DashboardSidebar.tsx` — brown-themed sidebar with white text
-- **Mobile**: Collapsible sidebar with overlay on mobile, fixed on desktop
-- **Width**: 256px (w-64) fixed sidebar, main content offset via `md:pl-64`
-
-**Sidebar Navigation Links:**
-
-| Label           | Route                       | Icon          |
-| --------------- | --------------------------- | ------------- |
-| Dashboard       | `/dashboard`                | Home          |
-| Browse Jobs     | `/dashboard/job-search`     | Search        |
-| My Applications | `/dashboard/applications`   | KanbanSquare  |
-| My Resumes      | `/dashboard/resumes`        | FileText      |
-| Tailor Resume   | `/dashboard/generate`       | Scissors      |
-| Saved Jobs      | `/dashboard/generations`    | Bookmark      |
-| ATS Checker     | `/dashboard/ats-checker`    | ScanSearch    |
-| Settings        | `/dashboard/settings`       | Settings      |
-
-**Sidebar Footer:**
-- Conditional "Upgrade to Pro" button (hidden when user has credits + purchase history)
-- Admin Panel link (visible only to admin users)
-- User info section with avatar initial, name, and sign-out button
+- Hero, Problem/Solution, TrustBar, Features, HowItWorks, BeforeAfter, ATSScore showcase, JobTracker showcase, JobDiscovery showcase, PlatformPreview, TemplateSelector, Pricing, FAQ, CTA, Footer, Navbar
+- Unified `ATSResumie` branding across all navbars
 
 ---
 
 ## Current Design System
 
-### Typography
-
-- **Display**: Manrope (sans-serif) — headings, navigation
-- **Body**: DM Sans (sans-serif) — UI text, paragraphs
-- **Mono**: IBM Plex Mono (monospace) — code, technical text
-
 ### Color Palette
 
-Warm light theme with beige background and brown accents. **All colors are centralized in `globals.css` — zero hardcoded hex values in component files.**
+Warm light theme. **All colors are centralized in `globals.css` — zero hardcoded hex values in components.**
 
-| Token               | Value                        | Purpose                      |
-| ------------------- | ---------------------------- | ---------------------------- |
-| `--surface-base`    | `#E5D5BE`                    | Main background              |
-| `--surface-raised`  | `#f0e6d4`                    | Cards, panels                |
-| `--surface-inset`   | `#d9c8ae`                    | Pressed/recessed areas       |
-| `--text-primary`    | `#654844`                    | Main text                    |
-| `--text-secondary`  | `#8a6f6a`                    | Captions, labels             |
-| `--text-tertiary`   | `#b09a94`                    | Placeholders, disabled       |
-| `--cta`             | `#654844`                    | CTA button background        |
-| `--cta-hover`       | `#7a5a55`                    | CTA hover state              |
-| `--cta-foreground`  | `#ffffff`                    | Text on CTA                  |
-| `--code-block`      | `#654844`                    | LaTeX preview background     |
-| `--border-visible`  | `#c4b198`                    | Card outlines, inputs        |
-| `--accent`          | `hsl(12 72% 42%)`            | Primary accent (terracotta)  |
+| Token               | Value             | Purpose                      |
+| ------------------- | ----------------- | ---------------------------- |
+| `--surface-base`    | `#E5D5BE`         | Main background              |
+| `--surface-raised`  | `#f0e6d4`         | Cards, panels                |
+| `--surface-inset`   | `#d9c8ae`         | Pressed/recessed areas       |
+| `--text-primary`    | `#654844`         | Main text                    |
+| `--text-secondary`  | `#8a6f6a`         | Captions, labels             |
+| `--text-tertiary`   | `#b09a94`         | Placeholders, disabled       |
+| `--cta`             | `#654844`         | CTA button background        |
+| `--cta-hover`       | `#7a5a55`         | CTA hover state              |
+| `--border-visible`  | `#c4b198`         | Card outlines, inputs        |
+| `--accent`          | `hsl(12 72% 42%)` | Primary accent (terracotta)  |
 
-### Landing Page Components
-
-| Component             | Purpose                                    |
-| --------------------- | ------------------------------------------ |
-| `Hero`                | Main hero section with CTA                 |
-| `Problem`             | Problem statement / pain points            |
-| `TrustBar`            | Social proof / trust indicators            |
-| `Features`            | Feature highlights                         |
-| `HowItWorks`          | Step-by-step process                       |
-| `BeforeAfter`         | Before/after resume comparison             |
-| `ATSScore`            | ATS score showcase section                 |
-| `JobTracker`          | Job tracker showcase section               |
-| `JobDiscovery`        | Job discovery showcase section             |
-| `PlatformPreview`     | Platform preview section                   |
-| `TemplateSelector`    | Template selector showcase section         |
-| `Pricing`             | Pricing plans                              |
-| `FAQ`                 | Frequently asked questions                 |
-| `CTA`                 | Bottom call-to-action                      |
-| `Footer`              | Site footer                                |
-| `Navbar`              | Navigation bar                             |
-| `HeaderAuthControls`  | Auth buttons in header                     |
+**Sidebar background**: `#805F4E` (brown) with white text — hardcoded in `DashboardSidebar.tsx` by design.
 
 ---
 
@@ -651,55 +426,54 @@ Warm light theme with beige background and brown accents. **All colors are centr
 
 ### Key Tables
 
-| Table                    | Purpose                                                       |
-| ------------------------ | ------------------------------------------------------------- |
-| `user_profiles`          | User data, credits, profile, subscription, welcome email flag |
-| `generation_jobs`        | Job status, LaTeX, PDF path, pipeline state                   |
-| `saved_job_descriptions` | Reusable JDs                                                  |
-| `resume_versions`        | User resume files with versions                               |
-| `onboarding_sessions`    | Anonymous session tracking                                    |
-| `onboarding_drafts`      | Draft data before signup                                      |
-| `credit_purchases`       | Stripe purchase records                                       |
-| `admin_action_logs`      | Admin action audit trail                                      |
-| `job_applications`       | Job application tracker (Kanban board)                        |
-
-### Subscription Columns (user_profiles)
-
-Added by migration `011_subscription_fields.sql`:
-
-| Column                   | Type          | Purpose                                       |
-| ------------------------ | ------------- | --------------------------------------------- |
-| `stripe_customer_id`     | TEXT (UNIQUE) | Primary key for webhook user lookup           |
-| `stripe_subscription_id` | TEXT (UNIQUE) | Current subscription ID                       |
-| `subscription_status`    | TEXT          | `active`, `past_due`, `canceled`, etc.        |
-| `plan_name`              | TEXT          | Derived from Price ID (default: `free`)       |
-| `cancel_at_period_end`   | BOOLEAN       | Whether cancel is scheduled at period end     |
-| `cancel_at`              | TIMESTAMPTZ   | Specific cancellation date (portal uses this) |
-| `current_period_end`     | TIMESTAMPTZ   | Current billing period end date               |
+| Table                    | Purpose                                                         |
+| ------------------------ | --------------------------------------------------------------- |
+| `user_profiles`          | User data, credits, profile, subscription, welcome email flag   |
+| `generation_jobs`        | Job status, LaTeX, PDF path, final snapshot, pipeline state     |
+| `saved_job_descriptions` | Reusable JDs                                                    |
+| `resume_versions`        | User resume files + ATS score cache                             |
+| `onboarding_sessions`    | Anonymous session tracking                                      |
+| `onboarding_drafts`      | Draft data before signup                                        |
+| `credit_purchases`       | Stripe purchase records                                         |
+| `admin_action_logs`      | Admin action audit trail                                        |
+| `job_applications`       | Job application tracker (Kanban board)                          |
+| `ats_scans`              | ATS scan history per user                                       |
 
 ### Pipeline Columns (generation_jobs)
 
-Added by migration `009_pipeline_split.sql`:
+| Column                | Type          | Purpose                                    |
+| --------------------- | ------------- | ------------------------------------------ |
+| `pdf_status`          | TEXT          | `none`, `queued`, `processing`, `ready`, `failed` |
+| `credit_deducted_at`  | TIMESTAMPTZ   | Idempotency guard                          |
+| `final_latex_text`    | TEXT          | Saved after chat-edit                      |
+| `final_pdf_url`       | TEXT          | Saved after chat-edit, hydrated on load    |
 
-| Column                | Type          | Purpose                                                               |
-| --------------------- | ------------- | --------------------------------------------------------------------- |
-| `next_attempt_at`     | `TIMESTAMPTZ` | Backoff scheduling for LaTeX retries                                  |
-| `last_error`          | `TEXT`        | Last error message for debugging                                      |
-| `pdf_status`          | `TEXT`        | PDF pipeline state: `none`, `queued`, `processing`, `ready`, `failed` |
-| `pdf_attempt_count`   | `INT`         | PDF compilation retry counter                                         |
-| `pdf_next_attempt_at` | `TIMESTAMPTZ` | Backoff scheduling for PDF retries                                    |
-| `pdf_last_error`      | `TEXT`        | Last PDF error for debugging                                          |
-| `credit_deducted_at`  | `TIMESTAMPTZ` | Idempotency guard for credit deduction                                |
+### ATS Score Cache (resume_versions)
+
+Added by migration `20260428000000_add_ats_score_cache.sql`. Persists the last ATS score and result JSON per resume version to avoid re-fetching.
+
+### Migrations (in order)
+
+| Migration File                                         | Purpose                                    |
+| ------------------------------------------------------ | ------------------------------------------ |
+| `20260304054626_remote_schema.sql`                     | Full remote schema snapshot                |
+| `20260304060000_welcome_email_flag.sql`                | `welcome_email_sent` column                |
+| `20260305000000_admin_tables.sql`                      | Admin action logs table + RLS              |
+| `20260315000000_job_applications.sql`                  | Job applications table + RLS + Realtime    |
+| `20260326000000_replace_screening_with_rejected.sql`   | Rename `screening` stage → `rejected`      |
+| `20260422000000_ats_scans.sql`                         | ATS scan history table                     |
+| `20260427000000_editor_snapshot.sql`                   | `final_latex_text` + `final_pdf_url` columns |
+| `20260428000000_add_ats_score_cache.sql`               | ATS score cache on `resume_versions`       |
 
 ### Key RPCs
 
-| RPC                         | Purpose                                                                 |
-| --------------------------- | ----------------------------------------------------------------------- |
-| `claim_next_generation_job` | Atomically claim queued job with backoff + stale lock recovery          |
-| `claim_next_pdf_job`        | Claim succeeded job for PDF compilation                                 |
-| `deduct_credit_once`        | Idempotent credit deduction (checks `credit_deducted_at`)               |
-| `complete_job`              | Mark job succeeded/failed; auto-sets `pdf_status = 'queued'` on success |
-| `recover_stale_locks`       | Reset jobs stuck in `processing` > 10 min                               |
+| RPC                         | Purpose                                                      |
+| --------------------------- | ------------------------------------------------------------ |
+| `claim_next_generation_job` | Atomically claim queued job with backoff + stale lock recovery |
+| `claim_next_pdf_job`        | Claim succeeded job for PDF compilation                      |
+| `deduct_credit_once`        | Idempotent credit deduction                                  |
+| `complete_job`              | Mark job succeeded/failed; auto-sets `pdf_status = 'queued'` |
+| `recover_stale_locks`       | Reset jobs stuck in `processing` > 10 min                   |
 
 ### Storage Buckets
 
@@ -709,22 +483,13 @@ Added by migration `009_pipeline_split.sql`:
 | `resumes`        | Dashboard resume versions            |
 | `generated-pdfs` | Compiled PDF exports                 |
 
-### Cron Schedules (pg_cron + pg_net)
+### Cron Schedules
 
 | Job                   | Interval   | Action                                    |
 | --------------------- | ---------- | ----------------------------------------- |
 | `latex-pump`          | 20 seconds | POST to `worker-generate-latex` (batch 2) |
 | `pdf-pump`            | 45 seconds | POST to `worker-generate-pdf` (batch 3)   |
 | `stale-lock-recovery` | 5 minutes  | Reset stale `processing` jobs to `queued` |
-
-### Migrations
-
-| Migration File                              | Purpose                               |
-| ------------------------------------------- | ------------------------------------- |
-| `20260304054626_remote_schema.sql`          | Full remote schema snapshot           |
-| `20260304060000_welcome_email_flag.sql`     | `welcome_email_sent` column           |
-| `20260305000000_admin_tables.sql`           | Admin action logs table + RLS         |
-| `20260315000000_job_applications.sql`       | Job applications table + RLS + Realtime |
 
 ---
 
@@ -733,62 +498,47 @@ Added by migration `009_pipeline_split.sql`:
 ### ✅ Fully Implemented
 
 - Claude integration with all 3 generation modes
-- Realtime system (WebSocket updates)
+- AI chat-edit in canvas editor (`ChatPanel` + `useChatEdit` + `/api/chat-edit`)
+- Realtime system (WebSocket updates across all surfaces)
 - Soft-commit resume upload with progress
-- PDF export pipeline
-- **DOCX export** (CloudConvert PDF → DOCX)
-- **Split generation pipeline** (3 Edge Functions + cron)
+- PDF export pipeline (latex-backend primary, latex-online.cc fallback)
+- LaTeX sanitization before every compile
+- DOCX export (CloudConvert)
+- Split generation pipeline (3 Edge Functions + cron)
 - Credit system with atomic decrements + idempotent deduction
-- **CreditsProvider** for synced Realtime credits across all dashboard components
-- Google/Email auth with gate for export
-- **Dedicated auth pages** (`/auth/login`, `/auth/signup`) replacing modal-only flow
-- Complete dashboard:
-    - Home with quick actions
-    - Generate with mode/resume selection
-    - Past Generations with filters/drawer (PDF preparing/failed states)
-    - Saved JDs library
-    - Resume Versions with duplicate detection
-    - Download Center
-    - Credits & Billing (conditional buy button based on purchase history)
-    - Profile/Settings/Account
-    - PDF Editor with live preview + export modal
-    - **Job Application Tracker** (Kanban board with 5 stages)
-- **Sidebar-only dashboard layout** (no top header bar)
-- **Admin Panel** (role-gated, user management, credits, email, stats)
-- Stripe monthly subscription
-- **Billing Management** (subscription status, portal access, cancellation display)
+- CreditsProvider for synced Realtime credits
+- Google/Email auth with dedicated pages (`/auth/login`, `/auth/signup`)
+- Dashboard (sidebar-only layout, mobile drawer via SidebarProvider):
+  - Home with quick actions
+  - Tailor Resume with mode/resume selection + LinkedIn import
+  - Saved Jobs (past generations) with filters/drawer
+  - Saved JDs library
+  - My Resumes with card grid + ResumePreviewCard + zoom
+  - Download Center
+  - Credits & Billing (Stripe portal)
+  - Profile/Settings/Account
+  - PDF Editor (style controls + AI chat-edit + final snapshot persistence)
+  - Job Application Tracker (Kanban, `rejected` stage)
+  - ATS Checker (score + keyword analysis + score caching)
+  - ATS Scan History
+- LinkedIn profile import (Apify)
+- Job posting scraping (`/api/jobs/scrape`)
+- Admin Panel (role-gated)
+- Stripe monthly subscription + Billing Management
 - Auth intent preservation
-- User feedback submission
-- Conditional sidebar upgrade button (hidden when user has credits + purchase history)
-- **Welcome email** on first signup (Resend API, dedup via `welcome_email_sent` column)
-- **SEO content pages** (4 pages with `ContentPageLayout` + JSON-LD schema)
-- **Legal pages** (Privacy Policy + Terms of Service)
-- **SEO infrastructure** (robots.txt, sitemap.xml, Open Graph, Twitter Cards)
-- **Analytics** (Google Analytics + Vercel Analytics)
-- **PWA manifest** (web app manifest with icons)
-- **ATS visualization** components (score ring + keyword bars)
-- **Light theme** with centralized CSS variable design tokens
-- **Landing page showcase sections** (ATSScore, JobTracker, JobDiscovery, PlatformPreview, TemplateSelector)
+- Welcome email (Resend, deduplication)
+- SEO content pages + infrastructure (robots.txt, sitemap.xml, JSON-LD, OG)
+- Legal pages (Privacy Policy + Terms of Service)
+- Analytics (Google Analytics + Vercel Analytics)
+- PWA manifest
+- Full landing page redesign (Figma white theme)
+- Mobile-responsive dashboard + editor
 
 ### 🚧 Under Development
 
-| Feature                              | Route                      | Description                                                                                |
-| ------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------ |
-| **ATS Checker**                      | `/dashboard/ats-checker`   | Score resumes against job descriptions with detailed keyword match analysis                 |
-| **Job Search & Discovery**           | `/dashboard/job-search`    | Browse and discover job postings from external sources                                     |
-
-### 🗺️ Planned (alpha/v2.0)
-
-Upcoming features on the `alpha/v2.0` branch:
-
-| Feature                              | Description                                                                                        |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **AI Interaction Field**             | Additional text field to instruct the AI where specific changes need to be made in the resume       |
-| **Job Post Crawling**                | Crawl and aggregate job postings from external sources                                              |
-| **Recommendation Algorithm**         | Filter and rank crawled jobs by matching against the user's generated resume and ATS score          |
-| **Real-time JD Parsing**             | Parse job descriptions on-the-fly and compute match rankings                                       |
-
-**Planned subdomain:** `alpha.atsresumie.com`
+| Feature                    | Route                    | Description                             |
+| -------------------------- | ------------------------ | --------------------------------------- |
+| **Browse Jobs / Discovery**| `/dashboard/job-search`  | Browse and filter scraped job postings  |
 
 ---
 
@@ -802,7 +552,6 @@ Upcoming features on the `alpha/v2.0` branch:
 | `pnpm build`         | Production build                        |
 | `pnpm start`         | Start production server                 |
 | `pnpm lint`          | Run ESLint                              |
-| `pnpm lint:local`    | Run ESLint via GitHub Actions locally   |
 
 ---
 
@@ -810,19 +559,21 @@ Upcoming features on the `alpha/v2.0` branch:
 
 See `.env.example` for the full list. Key variables:
 
-| Variable                         | Purpose                           |
-| -------------------------------- | --------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`       | Supabase project URL              |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | Supabase anonymous key            |
-| `SUPABASE_SERVICE_ROLE_KEY`      | Supabase service role key         |
-| `ANTHROPIC_API_KEY`              | Claude API key                    |
-| `STRIPE_SECRET_KEY`              | Stripe secret key                 |
-| `STRIPE_WEBHOOK_SECRET`         | Stripe webhook signing secret     |
-| `STRIPE_PRICE_ID`               | Stripe price ID for subscription  |
-| `RESEND_API_KEY`                 | Resend email API key              |
-| `CLOUDCONVERT_API_KEY`           | CloudConvert API key (DOCX)       |
-| `NEXT_PUBLIC_BASE_URL`           | Application base URL              |
+| Variable                         | Purpose                              |
+| -------------------------------- | ------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`       | Supabase project URL                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | Supabase anonymous key               |
+| `SUPABASE_SERVICE_ROLE_KEY`      | Supabase service role key            |
+| `ANTHROPIC_API_KEY`              | Claude API key                       |
+| `STRIPE_SECRET_KEY`              | Stripe secret key                    |
+| `STRIPE_WEBHOOK_SECRET`          | Stripe webhook signing secret        |
+| `STRIPE_PRICE_ID`                | Stripe price ID for subscription     |
+| `RESEND_API_KEY`                 | Resend email API key                 |
+| `CLOUDCONVERT_API_KEY`           | CloudConvert API key (DOCX)          |
+| `NEXT_PUBLIC_BASE_URL`           | Application base URL                 |
+| `LATEX_BACKEND_URL`              | URL of self-hosted latex-backend     |
+| `APIFY_API_KEY`                  | Apify API key (LinkedIn + job scraping) |
 
 ---
 
-_Last updated: 2026-03-18_
+_Last updated: 2026-04-29_

@@ -13,10 +13,12 @@ It is a multi-page control center where users can:
 - **Generate again quickly** — resume generation from the dashboard
 - **Find and reuse past generations** — search, filter, re-download
 - **Manage resume versions** — upload, set default, duplicate detection
-- **Manage saved job descriptions** — full CRUD with search/sort
+- **Track job applications** — Kanban board with stage tracking
+- **Check ATS scores** — score resumes against job descriptions
+- **Browse and discover jobs** — job search and discovery
 - **Access downloads easily** — centralized download center
 - **Understand credits and usage** — live credits, billing management
-- **Style and export** — full PDF editor + PDF/DOCX export modal
+- **Style and export** — full PDF editor with AI chat-edit + PDF/DOCX export
 - **See changes instantly via Realtime** — no refresh required
 
 ### Dashboard ≠ Onboarding
@@ -28,9 +30,9 @@ It is a multi-page control center where users can:
 
 ## 2) Core UX Principles
 
-1. **Fast repeat usage** — "Generate again" is always 1 click away.
+1. **Fast repeat usage** — "Tailor Resume" is always 1 click away.
 2. **Library-first retention** — Past Generations is the user's reliable, searchable, re-downloadable library.
-3. **Trust through transparency** — Credits are always visible (header pill, sidebar, credits page).
+3. **Trust through transparency** — Credits are always visible (sidebar footer).
 4. **No clutter** — Multi-page structure with consistent sidebar navigation.
 5. **Realtime-first** — Supabase Realtime subscriptions over polling. Dashboard updates instantly.
 
@@ -40,87 +42,70 @@ It is a multi-page control center where users can:
 
 ### Shell Components
 
-| Component          | File                                        | Purpose                                                |
-| ------------------ | ------------------------------------------- | ------------------------------------------------------ |
-| `DashboardLayout`  | `app/dashboard/layout.tsx`                  | Client component. Wraps everything in `CreditsProvider` |
-| `DashboardHeader`  | `components/dashboard/DashboardHeader.tsx`   | Fixed top bar with logo, feedback, credits pill, profile |
-| `DashboardSidebar` | `components/dashboard/DashboardSidebar.tsx`  | Fixed left sidebar (hidden on mobile, slide-in overlay) |
-| `ProfileDropdown`  | `components/shared/ProfileDropdown.tsx`       | Avatar dropdown with nav + account + support + logout   |
+| Component          | File                                        | Purpose                                                  |
+| ------------------ | ------------------------------------------- | -------------------------------------------------------- |
+| `DashboardLayout`  | `app/dashboard/layout.tsx`                  | Client component. Wraps everything in `CreditsProvider` + `SidebarProvider` |
+| `DashboardSidebar` | `components/dashboard/DashboardSidebar.tsx`  | Fixed left sidebar (brown `#805F4E` bg, white text, mobile drawer) |
+| `SidebarProvider`  | `providers/SidebarProvider.tsx`             | Context for mobile sidebar open/close state              |
+
+> **Note:** The top header bar was removed in alpha/v2.0. Layout is sidebar-only. Credits and user info live in the sidebar footer.
 
 ### Layout Structure
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  DashboardHeader (fixed, z-50)                       │
-│  [☰ mobile] [Logo]              [Feedback] [💳] [👤] │
-├──────────┬───────────────────────────────────────────┤
-│ Sidebar  │  <main> children                          │
-│ (w-64)   │  pt-14 md:pt-16, md:pl-64                │
-│          │                                           │
-│ ─────────│                                           │
-│ Dashboard│                                           │
-│ Generate │                                           │
-│ Past Gens│                                           │
-│ Saved JDs│                                           │
-│ Resumes  │                                           │
-│ Downloads│                                           │
-│ Credits  │                                           │
-│ ─────────│                                           │
-│ [Upgrade]│                                           │
-│ [Admin]  │                                           │
-│ [Logout] │                                           │
-└──────────┴───────────────────────────────────────────┘
+│ ┌─ Sidebar (w-64, fixed) ──┐ ┌─ <main> children ───┐ │
+│ │ [Logo]                   │ │ md:pl-64             │ │
+│ │ ─────────────────────── │ │                      │ │
+│ │ Dashboard                │ │                      │ │
+│ │ Browse Jobs              │ │                      │ │
+│ │ My Applications          │ │                      │ │
+│ │ My Resumes               │ │                      │ │
+│ │ Tailor Resume            │ │                      │ │
+│ │ Saved Jobs               │ │                      │ │
+│ │ ATS Checker              │ │                      │ │
+│ │ Settings                 │ │                      │ │
+│ │ ─────────────────────── │ │                      │ │
+│ │ [Upgrade to Pro]         │ │                      │ │
+│ │ [Admin Panel]            │ │                      │ │
+│ │ [Avatar] Name  [Logout]  │ │                      │ │
+│ └──────────────────────────┘ └──────────────────────┘ │
+└───────────────────────────────────────────────────────┘
 ```
-
-### Header Details
-
-- **Left**: Hamburger (mobile only) + Logo (links to `/`)
-- **Right**: Feedback button (`FeedbackButton`) + Credits pill (`CreditsPill`, links to `/dashboard/credits`) + Profile avatar (`ProfileDropdown`)
-- Fixed position, `h-14 md:h-16`
 
 ### Sidebar Details
 
-**Navigation links** (7 items):
+**Navigation links** (8 items):
 
-| Label              | Route                    | Icon        |
-| ------------------ | ------------------------ | ----------- |
-| Dashboard          | `/dashboard`             | `Home`      |
-| Generate           | `/dashboard/generate`    | `Sparkles`  |
-| Past Generations   | `/dashboard/generations` | `History`   |
-| Saved JDs          | `/dashboard/saved-jds`   | `Bookmark`  |
-| Resume Versions    | `/dashboard/resumes`     | `FileText`  |
-| Download Center    | `/dashboard/downloads`   | `Download`  |
-| Credits & Billing  | `/dashboard/credits`     | `CreditCard`|
+| Label           | Route                       | Icon          |
+| --------------- | --------------------------- | ------------- |
+| Dashboard       | `/dashboard`                | `Home`        |
+| Browse Jobs     | `/dashboard/job-search`     | `Search`      |
+| My Applications | `/dashboard/applications`   | `KanbanSquare`|
+| My Resumes      | `/dashboard/resumes`        | `FileText`    |
+| Tailor Resume   | `/dashboard/generate`       | `Scissors`    |
+| Saved Jobs      | `/dashboard/generations`    | `Bookmark`    |
+| ATS Checker     | `/dashboard/ats-checker`    | `ScanSearch`  |
+| Settings        | `/dashboard/settings`       | `Settings`    |
 
-**Bottom section:**
+**Sidebar footer:**
 
-- **Upgrade/Buy credits** button — conditionally shown based on purchase history + credit balance (hidden when `hasPurchasedBefore && credits > 15`)
-- **Admin Panel** button — conditionally shown when `/api/admin/check` returns `isAdmin: true`
-- **Sign Out** button
+- **Upgrade to Pro** button — conditionally shown based on purchase history + credit balance
+- **Admin Panel** link — visible only to admin users
+- **User info row** — avatar initial, display name, sign-out button
 
-**Active state**: Left accent border (`border-l-2 border-accent`) + raised background
+**Active state**: Left accent border (`border-l-2`) + raised background
 
-**Responsive behavior**: Desktop = always visible (`md:translate-x-0`), Mobile = slide-in overlay with backdrop blur
-
-### Profile Dropdown Sections
-
-| Section       | Contents                                               |
-| ------------- | ------------------------------------------------------ |
-| Account       | User email                                             |
-| Credits Row   | Clickable card → `/dashboard/credits`, shows count     |
-| Navigation    | Dashboard Home, Generate, Past Generations             |
-| Account Pages | Profile, Settings, Account Information                |
-| Support       | mailto: `support@atsresumie.com`                       |
-| Logout        | Sign out + redirect to `/`                             |
+**Responsive behavior**: Desktop = always visible (`md:translate-x-0`), Mobile = slide-in overlay via `SidebarProvider` context
 
 ---
 
 ## 4) Navigation Rules (Non-negotiable)
 
-- **Profile/Settings/Account** are in the **avatar dropdown only**, NOT in the sidebar.
-- Sidebar contains only "work/product" navigation.
+- There is **no top header bar** — layout is sidebar-only.
+- Settings is in the sidebar; profile/account remain accessible via settings page.
 - Admin panel link appears only for admin users.
-- The header is always visible across all `/dashboard/*` routes.
+- Mobile sidebar is toggled via `SidebarProvider` context (hamburger inside sidebar or page headers).
 
 ---
 
@@ -130,91 +115,103 @@ It is a multi-page control center where users can:
 
 | Route                         | Page                                  |
 | ----------------------------- | ------------------------------------- |
-| `/dashboard`                  | Dashboard Home (default)              |
-| `/dashboard/generate`         | Generate (dashboard version)          |
-| `/dashboard/generations`      | Past Generations (library)            |
-| `/dashboard/saved-jds`        | Saved Job Descriptions                |
-| `/dashboard/resumes`          | Resume Versions                       |
+| `/dashboard`                  | Dashboard Home                        |
+| `/dashboard/job-search`       | Browse Jobs (job discovery)           |
+| `/dashboard/applications`     | My Applications (Kanban board)        |
+| `/dashboard/resumes`          | My Resumes (resume versions)          |
+| `/dashboard/generate`         | Tailor Resume (generate)              |
+| `/dashboard/generations`      | Saved Jobs (past generations)         |
+| `/dashboard/ats-checker`      | ATS Checker                           |
+| `/dashboard/settings`         | Settings                              |
+
+### Other Dashboard Routes
+
+| Route                         | Page                                  |
+| ----------------------------- | ------------------------------------- |
+| `/dashboard/ats-scans`        | ATS Scan History                      |
 | `/dashboard/downloads`        | Download Center                       |
 | `/dashboard/credits`          | Credits & Billing                     |
-
-### Avatar Dropdown Routes
-
-| Route                         | Page                                  |
-| ----------------------------- | ------------------------------------- |
-| `/dashboard/profile`          | Profile                               |
-| `/dashboard/settings`         | Settings                              |
+| `/dashboard/profile`          | User Profile                          |
 | `/dashboard/account`          | Account Information                   |
-
-### Admin Route
-
-| Route                         | Page                                  |
-| ----------------------------- | ------------------------------------- |
 | `/dashboard/admin`            | Admin Panel (role-gated)              |
-
-### Editor Route
-
-| Route                              | Page                             |
-| ---------------------------------- | -------------------------------- |
-| `/dashboard/editor/[jobId]`        | PDF Editor for a specific job    |
+| `/dashboard/editor/[jobId]`   | PDF Editor for a specific job         |
 
 ---
 
-## 6) Page Details (What Each Page Does)
+## 6) Page Details
 
 ### `/dashboard` — Home ✅
 
-- **Quick Actions Grid**: Generate / View Generations / Resumes / Downloads
+- **Quick Actions Grid**: Tailor Resume / My Applications / My Resumes / ATS Checker
 - **Recent Generations Card**: Latest 5 generations with status, realtime updates
 - **Credits Card**: Current balance with visual indicator
-- **Components**: `QuickActionsGrid`, `RecentGenerationsCard`, `CreditsCard`
 
-### `/dashboard/generate` — Generate ✅
-
-Dashboard generator (not a clone of `/get-started`).
+### `/dashboard/generate` — Tailor Resume ✅
 
 - **JD input**: Paste or select from saved JDs
-- **Resume selection**: Choose from resume versions (`ResumeSelector`)
+- **Resume selection**: Choose from resume versions or import from LinkedIn (`ResumeSelector`)
 - **Mode selector**: Quick / Deep / From Scratch (`ModeSelector`)
-- **JD quality indicator**: Warns about too-short or incomplete JDs (`JdQualityIndicator`)
-- **Quick upload modal**: Upload resume inline (`QuickUploadModal`)
-- **Past generation picker**: Reuse JD from a previous generation (`PastGenerationPicker`)
+- **LinkedIn import**: Import profile via Apify integration
+- **JD quality indicator**: Warns about too-short or incomplete JDs
+- **Quick upload modal**: Upload resume inline
+- **Past generation picker**: Reuse JD from a previous generation
 - **Auto-save**: Draft JD autosaved via `useDraftJd` hook
-- **Components**: `ModeSelector`, `ResumeSelector`, `JdQualityIndicator`, `QuickUploadModal`, `PastGenerationPicker`
 
-### `/dashboard/generations` — Past Generations ✅
+### `/dashboard/generations` — Saved Jobs ✅
 
 The user's generation library with full management capabilities.
 
-- **Job rows**: Title, company, mode, status badges, date, credits used (`GenerationJobRow`)
-- **Status badges**: Queued → Processing → Succeeded/Failed + PDF status (`JobStatusBadge`)
-- **Filters**: Status, date range, mode (`GenerationsFilters`)
-- **Details drawer**: Full generation details with actions (`GenerationDetailsDrawer`)
-- **Delete**: Confirmation dialog (`DeleteJobDialog`)
+- **Job rows**: Title, company, mode, status badges, date, credits used
+- **Status badges**: Queued → Processing → Succeeded/Failed + PDF status
+- **Filters**: Status, date range, mode
+- **Details drawer**: Full generation details with actions
+- **Delete**: Confirmation dialog
 - **Realtime**: Instant updates via `useGenerations` hook
 - **Actions**: View result, Download PDF/DOCX, Re-generate, Delete
-- **Components**: `GenerationJobRow`, `GenerationsFilters`, `GenerationDetailsDrawer`, `DeleteJobDialog`
 
-### `/dashboard/saved-jds` — Saved JDs ✅
+### `/dashboard/applications` — My Applications ✅
 
-Full CRUD for reusable job descriptions.
+Kanban-style job application tracker.
 
-- **Fields**: Label (required), Company, Source URL (optional), JD text (required)
-- **Use-to-generate**: One-click prefills Generate page via localStorage
-- **CRUD**: Create, Edit, Delete with confirmation
-- **Search**: By label/company
-- **Sort**: Newest/Oldest
-- **Realtime**: Updates across tabs via `useSavedJds` hook
+- **Stages**: Saved → Applied → Interview → Offer → Rejected
+- **Components**: `ApplicationBoard`, `ApplicationDetailModal`, `ApplicationModal`, `DeleteApplicationDialog`
+- **Drag-and-drop**: Move applications between columns
+- **Detail view**: Full application details with notes, dates, salary, source URL
+- **Realtime**: Via `useJobApplications` hook
 
-### `/dashboard/resumes` — Resume Versions ✅
+> **Note**: `screening` stage was replaced with `rejected` in migration `20260326000000_replace_screening_with_rejected.sql`.
+
+### `/dashboard/resumes` — My Resumes ✅
 
 Resume file management with version control.
 
+- **Card grid**: Resume cards with preview (`ResumePreviewCard`), zoom, and Quick Tailor sidebar
 - **Upload**: PDF/DOCX with drag-and-drop
 - **Set default**: Mark a resume as the default for generation
 - **Duplicate detection**: Warns when uploading an identical file
 - **Delete**: With guard for default resume
+- **Delete button**: Accessible from resume cards
 - **Realtime**: Via `useResumeVersions` hook
+
+### `/dashboard/ats-checker` — ATS Checker ✅
+
+Full ATS score checker with keyword analysis.
+
+- **Resume selector**: Choose from generated resumes or uploaded versions
+- **Score ring**: `AtsRing` visualization of ATS compatibility score
+- **Keyword bars**: `KeywordBars` showing matched vs. missing keywords
+- **Scan on demand**: Calls `/api/ats-check` and `/api/ats-score`
+- **Score persistence**: ATS scores cached on `resume_versions` to avoid re-fetching (`useAtsScores` hook)
+- **History link**: Links to `/dashboard/ats-scans`
+
+### `/dashboard/ats-scans` — ATS Scan History ✅
+
+Historical log of all ATS scans.
+
+- **Scan list**: Ordered by date, shows resume label, score, and job description snippet
+- **Expandable rows**: Full score breakdown on click
+- **Score coloring**: Green ≥ 70, yellow 40–69, red < 40
+- **Data hook**: `useAtsScans` with Supabase Realtime
 
 ### `/dashboard/downloads` — Download Center ✅
 
@@ -224,110 +221,67 @@ Centralized access to all exported files.
 - **Search/sort**: By date, job title
 - **Download**: Direct download without opening a generation
 - **Source link**: Links back to the source generation
-- **Data hook**: `useDownloads`
 
 ### `/dashboard/credits` — Credits & Billing ✅
 
 Full credits and subscription management.
 
 - **Credits remaining**: Live count with realtime updates
-- **Credit cost explanation**: What uses credits (generation only)
-- **Credit history**: Based on generation history (`useCreditHistory`)
-- **Purchase history**: Stripe purchases (`usePurchaseHistory`)
+- **Credit history**: Based on generation history
+- **Purchase history**: Stripe purchases
 - **Buy/Upgrade**: Stripe checkout integration
-- **Billing Management** (via `useBilling` hook):
-    - Subscription status display (Active / Canceling / Past Due / Canceled)
-    - Renewal + cancellation date display
-    - "Manage billing" button → Stripe Customer Portal
-    - Portal handles: payment methods, invoices, cancellation
+- **Billing Management**: Subscription status, renewal/cancellation dates, Stripe Customer Portal
 
 > **Gotcha:** Stripe Customer Portal sets `cancel_at` (a timestamp) rather than `cancel_at_period_end: true`. The `useBilling` hook checks both.
 
-### `/dashboard/profile` — Profile ✅
-
-User profile management via avatar dropdown.
-
-- Name, email, role/title
-- Core skills, preferred industries
-- Location (optional)
-
-### `/dashboard/settings` — Settings ✅
-
-Account settings via avatar dropdown.
-
-- Password/auth methods
-- Connected provider (Google)
-- Email preferences
-
-### `/dashboard/account` — Account Information ✅
-
-Account details via avatar dropdown.
-
-- Plan type
-- Subscription details
-
 ### `/dashboard/editor/[jobId]` — PDF Editor ✅
 
-Full-featured PDF styling editor (see `docs/CANVAS.md` for full architecture).
+Full-featured PDF styling editor with AI chat-edit (see `docs/CANVAS.md` for full architecture).
 
 - **PDF.js Preview**: Scrollable all-pages view with zoom (50–300%)
-- **HiDPI**: Canvas renders at `scale × devicePixelRatio` for Retina
 - **Style Controls**: Font family, page size, margins, font size, line height, section spacing
-- **Auto-Recompile**: 800ms debounce after style changes
-- **Export Modal**: Unified PDF/DOCX download (`ExportModal` + `useExportModal`)
-- **Components**: `EditorControls`, `ResumeEditorShell`, `ResumeContent`, `ResumePreview`, `PdfJsPreview`, `StyleControls`, `EditorLoadingState`, `EditorErrorState`
+- **Chat Edit Panel**: AI-powered LaTeX editing via natural language (`ChatPanel` + `useChatEdit`)
+- **Final PDF Snapshot**: Persisted and hydrated from DB on revisit
+- **Export Modal**: Unified PDF/DOCX download
 
 ### `/dashboard/admin` — Admin Panel ✅
 
-Role-gated admin dashboard (see `CONTEXT.md` § Admin Panel for full details).
+Role-gated admin dashboard.
 
 - **Access**: Gated by admin role check (`/api/admin/check`)
 - **Features**: User management, credit adjustments, email sending, generation stats, overview metrics
-- **Components**: `AdminAccessDenied`, `AdminSidebar`, `OverviewMetrics`, `CreditAdjustDialog`, `EmailSendDialog`
 
 ---
 
-## 7) Shared Components
+## 7) Hooks
 
-| Component               | File                                           | Usage                                     |
-| ------------------------ | ---------------------------------------------- | ----------------------------------------- |
-| `CreditsPill`            | `components/shared/CreditsPill.tsx`            | Header credits display                    |
-| `ProfileDropdown`        | `components/shared/ProfileDropdown.tsx`         | Avatar dropdown menu                      |
-| `EmptyState`             | `components/shared/EmptyState.tsx`              | Reusable empty-state placeholder          |
-| `ErrorState`             | `components/shared/ErrorState.tsx`              | Reusable error display                    |
-| `JobStatusBadge`         | `components/shared/JobStatusBadge.tsx`          | Job status badge (queued/processing/etc.) |
-| `FeedbackModal`          | `components/dashboard/FeedbackModal.tsx`        | User feedback submission modal            |
-| `ExportModal`            | `components/dashboard/ExportModal.tsx`          | PDF/DOCX export download modal            |
-
----
-
-## 8) Hooks
-
-All dashboard hooks are in the `hooks/` directory:
-
-| Hook                   | Purpose                                         | Realtime? |
-| ---------------------- | ----------------------------------------------- | --------- |
-| `useAuth`              | Auth state (user, signOut)                      | —         |
-| `useAuthIntent`        | Preserve + restore auth intent after login      | —         |
-| `useCredits`           | Credits count with realtime subscription        | ✅        |
-| `useCreditHistory`     | Credit usage history from generations           | —         |
-| `useDownloads`         | Download center data                            | —         |
-| `useDraftJd`           | Auto-save draft JD text on Generate page        | —         |
-| `useExportModal`       | Export modal state management (PDF/DOCX)        | —         |
-| `useGenerations`       | Generations list with realtime + filters        | ✅        |
-| `useJobPolling`        | Legacy polling (deprecated)                     | —         |
-| `useJobRealtime`       | Supabase Realtime subscription for single job   | ✅        |
-| `useProfile`           | User profile data                               | —         |
-| `usePurchaseHistory`   | Stripe purchase history                         | —         |
-| `useBilling`           | Subscription billing state                      | —         |
-| `useRecentGenerations` | Dashboard home recent generations widget        | ✅        |
-| `useResumeVersions`    | Resume versions CRUD with realtime              | ✅        |
-| `useSavedJds`          | Saved JDs CRUD with realtime                    | ✅        |
-| `useUserResume`        | Fetch user's latest resume                      | —         |
+| Hook                   | Purpose                                           | Realtime? |
+| ---------------------- | ------------------------------------------------- | --------- |
+| `useAuth`              | Auth state (user, signOut)                        | —         |
+| `useAuthIntent`        | Preserve + restore auth intent after login        | —         |
+| `useCredits`           | Credits count with realtime subscription          | ✅        |
+| `useCreditHistory`     | Credit usage history from generations             | —         |
+| `useDownloads`         | Download center data                              | —         |
+| `useDraftJd`           | Auto-save draft JD text on Generate page          | —         |
+| `useExportModal`       | Export modal state management (PDF/DOCX)          | —         |
+| `useGenerations`       | Generations list with realtime + filters          | ✅        |
+| `useJobApplications`   | Job application CRUD + Supabase Realtime          | ✅        |
+| `useAtsScores`         | ATS scores per resume version (with cache)        | —         |
+| `useAtsScans`          | ATS scan history with Realtime                    | ✅        |
+| `useChatEdit`          | Chat-based LaTeX editing in the canvas editor     | —         |
+| `useJobPolling`        | Legacy polling (deprecated)                       | —         |
+| `useJobRealtime`       | Supabase Realtime subscription for single job     | ✅        |
+| `useProfile`           | User profile data                                 | —         |
+| `usePurchaseHistory`   | Stripe purchase history                           | —         |
+| `useBilling`           | Subscription billing state                        | —         |
+| `useRecentGenerations` | Dashboard home recent generations widget          | ✅        |
+| `useResumeVersions`    | Resume versions CRUD with realtime                | ✅        |
+| `useSavedJds`          | Saved JDs CRUD with realtime                      | ✅        |
+| `useUserResume`        | Fetch user's latest resume                        | —         |
 
 ---
 
-## 9) Realtime Architecture
+## 8) Realtime Architecture
 
 ### Strategy
 
@@ -337,76 +291,64 @@ All dashboard hooks are in the `hooks/` directory:
 
 ### Realtime Scope
 
-| Surface               | What updates                                          | Hook                |
-| ---------------------- | ---------------------------------------------------- | ------------------- |
-| Past Generations list  | Job status, new jobs, PDF status changes             | `useGenerations`    |
-| Dashboard Home         | Recent generations, processing indicators            | `useRecentGenerations` |
-| Credits (everywhere)   | Credits count after deduction or purchase             | `useCredits`        |
-| Resume Versions        | New uploads, deletions, default changes              | `useResumeVersions` |
-| Saved JDs              | Creates, edits, deletes                              | `useSavedJds`       |
-| Editor job status      | Single-job status + PDF readiness                    | `useJobRealtime`    |
-
-### UX Expectations
-
-- Status changes animate subtly (badge transitions).
-- New items appear at the top (newest first by default).
-- Failed jobs show clear retry actions + failure messages in the details drawer.
+| Surface               | What updates                                          | Hook                  |
+| ---------------------- | ---------------------------------------------------- | --------------------- |
+| Past Generations list  | Job status, new jobs, PDF status changes             | `useGenerations`      |
+| Dashboard Home         | Recent generations, processing indicators            | `useRecentGenerations`|
+| Credits (everywhere)   | Credits count after deduction or purchase             | `useCredits`          |
+| Resume Versions        | New uploads, deletions, default changes              | `useResumeVersions`   |
+| Saved JDs              | Creates, edits, deletes                              | `useSavedJds`         |
+| Editor job status      | Single-job status + PDF readiness                    | `useJobRealtime`      |
+| Job Applications       | Stage moves, new applications, deletions             | `useJobApplications`  |
+| ATS Scan History       | New scan results                                     | `useAtsScans`         |
 
 ---
 
-## 10) Auth Protection
+## 9) Auth Protection
 
 All dashboard routes are **protected** via Next.js middleware (`middleware.ts`).
 
-### Behavior
-
-- If a user is **not authenticated** and visits any `/dashboard/*` route:
-    - Redirect to `/` with `?authRequired=true&next=/dashboard/...`
-    - After login, redirect back to the originally requested route.
-- Dashboard API endpoints enforce **server-side authorization**: authenticated `user_id` must match data owner.
+- Unauthenticated visits to `/dashboard/*` redirect to `/?authRequired=true&next=/dashboard/...`
+- After login, redirects back to the originally requested route.
+- Dashboard API endpoints enforce server-side authorization.
 - Admin endpoints additionally check admin role via `lib/admin/guard.ts`.
 
-### Acceptance Criteria
+---
 
-- ✅ Logged-out users cannot view any dashboard content.
-- ✅ Authenticated users access dashboard routes normally.
-- ✅ Redirect preserves intended destination after login.
-- ✅ All data reads/writes are ownership-validated server-side.
-- ✅ Admin routes are additionally role-gated.
+## 10) Implementation Status
+
+| Feature                                       | Status |
+| --------------------------------------------- | ------ |
+| Dashboard Shell (sidebar-only layout)          | ✅     |
+| Mobile sidebar drawer (`SidebarProvider`)      | ✅     |
+| Dashboard Home (overview + quick actions)      | ✅     |
+| Past Generations / Saved Jobs                  | ✅     |
+| Tailor Resume (generate with modes)            | ✅     |
+| LinkedIn profile import                        | ✅     |
+| Credits & Billing (with Stripe portal)         | ✅     |
+| Saved JDs (full CRUD + realtime)               | ✅     |
+| My Resumes (card grid + ResumePreviewCard)     | ✅     |
+| Download Center                                | ✅     |
+| Profile / Settings / Account                  | ✅     |
+| PDF Editor (with AI chat-edit + export modal)  | ✅     |
+| Job Application Tracker (Kanban)               | ✅     |
+| ATS Checker (score + keyword analysis)         | ✅     |
+| ATS Scan History                               | ✅     |
+| Admin Panel (role-gated)                       | ✅     |
+| Realtime across all surfaces                   | ✅     |
+| Browse Jobs / Job Discovery                    | 🚧     |
 
 ---
 
-## 11) Implementation Status
+## 11) Guardrails
 
-All phases are **complete**:
-
-| Phase | Feature                                    | Status |
-| ----- | ------------------------------------------ | ------ |
-| 1     | Dashboard Shell (layout + sidebar)         | ✅     |
-| 2     | Dashboard Home (overview + quick actions)  | ✅     |
-| 3     | Past Generations (with filters + drawer)   | ✅     |
-| 4     | Generate (with modes + resume selection)   | ✅     |
-| 5     | Credits & Billing (with Stripe portal)     | ✅     |
-| 6     | Saved JDs (full CRUD + realtime)           | ✅     |
-| 7     | Resume Versions (with duplicate detection) | ✅     |
-| 8     | Download Center                            | ✅     |
-| 9     | Profile / Settings / Account               | ✅     |
-| 10    | PDF Editor (with live preview + export)    | ✅     |
-| 11    | Admin Panel (role-gated)                   | ✅     |
-| 12    | Export Modal (PDF + DOCX)                  | ✅     |
-| 13    | Realtime across all surfaces               | ✅     |
-
----
-
-## 12) Guardrails
-
-- Do not add Profile/Settings/Account to the sidebar.
-- Do not remove or redesign the existing top nav / profile dropdown structure.
-- Do not build a "single huge dashboard page" with everything stacked.
-- Keep the dashboard focused on repeat usage + library.
+- No top header bar — sidebar-only layout.
+- Do not add a standalone header component back.
+- Sidebar nav is for "work/product" routes only.
 - Realtime updates are the default — never fall back to "refresh to see."
 - Admin-only features must always be gated by role check.
+- ATS scores must be persisted to `resume_versions` — never re-fetch on every page load.
 
 ---
 
-_Last updated: 2026-03-09_
+_Last updated: 2026-04-29_
