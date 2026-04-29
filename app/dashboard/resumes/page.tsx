@@ -1,41 +1,35 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Upload, FileText, Download, Star } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	useResumeVersions,
+	getRelativeTime,
 	type ResumeVersion,
 } from "@/hooks/useResumeVersions";
+import { useCredits } from "@/hooks/useCredits";
+import { useAtsScores } from "@/hooks/useAtsScores";
 import { UploadResumeModal } from "@/components/dashboard/resumes/UploadResumeModal";
 import { DeleteResumeDialog } from "@/components/dashboard/resumes/DeleteResumeDialog";
 import { ViewResumeTextModal } from "@/components/dashboard/resumes/ViewResumeTextModal";
-import { ResumeVersionsTable } from "@/components/dashboard/resumes/ResumeVersionsTable";
 
 function PageSkeleton() {
 	return (
-		<div className="space-y-6">
-			{/* Header skeleton */}
-			<div className="flex items-center justify-between">
-				<div>
-					<Skeleton className="h-8 w-48 mb-2" />
-					<Skeleton className="h-4 w-64" />
+		<div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6" style={{ maxWidth: "1128px", margin: "0 auto" }}>
+			<div className="space-y-6">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					{[1, 2, 3, 4].map((i) => (
+						<Skeleton key={i} className="h-44 w-full rounded-xl" />
+					))}
 				</div>
-				<Skeleton className="h-10 w-40" />
+				<Skeleton className="h-32 w-full rounded-xl" />
 			</div>
-			{/* List skeleton */}
-			<div className="rounded-lg border border-border/50 bg-card/50 divide-y divide-border/30">
-				{[1, 2, 3].map((i) => (
-					<div key={i} className="flex items-center gap-4 p-4">
-						<Skeleton className="h-10 w-10 rounded-lg" />
-						<div className="flex-1 space-y-2">
-							<Skeleton className="h-4 w-48" />
-							<Skeleton className="h-3 w-32" />
-						</div>
-						<Skeleton className="h-8 w-8 rounded-md" />
-					</div>
-				))}
+			<div className="space-y-4">
+				<Skeleton className="h-64 w-full rounded-xl" />
+				<Skeleton className="h-20 w-full rounded-xl" />
 			</div>
 		</div>
 	);
@@ -44,22 +38,31 @@ function PageSkeleton() {
 function ResumeVersionsContent() {
 	const {
 		resumes,
-		isLoading,
+		defaultResume,
 		error,
 		uploadResume,
 		setDefault,
 		deleteResume,
 		isMutating,
 	} = useResumeVersions();
+	const { credits } = useCredits();
+	const { getScore } = useAtsScores(resumes);
 
 	// Modal/dialog states
 	const [uploadModalOpen, setUploadModalOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [viewTextModalOpen, setViewTextModalOpen] = useState(false);
-	const [selectedResume, setSelectedResume] = useState<ResumeVersion | null>(
-		null,
-	);
+	const [selectedResume, setSelectedResume] = useState<ResumeVersion | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
+
+	// Quick tailor state
+	const [quickJd, setQuickJd] = useState("");
+	const [quickResumeId, setQuickResumeId] = useState<string | null>(null);
+
+	// Auto-select default resume for quick tailor
+	const quickResume = quickResumeId
+		? resumes.find((r) => r.id === quickResumeId)
+		: defaultResume;
 
 	// Handlers
 	const handleSetDefault = async (resume: ResumeVersion) => {
@@ -78,11 +81,9 @@ function ResumeVersionsContent() {
 
 	const handleDeleteConfirm = async () => {
 		if (!selectedResume) return;
-
 		setIsDeleting(true);
 		const success = await deleteResume(selectedResume.id);
 		setIsDeleting(false);
-
 		if (success) {
 			setDeleteDialogOpen(false);
 			setSelectedResume(null);
@@ -94,50 +95,141 @@ function ResumeVersionsContent() {
 	};
 
 	return (
-		<div className="space-y-6">
-			{/* Header */}
-			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-				<div>
-					<h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-						Resume Versions
-					</h1>
-					<p className="mt-1 text-muted-foreground">
-						Manage your resume versions and set your default resume.
+		<div
+			className="grid grid-cols-1 lg:grid-cols-[1fr_320px] items-start mx-auto"
+			style={{ maxWidth: "1128px", gap: "24px" }}
+		>
+			{/* LEFT — Resume Cards Grid + Upload */}
+			<div className="space-y-6">
+				{/* Error */}
+				{error && (
+					<div className="rounded-lg border border-error/20 bg-error-muted p-3">
+						<p className="text-sm text-error">{error}</p>
+					</div>
+				)}
+
+				{/* Cards grid */}
+				{resumes.length > 0 ? (
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						{resumes.map((resume) => {
+							const atsScore = getScore(resume.id);
+							return (
+								<ResumeCard
+									key={resume.id}
+									resume={resume}
+									onPreview={handleViewText}
+									onDelete={handleDeleteClick}
+									onSetDefault={handleSetDefault}
+									isMutating={isMutating}
+									atsScore={atsScore.score}
+									atsLoading={atsScore.loading}
+								/>
+							);
+						})}
+					</div>
+				) : (
+					<div className="text-center py-12 text-text-tertiary text-sm">
+						No resumes uploaded yet. Upload your first resume below.
+					</div>
+				)}
+
+				{/* Upload area */}
+				<div
+					className="rounded-xl border-2 border-dashed border-border-visible py-10 px-6 text-center cursor-pointer hover:border-accent/40 transition-colors"
+					onClick={() => setUploadModalOpen(true)}
+				>
+					<Upload className="mx-auto h-7 w-7 text-text-tertiary mb-2" />
+					<p className="text-base font-semibold text-text-primary">
+						Upload New Resume or Tailor Existing
+					</p>
+					<p className="text-sm text-text-tertiary mt-1">
+						PDF or DOCX · Drag & drop or click to browse
 					</p>
 				</div>
-				<Button
-					onClick={() => setUploadModalOpen(true)}
-					disabled={isMutating}
-				>
-					<Plus className="mr-2 h-4 w-4" />
-					Upload new resume
-				</Button>
 			</div>
 
-			{/* Error message */}
-			{error && (
-				<div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4">
-					<p className="text-sm text-red-400">{error}</p>
+			{/* RIGHT — Quick Tailor sidebar */}
+			<div className="space-y-4 lg:sticky lg:top-20">
+				<div className="rounded-xl border border-border-visible bg-surface-raised p-5">
+					<h3 className="text-lg font-semibold text-text-primary font-body">
+						Quick Tailor
+					</h3>
+					<p className="text-xs text-text-tertiary mt-0.5 mb-4">
+						Select a resume + paste a JD to get started
+					</p>
+
+					{/* 1. Choose base resume */}
+					<div className="mb-4">
+						<label className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
+							<span className="w-5 h-5 rounded-full bg-text-primary text-white text-xs flex items-center justify-center font-bold">1</span>
+							Choose base resume
+						</label>
+						<select
+							value={quickResume?.id || ""}
+							onChange={(e) => setQuickResumeId(e.target.value || null)}
+							className="w-full mt-2 h-10 px-3 rounded-lg border border-border-visible bg-surface-raised text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+						>
+							{resumes.map((r) => (
+								<option key={r.id} value={r.id}>
+									{r.label}
+								</option>
+							))}
+						</select>
+					</div>
+
+					{/* 2. Paste job description */}
+					<div className="mb-4">
+						<label className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
+							<span className="w-5 h-5 rounded-full bg-text-primary text-white text-xs flex items-center justify-center font-bold">2</span>
+							Paste job description
+						</label>
+						<Textarea
+							value={quickJd}
+							onChange={(e) => setQuickJd(e.target.value)}
+							placeholder="Paste the full job description"
+							rows={6}
+							className="mt-2 resize-none text-sm border-border-visible bg-surface-raised"
+						/>
+					</div>
+
+					{/* Generate button */}
+					<Link
+						href={`/dashboard/generate${quickJd.trim() ? "" : ""}`}
+						onClick={() => {
+							if (quickJd.trim()) {
+								try {
+									localStorage.setItem("atsresumie_generate_prefill_jd", quickJd.trim());
+								} catch {}
+							}
+						}}
+					>
+						<button
+							className="w-full py-3 rounded-full text-sm font-semibold text-white bg-cta hover:bg-cta-hover transition-colors"
+						>
+							Generate Tailor Resume
+						</button>
+					</Link>
 				</div>
-			)}
 
-			{/* Resume list */}
-			<ResumeVersionsTable
-				resumes={resumes}
-				isLoading={isLoading}
-				onSetDefault={handleSetDefault}
-				onViewText={handleViewText}
-				onDelete={handleDeleteClick}
-			/>
+				{/* Credits info */}
+				{credits !== null && (
+					<div className="rounded-xl border border-border-visible bg-surface-raised p-4">
+						<p className="text-sm font-semibold text-text-primary">
+							{credits} credits Remaining
+						</p>
+						<p className="text-xs text-text-tertiary mt-0.5">
+							1 credit per generation · Resets monthly
+						</p>
+					</div>
+				)}
+			</div>
 
-			{/* Upload modal */}
+			{/* Modals */}
 			<UploadResumeModal
 				open={uploadModalOpen}
 				onOpenChange={setUploadModalOpen}
 				onUpload={handleUpload}
 			/>
-
-			{/* Delete confirmation dialog */}
 			<DeleteResumeDialog
 				open={deleteDialogOpen}
 				onOpenChange={setDeleteDialogOpen}
@@ -146,8 +238,6 @@ function ResumeVersionsContent() {
 				isDeleting={isDeleting}
 				onConfirm={handleDeleteConfirm}
 			/>
-
-			{/* View text modal */}
 			<ViewResumeTextModal
 				open={viewTextModalOpen}
 				onOpenChange={setViewTextModalOpen}
@@ -158,12 +248,167 @@ function ResumeVersionsContent() {
 	);
 }
 
+// ─── Resume Card ────────────────────────────────────────────────────────────
+
+/**
+ * Returns color classes for an ATS score value.
+ */
+function getScoreColor(score: number): {
+	text: string;
+	border: string;
+	bg: string;
+} {
+	if (score >= 70) return { text: "text-success", border: "border-success/30", bg: "bg-success-muted" };
+	if (score >= 40) return { text: "text-amber-400", border: "border-amber-400/30", bg: "bg-amber-400/10" };
+	return { text: "text-red-400", border: "border-red-400/30", bg: "bg-red-400/10" };
+}
+
+function ResumeCard({
+	resume,
+	onPreview,
+	onDelete,
+	onSetDefault,
+	isMutating,
+	atsScore,
+	atsLoading,
+}: {
+	resume: ResumeVersion;
+	onPreview: (r: ResumeVersion) => void;
+	onDelete: (r: ResumeVersion) => void;
+	onSetDefault: (r: ResumeVersion) => void;
+	isMutating: boolean;
+	atsScore: number | null;
+	atsLoading: boolean;
+}) {
+	const openPreview = () => onPreview(resume);
+	const scoreColor = atsScore !== null ? getScoreColor(atsScore) : null;
+
+	return (
+		<div className="relative rounded-xl border border-border-visible bg-surface-raised flex flex-col overflow-hidden">
+			{/* ATS Score stamp — top-right corner */}
+			<div className="absolute top-3 right-3 z-10">
+				{atsLoading ? (
+					<div className="w-10 h-10 rounded-full bg-surface-inset border border-border-subtle animate-pulse flex items-center justify-center">
+						<span className="text-[10px] text-text-tertiary">…</span>
+					</div>
+				) : atsScore !== null ? (
+					<div
+						className={`w-10 h-10 rounded-full border-2 ${scoreColor!.border} ${scoreColor!.bg} flex items-center justify-center transition-all`}
+						title={`ATS Score: ${atsScore}%`}
+					>
+						<span className={`text-xs font-bold ${scoreColor!.text}`}>
+							{atsScore}
+						</span>
+					</div>
+				) : null}
+			</div>
+
+			{/* Clickable body — opens read-only preview */}
+			<button
+				type="button"
+				onClick={openPreview}
+				className="text-left p-4 flex flex-col flex-1 rounded-t-xl hover:bg-surface-inset/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+				aria-label={`Preview resume: ${resume.label}`}
+			>
+				<div className="flex items-start gap-3 mb-3">
+					<div className="w-10 h-10 rounded-lg bg-surface-inset border border-border-subtle flex items-center justify-center shrink-0">
+						<FileText size={18} className="text-text-tertiary" />
+					</div>
+					<div className="min-w-0 flex-1 pr-12">
+						<p className="text-sm font-semibold text-text-primary truncate">
+							{resume.label}
+						</p>
+						<p className="text-xs text-text-secondary truncate mt-0.5">
+							Tailored for {resume.file_name}
+						</p>
+					</div>
+				</div>
+
+				<div className="flex items-center gap-2 mb-3">
+					{resume.is_default && (
+						<span className="text-[10px] font-medium px-2 py-0.5 rounded border border-accent/30 text-accent bg-accent-muted">
+							Default
+						</span>
+					)}
+				</div>
+
+				<p className="text-xs text-text-tertiary">
+					Updated {getRelativeTime(resume.updated_at)}
+				</p>
+			</button>
+
+			{/* Actions — do not open preview */}
+			<div
+				className="flex flex-wrap items-center gap-2 px-4 pb-4 pt-1 border-t border-border-visible/60"
+				onClick={(e) => e.stopPropagation()}
+			>
+				{!resume.is_default && (
+					<button
+						type="button"
+						onClick={() => onSetDefault(resume)}
+						disabled={isMutating}
+						className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border-visible text-xs font-medium text-text-primary hover:bg-surface-inset transition-colors disabled:opacity-50"
+					>
+						<Star size={14} className="text-accent" />
+						Set as default
+					</button>
+				)}
+				<button
+					type="button"
+					className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-accent hover:bg-accent-hover transition-colors"
+				>
+					Download PDF
+				</button>
+				<button
+					type="button"
+					onClick={() => onDelete(resume)}
+					className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-border-visible text-text-tertiary hover:text-red-400 hover:border-red-400/30 transition-colors ml-auto"
+					title="Delete resume"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+				</button>
+			</div>
+		</div>
+	);
+}
+
 export default function ResumeVersionsPage() {
 	return (
-		<div className="p-6 md:p-8">
+		<div className="applications-page p-6 md:p-8 min-h-screen" style={{ backgroundColor: "var(--surface-base)" }}>
+			{/* Header */}
+			<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between" style={{ maxWidth: "1128px", margin: "0 auto 1.5rem" }}>
+				<div>
+					<h1 className="text-2xl font-semibold tracking-tight text-text-primary md:text-3xl">
+						My Resumes
+					</h1>
+					<p className="mt-1.5 text-sm text-text-secondary">
+						<Suspense fallback="Loading...">
+							<ResumeStats />
+						</Suspense>
+					</p>
+				</div>
+				<Link
+					href="/dashboard/generate"
+					className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-accent hover:bg-accent-hover transition-colors flex-shrink-0"
+				>
+					Tailor New Version
+				</Link>
+			</div>
+
 			<Suspense fallback={<PageSkeleton />}>
 				<ResumeVersionsContent />
 			</Suspense>
 		</div>
+	);
+}
+
+function ResumeStats() {
+	const { resumes } = useResumeVersions();
+	const lastUpdated = resumes.length > 0 ? getRelativeTime(resumes[0].updated_at) : null;
+	return (
+		<>
+			{resumes.length} saved version{resumes.length !== 1 ? "s" : ""}
+			{lastUpdated && ` · Last tailored ${lastUpdated}`}
+		</>
 	);
 }

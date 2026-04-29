@@ -1,231 +1,219 @@
-"use client";
+import {
+	CircleAlert,
+	CheckCircle2,
+	Sparkles,
+	CircleX,
+	Check,
+} from "lucide-react";
 
-import { useState } from "react";
-import { X, Check, ArrowRight } from "lucide-react";
-
-/**
- * BeforeAfter Component - Client Component (for toggle state)
- * Uses CSS transitions instead of framer-motion
- */
-
-const beforeBullets = [
-	{
-		label: "General Resume",
-		bullet: "Managed various projects and contributed to team goals across departments",
-	},
-	{
-		label: "General Resume",
-		bullet: "Worked with databases and backend systems to improve performance",
-	},
-	{
-		label: "General Resume",
-		bullet: "Helped develop software solutions for internal and external use",
-	},
+const beforeItems = [
+	"Managed projects and contributed to team goals",
+	"Worked with databases to improve performance",
+	"Helped develop software solutions",
 ];
 
-const afterBullets = [
-	{
-		label: "Tailored for this Job",
-		bullet: "Led migration of 3 legacy services to AWS, reducing deployment time by 40%",
-	},
-	{
-		label: "Tailored for this Job",
-		bullet: "Optimized PostgreSQL queries processing 2M+ records/day, cutting latency by 60%",
-	},
-	{
-		label: "Tailored for this Job",
-		bullet: "Built CI/CD pipeline with GitHub Actions adopted by 4 engineering teams",
-	},
+const afterItems = [
+	"Led migration of 3 legacy services to AWS, reducing deployment time by 40%",
+	"Optimized PostgreSQL queries processing 2M+ records/day, cutting latency 60%",
+	"Built CI/CD pipeline with GitHub Actions adopted by 4 teams",
 ];
 
-/* Mini before/after examples — compact, anonymized */
-const miniExamples = [
-	{
-		before: "Responsible for customer communications and issue resolution",
-		after: "Resolved 50+ customer tickets/week via Zendesk, maintaining 96% CSAT score",
-		role: "Customer Support",
-	},
-	{
-		before: "Analyzed data and created reports for management",
-		after: "Built automated Tableau dashboards tracking $2M pipeline, reducing reporting time by 70%",
-		role: "Data Analyst",
-	},
-];
+const matchedSkills = ["React", "TypeScript", "CI/CD"];
+const missingSkills = ["AWS", "GraphQL"];
 
-const commonRoles = [
-	"Software Engineer",
-	"Data Analyst",
-	"Sales Associate",
-	"Restaurant Supervisor",
-	"Customer Support",
+const checklistItems = [
+	{ label: "Contact Info", status: "pass" as const },
+	{ label: "Work experience", status: "pass" as const },
+	{ label: "Skill match", status: "pass" as const },
+	{ label: "Keyword coverage", status: "improve" as const },
 ];
 
 export const BeforeAfter = () => {
-	const [showAfter, setShowAfter] = useState(false);
-
 	return (
-		<section className="relative py-24 md:py-32 overflow-hidden">
-			{/* Background gradient */}
-			<div className="absolute inset-0 bg-gradient-to-b from-surface-base via-surface-raised/10 to-surface-base" />
-
-			<div className="container mx-auto relative z-10">
-				{/* Section header */}
-				<div className="text-center mb-12 md:mb-16 animate-fade-in-up">
-					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
-						The transformation
+		<section className="bg-surface-inset py-10 px-4 md:px-[116px]">
+			<div className="flex flex-col lg:flex-row items-center justify-between gap-12 max-w-[1208px] mx-auto">
+				{/* Left text */}
+				<div className="flex flex-col gap-5 max-w-[476px]">
+					<h2 className="font-display text-[28px] md:text-[36px] font-bold leading-tight text-text-primary">
+						More than a resume generator
 					</h2>
-					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
-						See how ATSResumie creates an ATS-friendly resume
-						tailored to the role
+					<p className="text-text-secondary text-base">
+						Paste a job description. Get a tailored, ATS-ready
+						resume.
 					</p>
 				</div>
 
-				{/* Toggle */}
-				<div className="flex justify-center mb-12 animate-fade-in-up animation-delay-200">
-					<div className="inline-flex items-center p-1.5 bg-surface-inset rounded-sm border border-border-visible">
-						<button
-							onClick={() => setShowAfter(false)}
-							className={`relative px-6 py-2.5 rounded-sm font-medium text-sm transition-all duration-200 ${
-								!showAfter
-									? "bg-accent text-accent-foreground"
-									: "text-text-secondary hover:text-text-primary"
-							}`}
-						>
-							General Resume
-						</button>
-						<button
-							onClick={() => setShowAfter(true)}
-							className={`relative px-6 py-2.5 rounded-sm font-medium text-sm transition-all duration-200 ${
-								showAfter
-									? "bg-accent text-accent-foreground"
-									: "text-text-secondary hover:text-text-primary"
-							}`}
-						>
-							Tailored for this Job
-						</button>
-					</div>
-				</div>
-
-				{/* Main Content Card */}
-				<div className="max-w-2xl mx-auto animate-fade-in-up animation-delay-300">
-					<div className="relative bg-surface-raised rounded-sm border border-border-visible p-8 md:p-10 overflow-hidden">
-						{/* Before content */}
-						<div
-							className={`transition-all duration-300 ${
-								!showAfter
-									? "opacity-100 translate-x-0"
-									: "opacity-0 -translate-x-4 absolute inset-8 md:inset-10"
-							}`}
-						>
-							<div className="flex items-center gap-3 mb-6">
-								<div className="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center">
-									<X size={18} className="text-error" />
-								</div>
-								<h3 className="font-display text-xl font-medium">
-									General Resume
-								</h3>
-							</div>
-							<ul className="space-y-4">
-								{beforeBullets.map((item, i) => (
-									<li
-										key={i}
-										className="flex items-start gap-3 text-text-secondary"
-										style={{
-											animationDelay: `${i * 50}ms`,
-										}}
-									>
-										<div className="w-1.5 h-1.5 rounded-full bg-error/60 mt-2 flex-shrink-0" />
-										<span>{item.bullet}</span>
-									</li>
-								))}
-							</ul>
-						</div>
-
-						{/* After content */}
-						<div
-							className={`transition-all duration-300 ${
-								showAfter
-									? "opacity-100 translate-x-0"
-									: "opacity-0 translate-x-4 absolute inset-8 md:inset-10"
-							}`}
-						>
-							<div className="flex items-center gap-3 mb-6">
-								<div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-									<Check size={18} className="text-accent" />
-								</div>
-								<h3 className="font-display text-xl font-medium">
-									Tailored for this Job
-								</h3>
-							</div>
-							<ul className="space-y-4">
-								{afterBullets.map((item, i) => (
-									<li
-										key={i}
-										className="flex items-start gap-3 text-text-primary"
-										style={{
-											animationDelay: `${i * 50}ms`,
-										}}
-									>
-										<ArrowRight
-											size={14}
-											className="text-accent mt-1 flex-shrink-0"
-										/>
-										<span>{item.bullet}</span>
-									</li>
-								))}
-							</ul>
-						</div>
-					</div>
-				</div>
-
-				{/* Mini before/after examples */}
-				<div className="max-w-4xl mx-auto mt-8 grid md:grid-cols-2 gap-4 animate-fade-in-up animation-delay-400">
-					{miniExamples.map((example) => (
-						<div
-							key={example.role}
-							className="bg-surface-raised/60 rounded-sm border border-border-visible/70 p-5"
-						>
-							<p className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-3">
-								{example.role}
-							</p>
-							<div className="space-y-2.5">
-								<div className="flex items-start gap-2">
-									<X
-										size={12}
-										className="text-error/70 mt-0.5 flex-shrink-0"
-									/>
-									<p className="text-sm text-text-secondary/80 line-through decoration-error/30">
-										{example.before}
-									</p>
-								</div>
-								<div className="flex items-start gap-2">
-									<ArrowRight
-										size={12}
-										className="text-accent mt-0.5 flex-shrink-0"
-									/>
-									<p className="text-sm text-text-primary">
-										{example.after}
-									</p>
-								</div>
-							</div>
-						</div>
-					))}
-				</div>
-
-				{/* Common roles */}
-				<div className="text-center mt-10 animate-fade-in-up animation-delay-500">
-					<p className="text-sm text-text-tertiary">
-						{commonRoles.map((role, i) => (
-							<span key={role}>
-								{role}
-								{i < commonRoles.length - 1 && (
-									<span className="mx-2 text-border-visible">
-										•
-									</span>
-								)}
+				{/* Right cards */}
+				<div className="relative flex items-center w-full lg:w-auto">
+					{/* Comparison card */}
+					<div className="bg-white rounded-xl shadow-[var(--shadow-card)] w-[340px] md:w-[377px] flex-shrink-0 z-10 pb-5">
+						<div className="bg-accent rounded-t-[5px] py-2.5 text-center">
+							<span className="text-white font-semibold text-lg">
+								Comparison
 							</span>
-						))}
-					</p>
+						</div>
+						<div className="px-5 pt-5 flex flex-col gap-5">
+							{/* Before */}
+							<div className="flex flex-col gap-3">
+								<div className="flex items-center gap-2.5">
+									<span className="text-text-tertiary text-sm">
+										Before
+									</span>
+									<span className="bg-error-muted text-error text-xs px-1 py-0.5 rounded-[5px]">
+										Generic
+									</span>
+								</div>
+								{beforeItems.map((item, i) => (
+									<div
+										key={i}
+										className="flex items-start gap-1"
+									>
+										<CircleAlert className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
+										<span className="text-sm text-[#464646] line-through">
+											{item}
+										</span>
+									</div>
+								))}
+							</div>
+
+							<div className="h-px bg-[#d9d9d9]" />
+
+							{/* After */}
+							<div className="flex flex-col gap-3">
+								<div className="flex items-center gap-2.5">
+									<span className="text-text-tertiary text-sm">
+										After
+									</span>
+									<span className="bg-success-muted text-success text-xs px-1 py-0.5 rounded-[5px] inline-flex items-center gap-1">
+										<Sparkles className="w-3 h-3" />
+										Tailored
+									</span>
+								</div>
+								{afterItems.map((item, i) => (
+									<div
+										key={i}
+										className="flex items-start gap-1"
+									>
+										<CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+										<span className="text-sm text-[#464646]">
+											{item}
+										</span>
+									</div>
+								))}
+							</div>
+						</div>
+					</div>
+
+					{/* ATS Fit card (overlapping) */}
+					<div className="hidden md:flex flex-col bg-white rounded-xl shadow-[var(--shadow-card)] w-[442px] -ml-[130px] mt-16 z-20 pb-5">
+						<div className="bg-accent rounded-t-[5px] flex items-center justify-between px-5 py-2.5">
+							<span className="text-white font-semibold text-lg">
+								See your ATS fit
+							</span>
+							<span className="border border-white text-white text-base font-semibold px-2 py-0.5 rounded-full">
+								In Development
+							</span>
+						</div>
+						<div className="px-5 pt-5 flex flex-col gap-5">
+							{/* Score + Skills */}
+							<div className="flex items-center gap-5">
+								{/* ATS Ring */}
+								<div className="relative w-[100px] h-[100px] flex-shrink-0">
+									<svg
+										viewBox="0 0 100 100"
+										className="w-full h-full -rotate-90"
+									>
+										<circle
+											cx="50"
+											cy="50"
+											r="42"
+											fill="none"
+											stroke="#fdf6ef"
+											strokeWidth="8"
+										/>
+										<circle
+											cx="50"
+											cy="50"
+											r="42"
+											fill="none"
+											stroke="#e4662b"
+											strokeWidth="8"
+											strokeDasharray={`${2 * Math.PI * 42 * 0.82} ${2 * Math.PI * 42 * 0.18}`}
+											strokeLinecap="round"
+										/>
+									</svg>
+									<div className="absolute inset-0 flex flex-col items-center justify-center">
+										<span className="font-semibold text-lg text-black">
+											82%
+										</span>
+										<span className="text-text-tertiary text-xs">
+											ATS FIT
+										</span>
+									</div>
+								</div>
+
+								{/* Skills pills */}
+								<div className="flex flex-col gap-2.5">
+									<div className="flex flex-wrap gap-2.5">
+										{matchedSkills.map((skill) => (
+											<span
+												key={skill}
+												className="bg-[var(--primary-brown-light)] text-[var(--primary-brown)] text-sm px-2 py-0.5 rounded-[5px] inline-flex items-center gap-1"
+											>
+												<Check className="w-4 h-4" />
+												{skill}
+											</span>
+										))}
+									</div>
+									<div className="flex flex-wrap gap-2.5">
+										{missingSkills.map((skill) => (
+											<span
+												key={skill}
+												className="bg-error-muted text-error text-sm px-2 py-0.5 rounded-[5px] inline-flex items-center gap-1"
+											>
+												<CircleAlert className="w-4 h-4" />
+												{skill}
+											</span>
+										))}
+									</div>
+								</div>
+							</div>
+
+							<div className="h-px bg-[#d9d9d9]" />
+
+							{/* Checklist */}
+							<div className="flex flex-col gap-2.5">
+								{checklistItems.map((item) => (
+									<div
+										key={item.label}
+										className="flex items-center justify-between px-2 py-0.5 rounded-[5px]"
+									>
+										<div className="flex items-center gap-1">
+											{item.status === "pass" ? (
+												<CheckCircle2 className="w-4 h-4 text-success" />
+											) : (
+												<CircleAlert className="w-4 h-4 text-error" />
+											)}
+											<span className="text-sm text-[#464646]">
+												{item.label}
+											</span>
+										</div>
+										<span
+											className={`text-sm ${item.status === "pass" ? "text-success" : "text-error"}`}
+										>
+											{item.status === "pass"
+												? "Pass"
+												: "Improve"}
+										</span>
+									</div>
+								))}
+							</div>
+						</div>
+						<p className="text-text-tertiary text-xs text-center px-5 mt-3">
+							Spot gaps before you apply — quick signals, not
+							guaranteed scores.
+						</p>
+					</div>
 				</div>
 			</div>
 		</section>

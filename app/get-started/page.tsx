@@ -21,7 +21,7 @@ export default function GetStartedPage() {
 	const isPreviewStep = form.step === 2 && (form.analysis || form.generatedLatex);
 
 	return (
-		<div className="min-h-screen bg-[#1a120e] text-[#E9DDC7]">
+		<div className="min-h-screen bg-surface-base text-text-primary">
 			<AnimatedBackground />
 
 			<TopNav onReset={form.resetAll} />
@@ -48,7 +48,7 @@ export default function GetStartedPage() {
 								? "Your tailored resume"
 								: "Set up your resume"}
 						</motion.h1>
-						<p className="mt-2 text-sm text-[rgba(233,221,199,0.75)] md:text-base">
+						<p className="mt-2 text-sm text-text-secondary md:text-base">
 							{isPreviewStep
 								? "Here's what we generated — download or customize it."
 								: "Pick a mode, paste the job posting, and upload your resume."}
@@ -60,7 +60,7 @@ export default function GetStartedPage() {
 				<div className="mt-8 grid gap-6 md:grid-cols-12">
 					{/* Left panel */}
 					<div className="md:col-span-7">
-						<div className="rounded-2xl border border-[rgba(233,221,199,0.12)] bg-[rgba(20,14,11,0.55)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur">
+						<div className="rounded-2xl border border-border-visible bg-surface-raised p-5 shadow-card backdrop-blur">
 							{isPreviewStep ? (
 								<Step2Preview
 									analysis={form.analysis}
@@ -80,7 +80,7 @@ export default function GetStartedPage() {
 									/>
 
 									{/* Divider */}
-									<div className="my-5 border-t border-[rgba(233,221,199,0.10)]" />
+									<div className="my-5 border-t border-border-subtle" />
 
 									{/* Input form */}
 									<Step1InputForm

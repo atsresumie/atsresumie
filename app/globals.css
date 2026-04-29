@@ -18,42 +18,58 @@
 
 :root {
 	/* --------------------------------------------------------------------------
-	   COLORS - Warm matte dark theme with terracotta accent
+	   COLORS - Clean white theme with orange accent
 	   -------------------------------------------------------------------------- */
 
-	/* Surfaces - The "paper" foundation */
-	--surface-base: hsl(30 8% 8%); /* Deep charcoal with warm undertone */
-	--surface-raised: hsl(30 6% 12%); /* Cards and panels */
-	--surface-inset: hsl(
-		30 6% 6%
-	); /* Pressed/recessed areas (signature motif) */
-	--surface-overlay: hsl(30 6% 14%); /* Modals, dropdowns */
+	/* Surfaces — white foundation */
+	--surface-base: #ffffff;
+	--surface-raised: #ffffff;
+	--surface-inset: #f8fafb;
+	--surface-overlay: #ffffff;
 
-	/* Text - Cream tones like aged paper */
-	--text-primary: hsl(40 20% 88%); /* Main text */
-	--text-secondary: hsl(40 10% 58%); /* Captions, labels */
-	--text-tertiary: hsl(40 6% 38%); /* Disabled, placeholders */
+	/* Text — neutral dark */
+	--text-primary: #292929;
+	--text-secondary: #656565;
+	--text-tertiary: #989898;
 
-	/* Accent - Terracotta/vermillion (the "wax seal" color) */
-	--accent: hsl(12 72% 52%); /* Primary accent */
-	--accent-hover: hsl(12 72% 58%); /* Hover state */
-	--accent-muted: hsl(12 40% 24%); /* Subtle backgrounds */
-	--accent-foreground: hsl(40 20% 95%); /* Text on accent */
+	/* Accent — orange */
+	--accent: #e4662b;
+	--accent-hover: #d45a21;
+	--accent-muted: #fdf6ef;
+	--accent-foreground: #ffffff;
 
-	/* Borders - Hair rules */
-	--border-subtle: hsl(30 8% 18%); /* Subtle separators */
-	--border-visible: hsl(30 8% 24%); /* Card outlines, inputs */
-	--border-focus: hsl(12 72% 52%); /* Focus ring */
+	/* CTA — orange */
+	--cta: #e4662b;
+	--cta-hover: #d45a21;
+	--cta-foreground: #fcfcfc;
+
+	/* Primary (brown) */
+	--primary-brown: #805f4e;
+	--primary-brown-light: #f9f6f3;
+	--primary-brown-dark: #9a755c;
+	--primary-brown-bg: #a78668;
+
+	/* Code / dark panels */
+	--code-block: #292929;
+	--code-block-foreground: rgba(255, 255, 255, 0.8);
+
+	/* Borders — cool gray */
+	--border-subtle: #e5e7eb;
+	--border-visible: #cbd5db;
+	--border-focus: #e4662b;
 
 	/* Semantic Colors */
-	--success: hsl(158 60% 42%); /* Muted sage green */
-	--success-muted: hsl(158 40% 16%); /* Success background */
-	--warning: hsl(38 70% 50%); /* Muted golden yellow */
-	--warning-muted: hsl(38 50% 16%); /* Warning background */
-	--error: hsl(0 60% 50%); /* Muted red */
-	--error-muted: hsl(0 40% 16%); /* Error background */
-	--info: hsl(210 50% 50%); /* Muted blue */
-	--info-muted: hsl(210 40% 16%); /* Info background */
+	--success: #34c759;
+	--success-muted: rgba(52, 199, 89, 0.1);
+	--warning: hsl(38 70% 50%);
+	--warning-muted: hsl(38 40% 88%);
+	--error: #ff383c;
+	--error-muted: rgba(255, 56, 60, 0.1);
+	--info: hsl(210 50% 50%);
+	--info-muted: hsl(210 30% 90%);
+
+	/* Shadows — subtle */
+	--shadow-card: 0 0 4px 0 rgba(0, 0, 0, 0.12);
 
 	/* Legacy shadcn compatibility tokens */
 	--background: var(--surface-base);
@@ -155,9 +171,9 @@
 	   -------------------------------------------------------------------------- */
 
 	--shadow-none: none;
-	--shadow-inset: inset 0 1px 0 0 hsl(30 6% 4%); /* Pressed effect */
-	--shadow-subtle: 0 1px 2px 0 hsl(0 0% 0% / 0.1);
-	--shadow-card: 0 4px 12px -2px hsl(0 0% 0% / 0.15);
+	--shadow-inset: inset 0 1px 0 0 hsl(30 10% 78%); /* Pressed effect */
+	--shadow-subtle: 0 1px 2px 0 hsl(30 10% 50% / 0.12);
+	--shadow-card: 0 4px 12px -2px hsl(30 10% 40% / 0.1);
 
 	/* --------------------------------------------------------------------------
 	   MOTION - Restrained and purposeful
@@ -181,6 +197,68 @@
 	--sidebar-width: 256px;
 	--header-height: 64px;
 	--header-height-sm: 56px;
+}
+
+/* ============================================================================
+   LANDING PAGE THEME SCOPE
+   Espresso-brown palette — applies only inside .landing wrapper
+   ============================================================================ */
+
+.landing {
+	/* Surfaces — clean white */
+	--surface-base: #ffffff;
+	--surface-raised: #ffffff;
+	--surface-inset: #f8fafb;
+	--surface-overlay: #ffffff;
+
+	/* Text — neutral dark */
+	--text-primary: #292929;
+	--text-secondary: #656565;
+	--text-tertiary: #989898;
+
+	/* Accent — orange */
+	--accent: #e4662b;
+	--accent-hover: #d45a21;
+	--accent-muted: #fdf6ef;
+	--accent-foreground: #ffffff;
+
+	/* CTA — orange */
+	--cta: #e4662b;
+	--cta-hover: #d45a21;
+	--cta-foreground: #fcfcfc;
+
+	/* Primary (brown) */
+	--primary-brown: #805f4e;
+	--primary-brown-light: #f9f6f3;
+	--primary-brown-dark: #9a755c;
+	--primary-brown-bg: #a78668;
+
+	/* Borders — cool gray */
+	--border-subtle: #e5e7eb;
+	--border-visible: #cbd5db;
+	--border-focus: #e4662b;
+
+	/* Semantic */
+	--success: #34c759;
+	--success-muted: rgba(52, 199, 89, 0.1);
+	--error: #ff383c;
+	--error-muted: rgba(255, 56, 60, 0.1);
+
+	/* Shadows — subtle */
+	--shadow-card: 0 0 4px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================================================
+   APPLICATIONS PAGE THEME SCOPE
+   Clean white background — applies only inside .applications-page wrapper
+   ============================================================================ */
+
+.applications-page {
+	/* Surfaces — clean white */
+	--surface-base: #ffffff;
+	--surface-raised: #ffffff;
+	--surface-inset: #f8fafb;
+	--surface-overlay: #ffffff;
 }
 
 /* ============================================================================
@@ -232,6 +310,13 @@
 	--color-info: var(--info);
 	--color-info-muted: var(--info-muted);
 
+	/* CTA / code-block */
+	--color-cta: var(--cta);
+	--color-cta-hover: var(--cta-hover);
+	--color-cta-foreground: var(--cta-foreground);
+	--color-code-block: var(--code-block);
+	--color-code-block-foreground: var(--code-block-foreground);
+
 	/* Radius */
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
@@ -246,6 +331,12 @@
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
+	}
+
+	button,
+	a,
+	[role="button"] {
+		cursor: pointer;
 	}
 
 	html {

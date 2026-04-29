@@ -629,14 +629,20 @@ export function useResumeForm() {
 				const errorData = await res.json().catch(() => ({}));
 
 				// Handle insufficient credits
-				if (res.status === 402 || errorData.code === "NO_CREDITS") {
-					toast.error("No credits remaining", {
-						description:
-							"You've used all your credits. Upgrade to generate more resumes.",
-					});
-					setIsAnalyzing(false);
-					return;
-				}
+			if (res.status === 402 || errorData.code === "NO_CREDITS") {
+				toast.error("No credits remaining", {
+					description:
+						"You've used all your credits. Upgrade to generate more resumes.",
+					action: {
+						label: "Upgrade",
+						onClick: () => {
+							window.location.href = "/dashboard/credits";
+						},
+					},
+				});
+				setIsAnalyzing(false);
+				return;
+			}
 
 				throw new Error(errorData.error || "Generation failed");
 			}

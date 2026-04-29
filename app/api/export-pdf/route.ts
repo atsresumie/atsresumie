@@ -1,56 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sanitizeLatex } from "@/lib/latex/sanitizeLatex";
 
-const LATEX_ONLINE_URL = "https://latexonline.cc/compile";
+const LATEX_ONLINE_URL =
+	process.env.LATEX_ENGINE_URL ??
+	"https://latex-pdf-conversion-service.atsresumie.com/compile/pdf";
 const PDF_BUCKET = "generated-pdfs";
 const SIGNED_URL_EXPIRY_SECONDS = 600; // 10 minutes
 const MAX_LATEX_LENGTH = 30000; // 30k chars - latex-online uses query string
 
-/**
- * Safety net: auto-inject missing LaTeX packages based on commands used.
- * Prevents compile failures when the AI generates LaTeX using commands
- * without including the required \usepackage declaration.
- */
-function sanitizeLatex(latex: string): string {
-	// Map: if any of the commands are found, ensure the package is present
-	const packageRules: { pkg: string; commands: RegExp }[] = [
-		{ pkg: "titlesec", commands: /\\titlerule|\\titleformat|\\titlespacing/ },
-		{ pkg: "hyperref", commands: /\\href\{|\\url\{/ },
-		{ pkg: "xcolor", commands: /\\textcolor\{|\\color\{|\\definecolor\{/ },
-		{ pkg: "geometry", commands: /\\geometry\{|\\newgeometry\{/ },
-		{ pkg: "enumitem", commands: /\\begin\{itemize\}\[|\\begin\{enumerate\}\[/ },
-		{ pkg: "fontawesome5", commands: /\\faIcon\{|\\faEnvelope|\\faPhone|\\faLinkedin|\\faGithub/ },
-		{ pkg: "tabularx", commands: /\\begin\{tabularx\}/ },
-		{ pkg: "multicol", commands: /\\begin\{multicols\}/ },
-	];
-
-	let result = latex;
-
-	for (const { pkg, commands } of packageRules) {
-		// Check if command is used but package is not declared
-		const pkgPattern = new RegExp(
-			`\\\\usepackage(\\[[^\\]]*\\])?\\{[^}]*\\b${pkg}\\b[^}]*\\}`,
-		);
-
-		if (commands.test(result) && !pkgPattern.test(result)) {
-			// Inject before \begin{document}
-			const beginDocIdx = result.indexOf("\\begin{document}");
-			if (beginDocIdx !== -1) {
-				const injection = `\\usepackage{${pkg}}\n`;
-				result =
-					result.slice(0, beginDocIdx) +
-					injection +
-					result.slice(beginDocIdx);
-				console.log(
-					`[export-pdf] Auto-injected missing \\usepackage{${pkg}}`,
-				);
-			}
-		}
-	}
-
-	return result;
-}
 
 /**
  * POST /api/export-pdf
@@ -92,7 +51,7 @@ export async function POST(request: NextRequest) {
 		// 2. Fetch job and verify ownership
 		const { data: job, error: jobError } = await supabase
 			.from("generation_jobs")
-			.select("id, user_id, latex_text, pdf_object_path, pdf_url")
+			.select("id, user_id, latex_text, pdf_object_path, pdf_url, final_pdf_object_path, chat_history, style_config")
 			.eq("id", jobId)
 			.single();
 
@@ -134,7 +93,45 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 5. If PDF already exists, return signed URL (idempotent)
+		// 5a. If a final PDF snapshot exists (from a previous download), prefer it
+		if (job.final_pdf_object_path) {
+			console.log(
+				`[export-pdf] Final PDF exists, generating signed URL for ${job.final_pdf_object_path}`,
+			);
+			const admin = supabaseAdmin();
+			const { data: signedUrlData, error: signedUrlError } =
+				await admin.storage
+					.from(PDF_BUCKET)
+					.createSignedUrl(
+						job.final_pdf_object_path,
+						SIGNED_URL_EXPIRY_SECONDS,
+					);
+
+			if (signedUrlError || !signedUrlData) {
+				// Final PDF was deleted from Storage — clear path and fall through to regular flow
+				console.warn(
+					`[export-pdf] Stale final_pdf_object_path for job ${jobId}, clearing and falling through`,
+					signedUrlError,
+				);
+				await admin
+					.from("generation_jobs")
+					.update({
+						final_pdf_object_path: null,
+						updated_at: new Date().toISOString(),
+					})
+					.eq("id", jobId);
+				// Fall through to regular PDF check below
+			} else {
+				return NextResponse.json({
+					pdfUrl: signedUrlData.signedUrl,
+					isFinal: true,
+					chatHistory: job.chat_history ?? [],
+					styleConfig: job.style_config ?? null,
+				});
+			}
+		}
+
+		// 5b. If PDF already exists, return signed URL (idempotent)
 		if (job.pdf_object_path) {
 			console.log(
 				`[export-pdf] PDF exists, generating signed URL for ${job.pdf_object_path}`,
@@ -175,15 +172,15 @@ export async function POST(request: NextRequest) {
 		const cleanedLatex = sanitizeLatex(job.latex_text);
 
 		const compileUrl = new URL(LATEX_ONLINE_URL);
-		compileUrl.searchParams.set("text", cleanedLatex);
 		compileUrl.searchParams.set("force", "true");
 		compileUrl.searchParams.set("command", "pdflatex");
 
 		const compileResponse = await fetch(compileUrl.toString(), {
-			method: "GET",
+			method: "POST",
 			headers: {
-				Accept: "application/pdf",
+				"Content-Type": "text/plain",
 			},
+			body: cleanedLatex,
 		});
 
 		if (!compileResponse.ok) {

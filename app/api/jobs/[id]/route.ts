@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
  * GET /api/jobs/[id]
@@ -152,8 +153,9 @@ export async function DELETE(
 			);
 		}
 
-		// Delete the job
-		const { error: deleteError } = await supabase
+		// Delete the job using admin client (bypasses RLS, ownership already verified above)
+		const admin = supabaseAdmin();
+		const { error: deleteError } = await admin
 			.from("generation_jobs")
 			.delete()
 			.eq("id", id);

@@ -14,25 +14,37 @@ import {
 	ZOOM_STEP,
 	ZOOM_DEFAULT,
 } from "@/components/editor/PdfJsPreview";
-import { StyleControls } from "@/components/editor/StyleControls";
+import { EditorLeftRail } from "@/components/editor/EditorLeftRail";
 import {
 	ArrowLeft,
 	Download,
 	Loader2,
+	Lock,
+	Menu,
+	PanelLeft,
 	RefreshCw,
 	ZoomIn,
 	ZoomOut,
 } from "lucide-react";
+import { useDashboardSidebar } from "@/providers/SidebarProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	Sheet,
+	SheetContent,
+	SheetTitle,
+	SheetTrigger,
+} from "@/components/ui/sheet";
 import {
 	type StyleConfig,
 	DEFAULT_STYLE_CONFIG,
 	STYLE_CONFIG_STORAGE_KEY_PREFIX,
 } from "@/types/editor";
+import type { ChatMessage } from "@/types/chat";
 import { parseStyleFromLatex } from "@/lib/latex/applyStyleToLatex";
 import { useExportModal } from "@/hooks/useExportModal";
 import { ExportModal } from "@/components/dashboard/ExportModal";
+import { useChatEdit } from "@/hooks/useChatEdit";
 
 const FILENAME_STORAGE_KEY_PREFIX = "atsresumie_editor_filename_";
 
@@ -72,8 +84,18 @@ export default function EditorPage() {
 	const [filename, setFilename] = useState("ATSResumie_Resume");
 	const [isDownloading, setIsDownloading] = useState(false);
 
+	// Final PDF snapshot state
+	const [isFinalLocked, setIsFinalLocked] = useState(false);
+	const [dbChatMessages, setDbChatMessages] = useState<ChatMessage[] | undefined>(undefined);
+
 	// Zoom state
 	const [zoom, setZoom] = useState(ZOOM_DEFAULT);
+
+	// Mobile side-panel sheet state
+	const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+	// Dashboard sidebar (global nav drawer)
+	const { toggle: toggleNavSidebar } = useDashboardSidebar();
 
 	// Load saved state from localStorage
 	useEffect(() => {
@@ -148,20 +170,7 @@ export default function EditorPage() {
 			setHasLatexText(!!job.latex_text);
 			setLatexTextContent(job.latex_text ?? null);
 
-			// Parse initial style from LaTeX if no saved config in localStorage
-			const storedConfig = localStorage.getItem(
-				`${STYLE_CONFIG_STORAGE_KEY_PREFIX}${jobId}`,
-			);
-			if (!storedConfig && job.latex_text) {
-				const parsed = parseStyleFromLatex(job.latex_text);
-				setStyleConfig(parsed);
-			}
-
-			if (!job.pdf_object_path) {
-				throw new Error("PDF not available for this generation");
-			}
-
-			// Get signed URL via API (uses supabaseAdmin - no RLS issues)
+			// Get signed URL via API (serves final PDF if snapshot exists, else compiles on-demand)
 			const res = await fetch("/api/export-pdf", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -173,8 +182,32 @@ export default function EditorPage() {
 				throw new Error(data.error || "Failed to load PDF preview");
 			}
 
-			const { pdfUrl: signedUrl } = await res.json();
-			setPdfUrl(signedUrl);
+			const resData = await res.json();
+			setPdfUrl(resData.pdfUrl);
+
+			// If server returned a final snapshot, hydrate style + chat from DB
+			if (resData.isFinal) {
+				setIsFinalLocked(true);
+
+				// Hydrate style config from DB snapshot (overrides localStorage)
+				if (resData.styleConfig) {
+					setStyleConfig({ ...DEFAULT_STYLE_CONFIG, ...resData.styleConfig });
+				}
+
+				// Hydrate chat messages from DB snapshot
+				if (Array.isArray(resData.chatHistory) && resData.chatHistory.length > 0) {
+					setDbChatMessages(resData.chatHistory);
+				}
+			} else {
+				// No final snapshot — fall back to localStorage for style config
+				const storedConfig = localStorage.getItem(
+					`${STYLE_CONFIG_STORAGE_KEY_PREFIX}${jobId}`,
+				);
+				if (!storedConfig && job.latex_text) {
+					const parsed = parseStyleFromLatex(job.latex_text);
+					setStyleConfig(parsed);
+				}
+			}
 		} catch (err) {
 			console.error("Failed to load PDF:", err);
 			setError(err instanceof Error ? err.message : "Failed to load PDF");
@@ -272,13 +305,30 @@ export default function EditorPage() {
 		setStyleConfig(DEFAULT_STYLE_CONFIG);
 	};
 
-	// Handle PDF download — recompile with saveLatex flag then download
+	// Chat-edit: applies AI-generated LaTeX changes and refreshes the preview.
+	const handleChatApplied = useCallback(
+		({ pdfUrl: newPdfUrl, latex }: { pdfUrl: string; latex: string }) => {
+			setPdfUrl(newPdfUrl);
+			setLatexTextContent(latex);
+			setHasLatexText(true);
+		},
+		[],
+	);
+
+	const chat = useChatEdit({
+		jobId,
+		enabled: hasLatexText,
+		onApplied: handleChatApplied,
+		initialMessages: dbChatMessages,
+	});
+
+	// Handle PDF download — recompile with saveLatex + finalize flag then download
 	const handlePdfDownload = async () => {
 		if (!pdfUrl) return;
 
 		setIsDownloading(true);
 		try {
-			// Save styled LaTeX to DB via recompile with saveLatex flag
+			// Save styled LaTeX + snapshot final state to DB
 			if (hasLatexText) {
 				const saveRes = await fetch("/api/export-pdf-with-style", {
 					method: "POST",
@@ -287,12 +337,17 @@ export default function EditorPage() {
 						jobId,
 						styleConfig,
 						saveLatex: true,
+						finalize: true,
+						chatHistory: chat.messages.filter(
+							(m) => m.status !== "applying",
+						),
 					}),
 				});
 
 				if (saveRes.ok) {
 					const { pdfUrl: freshUrl } = await saveRes.json();
 					setPdfUrl(freshUrl);
+					setIsFinalLocked(true);
 					// Download the freshly compiled PDF
 					const response = await fetch(freshUrl);
 					const blob = await response.blob();
@@ -357,22 +412,70 @@ export default function EditorPage() {
 	return (
 		<div className="flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden bg-surface-base md:h-[calc(100vh-4rem)]">
 			{/* Top Bar */}
-			<header className="flex h-14 shrink-0 items-center justify-between border-b border-border-subtle bg-surface-raised px-4">
-				{/* Left section: Back + Filename */}
-				<div className="flex items-center gap-4">
+			<header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border-subtle bg-surface-raised px-2 sm:px-4">
+				{/* Left section: Back + Panel trigger (mobile) + Filename */}
+				<div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
+					{/* Mobile-only: open dashboard nav sidebar */}
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={toggleNavSidebar}
+						className="h-8 w-8 p-0 md:hidden"
+						aria-label="Open navigation"
+					>
+						<Menu size={18} />
+					</Button>
+
 					<Link href="/dashboard/generations">
-						<Button variant="ghost" size="sm" className="gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="gap-2 px-2 sm:px-3"
+						>
 							<ArrowLeft size={16} />
 							<span className="hidden sm:inline">Back</span>
 						</Button>
 					</Link>
 
-					<div className="h-5 w-px bg-border-subtle" />
+					{/* Mobile-only: open style/chat panel */}
+					<Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+						<SheetTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-8 w-8 p-0 md:hidden"
+								aria-label="Open editor panel"
+							>
+								<PanelLeft size={16} />
+							</Button>
+						</SheetTrigger>
+						<SheetContent
+							side="left"
+							className="flex w-[88vw] max-w-sm flex-col p-0 sm:max-w-sm"
+						>
+							<SheetTitle className="sr-only">
+								Editor controls
+							</SheetTitle>
+							<div className="flex-1 overflow-hidden">
+								<EditorLeftRail
+									styleConfig={styleConfig}
+									onStyleChange={handleStyleChange}
+									onStyleReset={handleReset}
+									chatMessages={chat.messages}
+									chatIsSending={chat.isSending}
+									onChatSend={chat.send}
+									onChatClear={chat.clear}
+								/>
+							</div>
+						</SheetContent>
+					</Sheet>
 
-					<div className="flex items-center gap-2">
+					<div className="hidden h-5 w-px bg-border-subtle sm:block" />
+
+					<div className="flex min-w-0 flex-1 items-center gap-2">
 						<label
 							htmlFor="filename"
-							className="text-sm text-text-secondary"
+							className="hidden text-sm text-text-secondary sm:inline"
 						>
 							Filename:
 						</label>
@@ -381,22 +484,32 @@ export default function EditorPage() {
 							type="text"
 							value={filename}
 							onChange={(e) => setFilename(e.target.value)}
-							className="h-8 w-48 text-sm"
+							className="h-8 w-full min-w-0 text-sm sm:w-48"
 							placeholder="resume.pdf"
 						/>
 					</div>
+
+					{isFinalLocked && (
+						<span
+							className="hidden items-center gap-1 rounded-full bg-green-800/30 px-2.5 py-0.5 text-xs font-medium text-green-700 sm:flex"
+							title="This PDF was locked when you downloaded it. Edit and re-download to update."
+						>
+							<Lock size={10} />
+							Final locked
+						</span>
+					)}
 				</div>
 
 				{/* Right section: Actions */}
-				<div className="flex items-center gap-2">
+				<div className="flex shrink-0 items-center gap-1 sm:gap-2">
 					{updateError && (
-						<span className="text-xs text-red-400">
+						<span className="hidden text-xs text-red-400 lg:inline">
 							{updateError}
 						</span>
 					)}
 
-					{/* Zoom controls */}
-					<div className="flex items-center gap-1 rounded-md border border-border-subtle px-1">
+					{/* Zoom controls — hidden on mobile (use pinch/scroll) */}
+					<div className="hidden items-center gap-1 rounded-md border border-border-subtle px-1 md:flex">
 						<Button
 							variant="ghost"
 							size="sm"
@@ -436,14 +549,14 @@ export default function EditorPage() {
 						</Button>
 					</div>
 
-					<div className="h-5 w-px bg-border-subtle" />
+					<div className="hidden h-5 w-px bg-border-subtle md:block" />
 
 					<Button
 						variant="outline"
 						size="sm"
 						onClick={() => recompile(styleConfig)}
 						disabled={isUpdating || !hasLatexText}
-						className="gap-2"
+						className="hidden gap-2 sm:inline-flex"
 					>
 						{isUpdating ? (
 							<Loader2 size={16} className="animate-spin" />
@@ -457,22 +570,27 @@ export default function EditorPage() {
 						size="sm"
 						onClick={handleDownload}
 						disabled={!pdfUrl}
-						className="gap-2"
+						className="gap-2 px-2 sm:px-3"
+						aria-label="Download"
 					>
 						<Download size={16} />
-						Download
+						<span className="hidden sm:inline">Download</span>
 					</Button>
 				</div>
 			</header>
 
-			{/* Main content: Left panel + Preview */}
+			{/* Main content: Left panel (md+) + Preview */}
 			<div className="flex flex-1 overflow-hidden">
-				{/* Left panel: Style controls */}
-				<aside className="w-72 shrink-0 border-r border-border-subtle bg-surface-raised">
-					<StyleControls
-						config={styleConfig}
-						onChange={handleStyleChange}
-						onReset={handleReset}
+				{/* Left panel: Style + Chat tabs — desktop only */}
+				<aside className="hidden w-72 shrink-0 border-r border-border-subtle bg-surface-raised md:block">
+					<EditorLeftRail
+						styleConfig={styleConfig}
+						onStyleChange={handleStyleChange}
+						onStyleReset={handleReset}
+						chatMessages={chat.messages}
+						chatIsSending={chat.isSending}
+						onChatSend={chat.send}
+						onChatClear={chat.clear}
 					/>
 				</aside>
 

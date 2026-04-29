@@ -156,7 +156,7 @@ export default function Step1InputForm({
 
 	return (
 		<section className="space-y-4">
-			<div className="flex items-center gap-2 text-sm text-[rgba(233,221,199,0.75)]">
+			<div className="flex items-center gap-2 text-sm text-text-secondary">
 				<FileText className="h-4 w-4" />
 				Paste the essentials
 			</div>
@@ -169,9 +169,9 @@ export default function Step1InputForm({
 						value={jobDescription}
 						onChange={(e) => onJobDescriptionChange(e.target.value)}
 						placeholder="Paste the full job posting…"
-						className="h-44 w-full resize-none rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.05)] p-3 text-sm outline-none placeholder:text-[rgba(233,221,199,0.35)] focus:border-[rgba(233,221,199,0.22)]"
+						className="h-44 w-full resize-none rounded-xl border border-border-visible bg-surface-base p-3 text-sm outline-none placeholder:text-text-tertiary focus:border-text-secondary"
 					/>
-					<div className="mt-1 text-xs text-[rgba(233,221,199,0.55)]">
+					<div className="mt-1 text-xs text-text-tertiary">
 						Include responsibilities, requirements, and keywords.
 					</div>
 				</label>
@@ -236,7 +236,7 @@ export default function Step1InputForm({
 						value={focusPrompt}
 						onChange={(e) => onFocusPromptChange(e.target.value)}
 						placeholder="e.g., Emphasize Node.js, scalability, and impact metrics. Keep 1 page."
-						className="w-full rounded-xl border border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.05)] p-3 text-sm outline-none placeholder:text-[rgba(233,221,199,0.35)] focus:border-[rgba(233,221,199,0.22)]"
+						className="w-full rounded-xl border border-border-visible bg-surface-base p-3 text-sm outline-none placeholder:text-text-tertiary focus:border-text-secondary"
 					/>
 				</label>
 			</div>

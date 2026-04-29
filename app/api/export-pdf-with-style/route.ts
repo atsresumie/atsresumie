@@ -5,9 +5,12 @@ import {
 	applyStyleToLatex,
 	validateStyledLatex,
 } from "@/lib/latex/applyStyleToLatex";
+import { sanitizeLatex } from "@/lib/latex/sanitizeLatex";
 import type { StyleConfig } from "@/types/editor";
 
-const LATEX_ONLINE_URL = "https://latexonline.cc/compile";
+const LATEX_ONLINE_URL =
+	process.env.LATEX_ENGINE_URL ??
+	"https://latex-pdf-conversion-service.atsresumie.com/compile/pdf";
 const PDF_BUCKET = "generated-pdfs";
 const SIGNED_URL_EXPIRY_SECONDS = 600; // 10 minutes
 const MAX_LATEX_LENGTH = 30000; // 30k chars - latex-online uses query string
@@ -135,8 +138,12 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 7. Compile LaTeX to PDF (with auto-retry on failure)
-		const compileResult = await compileLatexWithRetry(styledLatex, jobId);
+		// 7. Sanitize LaTeX: auto-inject missing packages
+		const keepLmodern = (styleConfig as StyleConfig).fontFamily === "lmodern";
+		const cleanedLatex = sanitizeLatex(styledLatex, { keepLmodern });
+
+		// 8. Compile LaTeX to PDF (with auto-retry on failure)
+		const compileResult = await compileLatexWithRetry(cleanedLatex, jobId);
 
 		if (!compileResult.ok) {
 			return NextResponse.json(
@@ -193,6 +200,42 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// 10b. Finalize snapshot — lock the final state on download
+		let finalPdfObjectPath: string | undefined;
+		if (body.finalize === true) {
+			finalPdfObjectPath = `${user.id}/${jobId}/final.pdf`;
+
+			// Upload the final PDF (separate from styled.pdf so previews don't overwrite it)
+			const { error: finalUploadError } = await admin.storage
+				.from(PDF_BUCKET)
+				.upload(finalPdfObjectPath, pdfBytes, {
+					contentType: "application/pdf",
+					upsert: true,
+				});
+
+			if (finalUploadError) {
+				console.error("[export-pdf-with-style] Final PDF upload failed:", finalUploadError);
+				// Non-fatal: continue with regular download flow
+				finalPdfObjectPath = undefined;
+			} else {
+				console.log(
+					`[export-pdf-with-style] Final PDF uploaded to ${PDF_BUCKET}/${finalPdfObjectPath}`,
+				);
+
+				// Persist the full snapshot to DB
+				updatePayload.final_pdf_object_path = finalPdfObjectPath;
+				updatePayload.final_latex_text = styledLatex;
+
+				// Persist chat history (sent from client)
+				if (Array.isArray(body.chatHistory)) {
+					updatePayload.chat_history = body.chatHistory;
+				}
+
+				// Persist style config
+				updatePayload.style_config = styleConfig;
+			}
+		}
+
 		// Try to update styled_pdf_object_path (column may not exist yet)
 		try {
 			const { error: updateError } = await admin
@@ -239,6 +282,7 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json({
 			pdfUrl: signedUrlData.signedUrl,
 			styledPdfObjectPath: styledObjectPath,
+			...(finalPdfObjectPath ? { finalPdfObjectPath } : {}),
 		});
 	} catch (error) {
 		console.error("Error in /api/export-pdf-with-style:", error);
@@ -393,13 +437,16 @@ async function compileSingleAttempt(
 	latex: string,
 ): Promise<{ ok: boolean; pdfBytes?: Uint8Array }> {
 	const compileUrl = new URL(LATEX_ONLINE_URL);
-	compileUrl.searchParams.set("text", latex);
 	compileUrl.searchParams.set("force", "true");
 	compileUrl.searchParams.set("command", "pdflatex");
 
 	const response = await fetch(compileUrl.toString(), {
-		method: "GET",
-		headers: { Accept: "application/pdf" },
+		method: "POST",
+		headers: {
+			"Content-Type": "text/plain",
+			Accept: "application/pdf",
+		},
+		body: latex,
 	});
 
 	if (!response.ok) {

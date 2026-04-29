@@ -1,105 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
-/**
- * FAQ Component - Client Component (for accordion state)
- * Uses CSS transitions instead of framer-motion
- */
-
-const faqs = [
+const faqItems = [
 	{
 		question: "Will it invent experience?",
-		answer: "No. ATSResumie rewrites what you already have and won't fabricate roles, skills, or claims. Every bullet is grounded in your original resume content.",
+		answer: "No. Every bullet is grounded in your original resume — nothing fabricated.",
 	},
 	{
-		question: "Is this ATS compliant?",
-		answer: "Yes. ATSResumie outputs clean, ATS-readable formatting that passes automated screening systems used by most employers.",
+		question: "Is it ATS compliant?",
+		answer: "Yes. Our output uses clean, single-column formatting with standard section headers that all major ATS systems can parse reliably.",
 	},
 	{
-		question: "Can I tailor for multiple jobs?",
-		answer: "Absolutely — you can generate and save multiple tailored versions of your resume, one for each role you're applying to.",
+		question: "What formats are supported?",
+		answer: "You can upload PDF or DOCX resumes, and download your tailored resume as a clean PDF optimized for ATS parsing.",
 	},
 	{
-		question: "What file types are supported?",
-		answer: "PDF and DOCX. Upload your existing resume in either format and we'll parse it automatically.",
+		question: "Do I need to rewrite everything?",
+		answer: "No. We preserve your original structure and experience — we only adjust wording, keywords, and formatting to match the target job description.",
 	},
 	{
-		question: "Do I need an account?",
-		answer: "You can preview the experience without an account, but you'll need to sign up (free) to generate and download tailored resumes. You get 3 free credits on signup.",
+		question: "Can I try it free?",
+		answer: "Yes. You get 3 free credits on signup — no credit card required. Each credit generates one tailored resume.",
 	},
 ];
 
-interface FAQItemProps {
-	faq: (typeof faqs)[0];
-	isOpen: boolean;
-	onToggle: () => void;
-}
-
-const FAQItem = ({ faq, isOpen, onToggle }: FAQItemProps) => {
-	return (
-		<div className="border-b border-border-subtle last:border-0">
-			<button
-				onClick={onToggle}
-				className="w-full py-6 flex items-center justify-between text-left group"
-			>
-				<span className="font-display text-lg font-medium group-hover:text-accent transition-colors pr-4">
-					{faq.question}
-				</span>
-				<div
-					className={`flex-shrink-0 transition-transform duration-200 ${
-						isOpen ? "rotate-180" : ""
-					}`}
-				>
-					<ChevronDown size={20} className="text-text-secondary" />
-				</div>
-			</button>
-
-			<div
-				className={`overflow-hidden transition-all duration-300 ease-out ${
-					isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-				}`}
-			>
-				<div className="pb-6">
-					<p className="text-text-secondary leading-relaxed">
-						{faq.answer}
-					</p>
-				</div>
-			</div>
-		</div>
-	);
-};
-
 export const FAQ = () => {
-	const [openIndex, setOpenIndex] = useState<number | null>(null);
+	const [openIndex, setOpenIndex] = useState(0);
 
 	return (
-		<section id="faq" className="relative py-24 md:py-32">
-			<div className="absolute inset-0 bg-gradient-to-b from-surface-base via-surface-raised/10 to-surface-base" />
+		<section id="faq" className="py-[60px] px-4 md:px-[116px]">
+			<div className="max-w-[1208px] mx-auto flex flex-col items-center gap-10">
+				<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary text-center">
+					FAQ
+				</h2>
 
-			<div className="container mx-auto relative z-10">
-				{/* Section header */}
-				<div className="text-center mb-12 md:mb-16 animate-fade-in-up">
-					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
-						Frequently asked questions
-					</h2>
-					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
-						Everything you need to know about ATSResumie
-					</p>
-				</div>
-
-				{/* FAQ List */}
-				<div className="max-w-3xl mx-auto bg-surface-raised rounded-sm border border-border-visible px-6 md:px-8 animate-fade-in-up animation-delay-200">
-					{faqs.map((faq, index) => (
-						<FAQItem
-							key={faq.question}
-							faq={faq}
-							isOpen={openIndex === index}
-							onToggle={() =>
-								setOpenIndex(openIndex === index ? null : index)
-							}
-						/>
+				<div className="border border-border-visible rounded-[5px] w-full max-w-[900px]">
+					{faqItems.map((item, i) => (
+						<div key={i}>
+							<button
+								onClick={() =>
+									setOpenIndex(openIndex === i ? -1 : i)
+								}
+								className="w-full p-5 flex items-start justify-between text-left cursor-pointer"
+							>
+								<span className="font-semibold text-sm text-black">
+									{item.question}
+								</span>
+								{openIndex === i ? (
+									<ChevronUp className="w-6 h-6 text-text-tertiary flex-shrink-0" />
+								) : (
+									<ChevronDown className="w-6 h-6 text-text-tertiary flex-shrink-0" />
+								)}
+							</button>
+							{openIndex === i && (
+								<div className="px-5 pb-5">
+									<p className="text-sm text-text-secondary leading-[22px]">
+										{item.answer}
+									</p>
+								</div>
+							)}
+							{i < faqItems.length - 1 && (
+								<div className="h-px bg-[#d9d9d9]" />
+							)}
+						</div>
 					))}
 				</div>
 			</div>

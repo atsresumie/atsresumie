@@ -1,239 +1,193 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Zap, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { useAuthModal } from "@/contexts/AuthModalContext";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useAuthIntent } from "@/hooks/useAuthIntent";
+import { useAuthModal } from "@/contexts/AuthModalContext";
+import { toast } from "sonner";
 
-/**
- * Pricing Component - Client Component (for checkout logic)
- * Uses CSS animations instead of framer-motion
- */
-
-const plans = [
-	{
-		id: "free",
-		name: "Free",
-		description: "Get started with 3 credits",
-		price: "$0",
-		period: "",
-		features: [
-			"3 credits on signup",
-			"1 credit per generation",
-			"Export is always free",
-			"PDF download included",
-		],
-		cta: "Get Started",
-		popular: false,
-	},
-	{
-		id: "pro_75",
-		name: "Pro",
-		description: "50 credits every month",
-		price: "$10",
-		period: "/mo",
-		features: [
-			"50 credits per month",
-			"Unlimited PDF exports",
-			"Priority support",
-			"Cancel anytime",
-		],
-		cta: "Subscribe",
-		popular: true,
-	},
-];
+const PACK_ID = "pro_75";
 
 export const Pricing = () => {
+	const { isAuthenticated, isLoading: authLoading } = useAuth();
 	const { openAuthModal } = useAuthModal();
-	const { isAuthenticated } = useAuth();
-	const { saveIntent } = useAuthIntent();
-	const [isLoading, setIsLoading] = useState(false);
+	const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-	const scrollToStart = () => {
-		const element = document.querySelector("#start");
-		element?.scrollIntoView({ behavior: "smooth" });
-	};
-
-	const handleBuyPro = async () => {
-		if (isLoading) return;
+	const handleSubscribe = async () => {
+		if (isCheckoutLoading) return;
 
 		if (!isAuthenticated) {
-			saveIntent({ type: "buy_credits", payload: { packId: "pro_75" } });
-			toast.info("Please sign in to purchase credits");
-			openAuthModal("signin");
+			if (typeof window !== "undefined") {
+				const now = Date.now();
+				localStorage.setItem(
+					"auth_intent",
+					JSON.stringify({
+						id: crypto.randomUUID(),
+						type: "buy_credits",
+						payload: { packId: PACK_ID },
+						createdAt: now,
+						expiresAt: now + 15 * 60 * 1000,
+						version: 1,
+					}),
+				);
+			}
+			openAuthModal("signup");
 			return;
 		}
 
-		setIsLoading(true);
+		setIsCheckoutLoading(true);
 		try {
 			const res = await fetch("/api/stripe/checkout", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ packId: "pro_75" }),
+				body: JSON.stringify({ packId: PACK_ID }),
 			});
 
 			const data = await res.json();
 
-			if (!res.ok) {
-				if (res.status === 401) {
-					saveIntent({
-						type: "buy_credits",
-						payload: { packId: "pro_75" },
-					});
-					toast.info("Session expired. Please sign in again.");
-					openAuthModal("signin");
-					setIsLoading(false);
-					return;
-				}
-				throw new Error(data.error || "Failed to start checkout");
-			}
-
-			if (!data.url) {
-				throw new Error("No checkout URL returned");
+			if (!res.ok || !data.url) {
+				throw new Error(data.error || "Failed to create checkout session");
 			}
 
 			window.location.href = data.url;
 		} catch (error) {
 			console.error("Checkout error:", error);
 			toast.error(
-				error instanceof Error
-					? error.message
-					: "Failed to start checkout",
+				error instanceof Error ? error.message : "Failed to start checkout",
 			);
-			setIsLoading(false);
-		}
-	};
-
-	const handleCTA = (planId: string) => {
-		if (planId === "pro_75") {
-			handleBuyPro();
-		} else {
-			scrollToStart();
+			setIsCheckoutLoading(false);
 		}
 	};
 
 	return (
-		<section id="pricing" className="relative py-24 md:py-32">
-			<div className="container mx-auto">
-				{/* Section header */}
-				<div className="text-center mb-12 md:mb-16 animate-fade-in-up">
-					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-4">
-						Simple pricing
-					</h2>
-					<p className="text-lg text-text-secondary max-w-2xl mx-auto">
-						Start free, buy credits when you need more
-					</p>
-				</div>
+		<section id="pricing" className="bg-surface-inset py-[60px] px-4 md:px-[116px]">
+			<div className="max-w-[1208px] mx-auto flex flex-col items-center gap-10">
+				<h2 className="font-display text-[28px] md:text-[36px] font-bold text-text-primary text-center">
+					Simple pricing
+				</h2>
 
-				{/* Pricing cards */}
-				<div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-					{plans.map((plan, index) => (
-						<div
-							key={plan.name}
-							className={`relative group animate-fade-in-up animation-delay-${(index + 2) * 100}`}
-						>
-							{/* Gradient border for Pro */}
-							{plan.popular && (
-								<div
-									className="absolute -inset-px rounded-sm z-0 animate-gradient-shift"
-									style={{
-										background:
-											"linear-gradient(135deg, var(--accent), hsl(36, 30%, 70%), var(--accent))",
-										backgroundSize: "300% 300%",
-									}}
-								/>
-							)}
-
-							<div
-								className={`relative h-full bg-surface-raised rounded-sm border p-8 ${
-									plan.popular
-										? "border-transparent"
-										: "border-border-visible"
-								}`}
-							>
-								{/* Popular badge */}
-								{plan.popular && (
-									<div className="absolute -top-3 left-1/2 -translate-x-1/2">
-										<div className="flex items-center gap-1.5 px-3 py-1 bg-success text-white text-sm font-semibold rounded-full shadow-lg">
-											<Zap size={12} />
-											Best Value
-										</div>
+				<div className="flex flex-col md:flex-row gap-10 items-start justify-center">
+					{/* Free Plan */}
+					<div className="bg-white border border-border-visible rounded-[5px] p-5 w-full md:w-[268px] flex flex-col gap-[100px]">
+						<div className="flex flex-col gap-5">
+							<span className="text-base text-black">Free</span>
+							<div className="flex items-end gap-1">
+								<span className="text-[32px] font-normal text-black">
+									$0
+								</span>
+								<span className="text-base text-text-secondary">
+									/ month
+								</span>
+							</div>
+							<div className="h-px bg-[#d9d9d9]" />
+							<div className="flex flex-col gap-2">
+								<span className="text-base text-black">
+									What&apos;s included?
+								</span>
+								{[
+									"3 credits on signup",
+									"PDF download included",
+									"Export is always free",
+								].map((item) => (
+									<div
+										key={item}
+										className="flex items-center gap-2"
+									>
+										<CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+										<span className="text-sm text-[#464646]">
+											{item}
+										</span>
 									</div>
-								)}
-
-								{/* Plan info */}
-								<div className="mb-6">
-									<h3 className="font-display text-2xl font-semibold mb-1">
-										{plan.name}
-									</h3>
-									<p className="text-text-secondary text-sm">
-										{plan.description}
-									</p>
-								</div>
-
-								{/* Price */}
-								<div className="mb-8">
-									<span className="font-display text-5xl font-bold">
-										{plan.price}
-									</span>
-									<span className="text-text-secondary">
-										{plan.period}
-									</span>
-								</div>
-
-								{/* Features */}
-								<ul className="space-y-4 mb-8">
-									{plan.features.map((feature) => (
-										<li
-											key={feature}
-											className="flex items-center gap-3"
-										>
-											<div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-												<Check
-													size={12}
-													className="text-accent"
-												/>
-											</div>
-											<span className="text-sm">
-												{feature}
-											</span>
-										</li>
-									))}
-								</ul>
-
-								{/* CTA */}
-								<button
-									onClick={() => handleCTA(plan.id)}
-									disabled={plan.id === "pro_75" && isLoading}
-									className={`w-full py-3.5 px-4 font-medium rounded-sm transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-[0.98] ${
-										plan.popular
-											? "bg-accent text-accent-foreground hover:bg-accent-hover"
-											: "bg-surface-inset text-text-primary hover:bg-surface-overlay"
-									} ${isLoading && plan.id === "pro_75" ? "opacity-70 cursor-not-allowed" : ""}`}
-								>
-									{plan.id === "pro_75" && isLoading ? (
-										<>
-											<Loader2
-												size={16}
-												className="animate-spin"
-											/>
-											Processing...
-										</>
-									) : (
-										plan.cta
-									)}
-								</button>
+								))}
 							</div>
 						</div>
-					))}
-				</div>
+						<Link
+							href="/get-started"
+							className="w-full h-10 bg-[var(--primary-brown)] text-white text-base rounded-[5px] flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer"
+						>
+							Start Free
+						</Link>
+					</div>
 
-				{/* Microcopy */}
-				<p className="text-center text-sm text-text-secondary mt-8 animate-fade-in animation-delay-600">
-					Flexible plans. Cancel anytime, no hidden fees.
-				</p>
+					{/* Pro Plan */}
+					<div className="relative rounded-[5px] overflow-hidden w-full md:w-[262px]">
+						<div className="bg-gradient-to-b from-[#d54e21] to-[#9d2e09] p-5 flex flex-col gap-[100px]">
+						{/* Decorative ellipses — 4 rotated/skewed shapes per Figma */}
+						{[
+							{ left: 142.79, top: 201 },
+							{ left: 102, top: 229.76 },
+							{ left: 143.06, top: 260.57 },
+							{ left: 102.28, top: 289.33 },
+						].map((pos, i) => (
+							<div
+								key={i}
+								className="absolute flex items-center justify-center w-[179px] h-[167px] pointer-events-none"
+								style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
+							>
+								<div
+									className="w-[122px] h-[125px] rounded-full bg-white/10"
+									style={{ transform: "rotate(50.91deg) skewX(-3.9deg)" }}
+								/>
+							</div>
+						))}
+
+							<div className="relative z-10 flex flex-col gap-5">
+								<div className="flex items-center justify-between">
+									<span className="text-base text-white">
+										Pro
+									</span>
+									<span className="bg-white/10 border border-white/50 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+										Best Value
+									</span>
+								</div>
+								<div className="flex items-end gap-1">
+									<span className="text-[32px] font-normal text-white">
+										$10
+									</span>
+									<span className="text-base text-white">
+										/ month
+									</span>
+								</div>
+								<div className="h-px bg-[#d9d9d9] opacity-30" />
+								<div className="flex flex-col gap-2">
+									<span className="text-base text-white">
+										What&apos;s included?
+									</span>
+									{[
+										"50 credits per month",
+										"Unlimited PDF exports",
+										"Cancel anytime",
+									].map((item) => (
+										<div
+											key={item}
+											className="flex items-center gap-2"
+										>
+											<CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+											<span className="text-sm text-white">
+												{item}
+											</span>
+										</div>
+									))}
+								</div>
+							</div>
+							<button
+								onClick={handleSubscribe}
+								disabled={isCheckoutLoading || authLoading}
+								className="relative z-10 w-full h-10 bg-white text-accent text-base rounded-[5px] flex items-center justify-center hover:bg-white/90 transition-colors cursor-pointer disabled:opacity-70"
+							>
+								{isCheckoutLoading ? (
+									<>
+										<Loader2 className="w-4 h-4 mr-2 animate-spin" />
+										Processing...
+									</>
+								) : (
+									"Subscribe"
+								)}
+							</button>
+						</div>
+					</div>
+				</div>
 			</div>
 		</section>
 	);

@@ -52,25 +52,25 @@ export default function ModeCards({
 						className={[
 							"text-left rounded-2xl border p-4 transition",
 							selected
-								? "border-[rgba(233,221,199,0.35)] bg-[rgba(233,221,199,0.08)] shadow-[0_18px_60px_rgba(0,0,0,0.35)]"
-								: "border-[rgba(233,221,199,0.12)] bg-[rgba(233,221,199,0.04)] hover:border-[rgba(233,221,199,0.20)]",
+								? "border-cta bg-surface-inset shadow-card"
+								: "border-border-visible bg-surface-base hover:border-text-secondary",
 						].join(" ")}
 					>
-						<div className="text-xs text-[rgba(233,221,199,0.65)]">
+						<div className="text-xs text-text-secondary">
 							{m.badge}
 						</div>
 						<div className="mt-1 text-sm font-semibold">
 							{m.title}
 						</div>
-						<div className="mt-1 text-xs leading-relaxed text-[rgba(233,221,199,0.70)]">
+						<div className="mt-1 text-xs leading-relaxed text-text-secondary">
 							{m.desc}
 						</div>
 
 						{/* animated border glow */}
-						<div className="relative mt-3 h-0.5 w-full overflow-hidden rounded-full bg-[rgba(233,221,199,0.10)]">
+						<div className="relative mt-3 h-0.5 w-full overflow-hidden rounded-full bg-surface-inset">
 							{!reduceMotion && selected && (
 								<motion.div
-									className="absolute inset-y-0 left-0 w-1/3 bg-[rgba(233,221,199,0.55)]"
+									className="absolute inset-y-0 left-0 w-1/3 bg-cta"
 									animate={{ x: ["-40%", "260%"] }}
 									transition={{
 										duration: 1.8,

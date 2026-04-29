@@ -72,31 +72,31 @@ export default function FilePreview({
 	const renderIcon = () => {
 		if (isDeleting) {
 			return (
-				<Loader2 className="h-5 w-5 text-[rgba(233,221,199,0.7)] animate-spin" />
+				<Loader2 className="h-5 w-5 text-text-secondary animate-spin" />
 			);
 		}
 
 		switch (uploadState) {
 			case "preparing":
 				return (
-					<Loader2 className="h-5 w-5 text-[rgba(233,221,199,0.7)] animate-spin" />
+					<Loader2 className="h-5 w-5 text-text-secondary animate-spin" />
 				);
 			case "uploading":
 				return (
-					<Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
+					<Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
 				);
 			case "uploaded_temp":
-				return <CheckCircle className="h-5 w-5 text-yellow-400" />;
+				return <CheckCircle className="h-5 w-5 text-yellow-500" />;
 			case "uploaded_final":
-				return <CheckCircle className="h-5 w-5 text-green-400" />;
+				return <CheckCircle className="h-5 w-5 text-green-600" />;
 			case "error":
-				return <AlertCircle className="h-5 w-5 text-red-400" />;
+				return <AlertCircle className="h-5 w-5 text-red-500" />;
 			default:
 				if (isRestored) {
-					return <CheckCircle className="h-5 w-5 text-green-400" />;
+					return <CheckCircle className="h-5 w-5 text-green-600" />;
 				}
 				return (
-					<FileIcon className="h-5 w-5 text-[rgba(233,221,199,0.7)]" />
+					<FileIcon className="h-5 w-5 text-text-secondary" />
 				);
 		}
 	};
@@ -123,11 +123,11 @@ export default function FilePreview({
 						: "";
 				return (
 					<span className="flex items-center gap-1">
-						<span className="text-blue-400 font-medium">
+						<span className="text-blue-500 font-medium">
 							{progressText}
 						</span>
 						<span>{bytesText}</span>
-						<span className="text-[rgba(233,221,199,0.4)]">
+						<span className="text-text-tertiary">
 							{etaText}
 						</span>
 					</span>
@@ -136,7 +136,7 @@ export default function FilePreview({
 				return (
 					<span className="flex items-center gap-1.5">
 						{displaySize}
-						<span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+						<span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700 border border-yellow-300">
 							Not confirmed
 						</span>
 					</span>
@@ -145,14 +145,14 @@ export default function FilePreview({
 				return (
 					<span className="flex items-center gap-1.5">
 						{displaySize}
-						<span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+						<span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 border border-green-300">
 							Uploaded
 						</span>
 					</span>
 				);
 			case "error":
 				return (
-					<span className="text-red-400 text-xs">
+					<span className="text-red-500 text-xs">
 						{errorMessage || "Upload failed"}
 					</span>
 				);
@@ -170,7 +170,7 @@ export default function FilePreview({
 			return (
 				<button
 					onClick={onCancel}
-					className="flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-xs text-[rgba(233,221,199,0.7)] transition-colors hover:bg-[rgba(233,221,199,0.1)] hover:text-[#E9DDC7]"
+					className="flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-xs text-text-secondary transition-colors hover:bg-surface-inset hover:text-text-primary"
 					type="button"
 					title="Cancel upload"
 				>
@@ -185,7 +185,7 @@ export default function FilePreview({
 				<div className="flex items-center gap-1">
 					<button
 						onClick={onRetry}
-						className="flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-xs text-blue-400 transition-colors hover:bg-blue-500/10"
+						className="flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-xs text-blue-500 transition-colors hover:bg-blue-50"
 						type="button"
 						title="Retry upload"
 					>
@@ -194,7 +194,7 @@ export default function FilePreview({
 					</button>
 					<button
 						onClick={onRemove}
-						className="flex h-8 w-8 items-center justify-center rounded-lg text-[rgba(233,221,199,0.5)] transition-colors hover:bg-[rgba(233,221,199,0.1)] hover:text-[#E9DDC7]"
+						className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-surface-inset hover:text-text-primary"
 						type="button"
 						title="Remove file"
 					>
@@ -208,7 +208,7 @@ export default function FilePreview({
 			<button
 				onClick={onRemove}
 				disabled={isDeleting || uploadState === "preparing"}
-				className="flex h-8 w-8 items-center justify-center rounded-lg text-[rgba(233,221,199,0.5)] transition-colors hover:bg-[rgba(233,221,199,0.1)] hover:text-[#E9DDC7] disabled:opacity-50 disabled:cursor-not-allowed"
+				className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-surface-inset hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
 				type="button"
 				title={
 					isDeleting
@@ -224,18 +224,18 @@ export default function FilePreview({
 	};
 
 	return (
-		<div className="flex min-h-[80px] w-full flex-col rounded-xl border border-[rgba(233,221,199,0.15)] bg-[rgba(233,221,199,0.05)]">
+		<div className="flex min-h-[80px] w-full flex-col rounded-xl border border-border-visible bg-surface-raised">
 			{/* Main content row */}
 			<div className="flex flex-1 items-center justify-between px-4 py-3">
 				<div className="flex items-center gap-3 min-w-0">
-					<div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[rgba(233,221,199,0.1)]">
+					<div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-surface-inset">
 						{renderIcon()}
 					</div>
 					<div className="min-w-0">
-						<p className="text-sm font-medium text-[#E9DDC7] truncate max-w-[200px]">
+						<p className="text-sm font-medium text-text-primary truncate max-w-[200px]">
 							{displayName}
 						</p>
-						<p className="text-xs text-[rgba(233,221,199,0.5)]">
+						<p className="text-xs text-text-secondary">
 							{renderStatus()}
 						</p>
 					</div>
@@ -246,7 +246,7 @@ export default function FilePreview({
 			{/* Progress bar */}
 			{uploadState === "uploading" && (
 				<div className="px-4 pb-3">
-					<div className="h-1.5 w-full rounded-full bg-[rgba(233,221,199,0.1)] overflow-hidden">
+					<div className="h-1.5 w-full rounded-full bg-surface-inset overflow-hidden">
 						<div
 							className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-300 ease-out"
 							style={{ width: `${uploadProgress}%` }}

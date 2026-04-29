@@ -25,7 +25,8 @@ interface ClaimedPdfJob {
 }
 
 // Constants
-const LATEX_ONLINE_URL = "https://latexonline.cc/compile";
+const LATEX_ONLINE_URL =
+	"https://latex-pdf-conversion-service.atsresumie.com/compile/pdf";
 const MAX_LATEX_LENGTH = 30_000;
 const PDF_BUCKET = "generated-pdfs";
 const TIME_BUDGET_MS = 50_000; // PDF compilation can be slower, allow 50s
@@ -52,14 +53,12 @@ async function compileAndUploadPDF(
 	try {
 		console.log(`[PDF Worker] Compiling PDF for job ${jobId}...`);
 
-		const compileUrl = new URL(LATEX_ONLINE_URL);
-		compileUrl.searchParams.set("text", latexText);
-		compileUrl.searchParams.set("force", "true");
-		compileUrl.searchParams.set("command", "pdflatex");
-
-		const response = await fetch(compileUrl.toString(), {
-			method: "GET",
-			headers: { Accept: "application/pdf" },
+		const response = await fetch(LATEX_ONLINE_URL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "text/plain",
+			},
+			body: latexText,
 		});
 
 		if (!response.ok) {

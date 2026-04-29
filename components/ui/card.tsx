@@ -18,7 +18,7 @@ const cardVariants = cva(
 				// Default: raised surface
 				default: "bg-surface-raised",
 				// Inset: pressed panel effect (signature motif)
-				inset: "bg-surface-inset border-border-subtle shadow-[inset_0_1px_0_0_hsl(30_6%_4%)]",
+				inset: "bg-surface-inset border-border-subtle shadow-[inset_0_1px_0_0_var(--border-subtle)]",
 				// Ghost: no background
 				ghost: "bg-transparent border-transparent",
 			},

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { FileText, ChevronDown, Plus, Check, Upload, Loader2 } from "lucide-react";
 import { useResumeVersions } from "@/hooks/useResumeVersions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,6 +44,17 @@ export function ResumeSelector({
 	const [isDragging, setIsDragging] = useState(false);
 	const [isQuickUploading, setIsQuickUploading] = useState(false);
 	const [quickUploadError, setQuickUploadError] = useState<string | null>(null);
+
+	// If parent selected a resume we don't have yet, refetch the list
+	useEffect(() => {
+		if (
+			externalSelectedId &&
+			resumes.length > 0 &&
+			!resumes.some((r) => r.id === externalSelectedId)
+		) {
+			refetch();
+		}
+	}, [externalSelectedId, resumes, refetch]);
 
 	// Use external selection if provided, otherwise use default resume
 	const selectedId = externalSelectedId ?? defaultResume?.id ?? null;

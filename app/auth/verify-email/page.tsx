@@ -44,7 +44,7 @@ function VerifyEmailContent() {
 	};
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-[hsl(24,28%,10%)] px-4">
+		<div className="flex min-h-screen items-center justify-center bg-surface-base px-4">
 			<motion.div
 				className="w-full max-w-md text-center"
 				initial={{ opacity: 0, y: 20 }}
@@ -52,24 +52,24 @@ function VerifyEmailContent() {
 				transition={{ type: "spring", stiffness: 120, damping: 20 }}
 			>
 				{/* Icon */}
-				<div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[rgba(233,221,199,0.08)] ring-1 ring-[rgba(233,221,199,0.12)]">
+				<div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-surface-raised ring-1 ring-border-visible">
 					<Mail
-						className="h-9 w-9 text-[#E9DDC7]"
+						className="h-9 w-9 text-text-primary"
 						strokeWidth={1.5}
 					/>
 				</div>
 
 				{/* Heading */}
-				<h1 className="mb-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-[#E9DDC7]">
+				<h1 className="mb-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-text-primary">
 					Check your email
 				</h1>
 
-				<p className="mb-6 text-sm leading-relaxed text-[rgba(233,221,199,0.6)]">
+				<p className="mb-6 text-sm leading-relaxed text-text-secondary">
 					We&apos;ve sent a verification link to
 					{email ? (
 						<>
 							<br />
-							<span className="font-medium text-[#E9DDC7]">
+							<span className="font-medium text-text-primary">
 								{email}
 							</span>
 						</>
@@ -88,12 +88,12 @@ function VerifyEmailContent() {
 					].map((step, i) => (
 						<div
 							key={i}
-							className="flex items-center gap-3 rounded-lg bg-[rgba(233,221,199,0.04)] px-4 py-2.5 ring-1 ring-[rgba(233,221,199,0.08)]"
+							className="flex items-center gap-3 rounded-lg bg-surface-raised px-4 py-2.5 ring-1 ring-border-subtle"
 						>
-							<span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgba(233,221,199,0.1)] text-xs font-semibold text-[#E9DDC7]">
+							<span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-inset text-xs font-semibold text-text-primary">
 								{i + 1}
 							</span>
-							<span className="text-sm text-[rgba(233,221,199,0.7)]">
+							<span className="text-sm text-text-secondary">
 								{step}
 							</span>
 						</div>
@@ -102,13 +102,13 @@ function VerifyEmailContent() {
 
 				{/* Resend */}
 				<div className="mb-6 space-y-2">
-					<p className="text-xs text-[rgba(233,221,199,0.4)]">
+					<p className="text-xs text-text-tertiary">
 						Didn&apos;t receive the email? Check your spam folder or
 					</p>
 					<button
 						onClick={handleResend}
 						disabled={isResending || !email}
-						className="inline-flex items-center gap-1.5 text-sm font-medium text-[#E9DDC7] transition-colors hover:text-[rgba(233,221,199,0.8)] disabled:opacity-40 disabled:cursor-not-allowed"
+						className="inline-flex items-center gap-1.5 text-sm font-medium text-text-primary transition-colors hover:text-text-secondary disabled:opacity-40 disabled:cursor-not-allowed"
 					>
 						<RefreshCw
 							className={`h-3.5 w-3.5 ${isResending ? "animate-spin" : ""}`}
@@ -118,7 +118,7 @@ function VerifyEmailContent() {
 							: "Resend verification email"}
 					</button>
 					{resendMessage && (
-						<p className="text-xs text-[rgba(233,221,199,0.6)]">
+						<p className="text-xs text-text-secondary">
 							{resendMessage}
 						</p>
 					)}
@@ -127,7 +127,7 @@ function VerifyEmailContent() {
 				{/* Back to sign in */}
 				<Link
 					href="/"
-					className="inline-flex items-center gap-2 rounded-xl bg-[rgba(233,221,199,0.06)] px-5 py-2.5 text-sm font-medium text-[#E9DDC7] ring-1 ring-[rgba(233,221,199,0.12)] transition-all hover:bg-[rgba(233,221,199,0.1)]"
+					className="inline-flex items-center gap-2 rounded-xl bg-surface-raised px-5 py-2.5 text-sm font-medium text-text-primary ring-1 ring-border-visible transition-all hover:bg-surface-inset"
 				>
 					<ArrowLeft className="h-4 w-4" />
 					Back to home
@@ -139,7 +139,7 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
 	return (
-		<Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[hsl(24,28%,10%)] text-[#E9DDC7]">Loading…</div>}>
+		<Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-surface-base text-text-primary">Loading…</div>}>
 			<VerifyEmailContent />
 		</Suspense>
 	);

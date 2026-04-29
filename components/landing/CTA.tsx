@@ -2,58 +2,54 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 /**
- * CTA Component - Server Component (no framer-motion)
+ * CTA — Server Component
+ *
+ * Bold final CTA. "Stop Applying. Start Landing." with two action buttons.
  */
 
 export const CTA = () => {
 	return (
-		<section className="relative py-24 md:py-32 overflow-hidden">
-			{/* Background */}
-			<div className="absolute inset-0 bg-gradient-to-b from-surface-raised/20 to-surface-base" />
-
-			{/* Decorative elements - CSS animations */}
-			<div
-				className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full opacity-10 animate-float-slow"
-				style={{
-					background:
-						"radial-gradient(circle, hsl(36, 30%, 70%) 0%, transparent 70%)",
-					filter: "blur(60px)",
-				}}
-			/>
-			<div
-				className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full opacity-10 animate-float-reverse"
-				style={{
-					background:
-						"radial-gradient(circle, hsl(32, 28%, 66%) 0%, transparent 70%)",
-					filter: "blur(40px)",
-				}}
-			/>
-
-			<div className="container mx-auto relative z-10">
-				<div className="max-w-3xl mx-auto text-center animate-fade-in-up">
-					<h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold mb-6">
-						Stop prompt-engineering.{" "}
-						<span className="text-gradient">
-							Tailor your resume the right way.
-						</span>
+		<section className="py-24 md:py-32">
+			<div className="container mx-auto px-4">
+				<div className="max-w-2xl mx-auto text-center">
+					{/* Bold headline */}
+					<h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tight mb-1 text-text-primary">
+						Stop Applying.
+					</h2>
+					{/* Outlined / lighter headline */}
+					<h2
+						className="font-display text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tight mb-8"
+						style={{
+							WebkitTextStroke: "1.5px var(--text-tertiary)",
+							WebkitTextFillColor: "transparent",
+						}}
+					>
+						Start Landing.
 					</h2>
 
-					<div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-in-up animation-delay-200">
+					{/* Supporting copy */}
+					<p className="text-base md:text-lg text-text-secondary mb-10 max-w-lg mx-auto">
+						Join thousands of job seekers who get more interviews
+						with tailored, ATS-optimized resumes — in minutes, not
+						hours.
+					</p>
+
+					{/* CTA buttons */}
+					<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
 						<Link
 							href="/get-started"
-							className="group inline-flex items-center gap-2 px-8 py-4 bg-accent text-accent-foreground font-semibold rounded-sm hover:bg-accent-hover transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+							className="inline-flex items-center gap-2 px-8 py-3.5 bg-cta text-cta-foreground font-semibold rounded-lg hover:bg-cta-hover transition-all hover:-translate-y-0.5 active:scale-[0.98]"
 						>
-							Get started
-							<ArrowRight
-								size={18}
-								className="transition-transform group-hover:translate-x-1"
-							/>
+							Get 3 free credits
+							<ArrowRight size={16} />
+						</Link>
+						<Link
+							href="/auth/signup"
+							className="inline-flex items-center gap-2 px-8 py-3.5 font-semibold rounded-lg border border-border-visible text-text-primary hover:bg-surface-raised transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+						>
+							Sign Up for FREE
 						</Link>
 					</div>
-
-					<p className="text-sm text-text-secondary animate-fade-in animation-delay-400">
-						3 free credits on signup · No credit card required
-					</p>
 				</div>
 			</div>
 		</section>
